@@ -971,7 +971,7 @@ void MainWindow::CalcForce(int & num_pts, int & num_ele, CNode *m_n, CElement * 
 	customPlot->yAxis->setRange(-0.09, 0.09);
 	customPlot->xAxis2->setTicks(false);
 	customPlot->yAxis->setScaleRatio(ui->widget->xAxis, 1.0);
-
+	
 	//customPlot->yAxis->setTickStep(ui->widget->xAxis->tickStep());
 	customPlot->yAxis->setAutoTickStep(false);
 	ui->widget->yAxis->setAutoTickLabels(false);
