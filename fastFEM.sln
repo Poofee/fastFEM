@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.40629.0
+VisualStudioVersion = 12.0.21005.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SuperLU_MT_3.1", "SuperLU_MT_3.1\SuperLU_MT_3.1.vcxproj", "{26F7931C-A699-4CD2-8149-60573747218E}"
 EndProject
@@ -10,6 +10,8 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "TLM_superLU_MT", "TLM_superLU_MT\TLM_superLU_MT.vcxproj", "{0A6EB07D-E251-3EC7-B235-BA97F9A3CEA0}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NRMT", "NRMT\NRMT.vcxproj", "{D06C6FAC-3FC0-3DA8-A188-A7C0FBA19BF3}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "triangle", "triangle\triangle.vcxproj", "{FD8ED472-CA84-32E6-A90C-E5FD163A7AC6}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -63,6 +65,16 @@ Global
 		{D06C6FAC-3FC0-3DA8-A188-A7C0FBA19BF3}.Release|Win32.ActiveCfg = Release|x64
 		{D06C6FAC-3FC0-3DA8-A188-A7C0FBA19BF3}.Release|x64.ActiveCfg = Release|x64
 		{D06C6FAC-3FC0-3DA8-A188-A7C0FBA19BF3}.Release|x64.Build.0 = Release|x64
+		{FD8ED472-CA84-32E6-A90C-E5FD163A7AC6}.Debug|Mixed Platforms.ActiveCfg = Debug|x64
+		{FD8ED472-CA84-32E6-A90C-E5FD163A7AC6}.Debug|Mixed Platforms.Build.0 = Debug|x64
+		{FD8ED472-CA84-32E6-A90C-E5FD163A7AC6}.Debug|Win32.ActiveCfg = Debug|x64
+		{FD8ED472-CA84-32E6-A90C-E5FD163A7AC6}.Debug|x64.ActiveCfg = Debug|x64
+		{FD8ED472-CA84-32E6-A90C-E5FD163A7AC6}.Debug|x64.Build.0 = Debug|x64
+		{FD8ED472-CA84-32E6-A90C-E5FD163A7AC6}.Release|Mixed Platforms.ActiveCfg = Release|x64
+		{FD8ED472-CA84-32E6-A90C-E5FD163A7AC6}.Release|Mixed Platforms.Build.0 = Release|x64
+		{FD8ED472-CA84-32E6-A90C-E5FD163A7AC6}.Release|Win32.ActiveCfg = Release|x64
+		{FD8ED472-CA84-32E6-A90C-E5FD163A7AC6}.Release|x64.ActiveCfg = Release|x64
+		{FD8ED472-CA84-32E6-A90C-E5FD163A7AC6}.Release|x64.Build.0 = Release|x64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
