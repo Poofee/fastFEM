@@ -71,6 +71,9 @@
     <ClCompile Include="..\qcustomplot\qcustomplot.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="FastFEMcore.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="datatype.h">
@@ -80,6 +83,9 @@
       <Filter>Header Files</Filter>
     </CustomBuild>
     <ClInclude Include="GeneratedFiles\ui_mainwindow.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FastFEMcore.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
   </ItemGroup>

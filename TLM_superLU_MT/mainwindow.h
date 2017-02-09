@@ -18,6 +18,8 @@ public:
     ~MainWindow();
 	
 	double HB(double B);
+	void LoadTriangleMesh(char * filename);
+	void LoadCOMSOLMesh(char * filename);
 	void readDataFile(char *fileName, int & num_pts, int & num_ele, CNode **ppmeshnode, CElement ** ppmeshele);
     void TLM(int & num_pts, int & num_ele, CNode *pmeshnode, CElement * m_l);
 	void CalcForce(int & num_pts, int & num_ele, CNode *pmeshnode, CElement * m_l);
