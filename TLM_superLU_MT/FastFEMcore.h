@@ -18,6 +18,8 @@ public:
 	~CFastFEMcore();	
 	// load mesh
 	int LoadMesh();
+	double HB(double B);
 	bool StaticAxisymmetric();
+	double CalcForce();
 };
 
