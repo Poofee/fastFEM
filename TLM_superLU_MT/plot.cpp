@@ -7,7 +7,7 @@
 //by poofee
 //add the LU fact directly using superLU
 //and we don't process the LU fact in every iteration.
-#include "mainwindow.h"
+#include "plot.h"
 #include "ui_mainwindow.h"
 
 #include <stdio.h>
@@ -20,7 +20,7 @@
 
 
 
-MainWindow::MainWindow(QWidget *parent) :
+Plot::Plot(QWidget *parent) :
 QMainWindow(parent),
 ui(new Ui::MainWindow) {
 	ui->setupUi(this);
@@ -29,7 +29,7 @@ ui(new Ui::MainWindow) {
 	connect(start, SIGNAL(triggered()), this, SLOT(TLMcalculation()));
 	setContextMenuPolicy(Qt::ActionsContextMenu);
 }
-MainWindow::~MainWindow() {
+Plot::~Plot() {
 	delete ui;
 }
 typedef struct{
@@ -52,7 +52,7 @@ double mymin(double a, double b) {
 }
 
 
-void MainWindow::TLMcalculation() {
+void Plot::TLMcalculation() {
 	///*read coarse mesh data from file*/
 	//double U0 = 1;// PI*4e-7;
 	//char  coarseFN[] = "E:\\Projects\\axispmmodel\\mesh04.mphtxt";

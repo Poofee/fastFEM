@@ -1,5 +1,6 @@
 #pragma once
 #include "datatype.h"
+#include "plot.h"
 
 class CFastFEMcore
 {
@@ -15,6 +16,7 @@ public:
 	int		LengthUnits;
 	CMaterial* materialList;
 
+	Plot * thePlot;
 	CFastFEMcore();
 	~CFastFEMcore();	
 	// load mesh

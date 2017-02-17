@@ -6,7 +6,7 @@
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
-    MainWindow w;
+	Plot w;
     w.show();
 	//w.TLMcalculation();
     return a.exec();

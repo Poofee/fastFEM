@@ -9,13 +9,13 @@ namespace Ui {
 class MainWindow;
 }
 
-class MainWindow : public QMainWindow
+class Plot : public QMainWindow
 {
     Q_OBJECT
 
 public:
-    explicit MainWindow(QWidget *parent = 0);
-    ~MainWindow();
+	explicit Plot(QWidget *parent = 0);
+	~Plot();
 	
 public slots:
 	void TLMcalculation();
