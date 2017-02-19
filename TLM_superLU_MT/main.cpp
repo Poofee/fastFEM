@@ -1,4 +1,4 @@
-#include "mainwindow.h"
+#include "plot.h"
 #include <QApplication>
 
 #define PI 3.14159265358979323846
