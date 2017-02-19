@@ -22,7 +22,7 @@
 
 Plot::Plot(QWidget *parent) :
 QMainWindow(parent),
-ui(new Ui::MainWindow) {
+ui(new Ui::Plot) {
 	ui->setupUi(this);
 	QAction *start = new QAction("TLM", this);
 	addAction(start);

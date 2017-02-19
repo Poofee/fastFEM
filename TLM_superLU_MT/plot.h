@@ -6,7 +6,7 @@
 #include "datatype.h"
 
 namespace Ui {
-class MainWindow;
+	class Plot;
 }
 
 class Plot : public QMainWindow
@@ -21,7 +21,7 @@ public slots:
 	void TLMcalculation();
 
 private:
-    Ui::MainWindow *ui;
+	Ui::Plot *ui;
 
 };
 

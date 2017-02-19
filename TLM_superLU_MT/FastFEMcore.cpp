@@ -255,7 +255,7 @@ bool CFastFEMcore::StaticAxisymmetric() {
 				flag++;
 
 		if (flag == 2) {
-			ydot = pmeshele[i].rc;
+			ydot[i] = pmeshele[i].rc;
 		} else {
 			ydot[i] = 1 / (pmeshnode[pmeshele[i].n[0]].x + pmeshnode[pmeshele[i].n[1]].x);
 			ydot[i] += 1 / (pmeshnode[pmeshele[i].n[0]].x + pmeshnode[pmeshele[i].n[2]].x);
@@ -311,14 +311,14 @@ bool CFastFEMcore::StaticAxisymmetric() {
 			}
 		}
 		//计算电流密度//要注意domain会不会越界
-		double jr = pmeshele[i].AREA*materialList[pmeshele[i].domain].Jr / 3;
+		double jr = pmeshele[i].AREA*materialList[pmeshele[i].domain-1].Jr / 3;
 		pmeshnode[pmeshele[i].n[0]].I += jr;
 		pmeshnode[pmeshele[i].n[1]].I += jr;
 		pmeshnode[pmeshele[i].n[2]].I += jr;
 		//计算永磁部分
-		pmeshnode[pmeshele[i].n[0]].pm += materialList[pmeshele[i].domain].H_c / 2.*pmeshele[i].Q[0];
-		pmeshnode[pmeshele[i].n[1]].pm += materialList[pmeshele[i].domain].H_c / 2.*pmeshele[i].Q[1];
-		pmeshnode[pmeshele[i].n[2]].pm += materialList[pmeshele[i].domain].H_c / 2.*pmeshele[i].Q[2];
+		pmeshnode[pmeshele[i].n[0]].pm += materialList[pmeshele[i].domain-1].H_c / 2.*pmeshele[i].Q[0];
+		pmeshnode[pmeshele[i].n[1]].pm += materialList[pmeshele[i].domain-1].H_c / 2.*pmeshele[i].Q[1];
+		pmeshnode[pmeshele[i].n[2]].pm += materialList[pmeshele[i].domain-1].H_c / 2.*pmeshele[i].Q[2];
 	}
 	//----using armadillo constructor function-----
 	sp_mat X(true, locs, vals, num_pts, num_pts, true, true);
@@ -365,7 +365,7 @@ bool CFastFEMcore::StaticAxisymmetric() {
 
 			pmeshele[d34].B = sqrt(pmeshele[d34].By*pmeshele[d34].By +
 				pmeshele[d34].Bx*pmeshele[d34].Bx);
-			pmeshele[d34].miu = materialList[pmeshele[d34].domain].GetMiu(pmeshele[d34].B);
+			pmeshele[d34].miu = materialList[pmeshele[d34].domain-1].GetMiu(pmeshele[d34].B);
 			y1[i] = pmeshele[d34].B;
 		}
 		//#pragma omp parallel for
@@ -724,7 +724,7 @@ double CFastFEMcore::CalcForce() {
 	return 0;
 }
 
-
+//打开工程文件，读取
 int CFastFEMcore::openProject() {
 
 	return 0;
@@ -752,7 +752,7 @@ int CFastFEMcore::preCalculation() {
 		//主要根据材料属性完成单元当中miu,miut,的赋值；
 		//由于I,pm与形函数有关系，为实现分离，不在此计算
 		CMaterial  mat;
-		mat = materialList[pmeshele[i].domain];
+		mat = materialList[pmeshele[i].domain-1];
 
 		if (mat.BHpoints == 0) {
 			pmeshele[i].miu = 1;
