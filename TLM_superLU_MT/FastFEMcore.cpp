@@ -222,6 +222,7 @@ int CFastFEMcore::LoadMesh() {
 }
 
 
+// 这部分使用TLM进行求解
 bool CFastFEMcore::StaticAxisymmetric() {
 	double U0 = 1;// PI*4e-7;
 	std::vector <int> D34;
@@ -243,7 +244,6 @@ bool CFastFEMcore::StaticAxisymmetric() {
 	vec A = zeros<vec>(num_pts);
 	vec A_old = A;
 	vec INL = zeros<vec>(num_pts);
-	vec bb = zeros<vec>(num_pts);
 	vec rpm = zeros<vec>(num_pts);
 	double * ydot = (double*)malloc(num_ele);
 	//轴对称：A'=rA,v'=v/r,
@@ -251,7 +251,7 @@ bool CFastFEMcore::StaticAxisymmetric() {
 		//确定单元的近似半径
 		int flag = 0;
 		for (int f = 0; f < 3; f++)
-			if (pmeshnode[pmeshele[i].n[f]].x < 1e-6)
+			if (pmeshnode[pmeshele[i].n[f]].x < 1e-9)
 				flag++;
 
 		if (flag == 2) {
@@ -277,31 +277,19 @@ bool CFastFEMcore::StaticAxisymmetric() {
 		rm[i].Y23 /= 4. * pmeshele[i].AREA*ydot[i];
 		rm[i].Y33 /= 4. * pmeshele[i].AREA*ydot[i];
 		//生成单元矩阵，线性与非线性
-		if (pmeshele[i].LinearFlag) {
-			ce[0][0] = abs(rm[i].Y11) / pmeshele[i].miu;
-			ce[1][1] = abs(rm[i].Y22) / pmeshele[i].miu;
-			ce[2][2] = abs(rm[i].Y33) / pmeshele[i].miu;
+		// 因为线性与非线性的差不多，所以不再分开讨论了
+		ce[0][0] = abs(rm[i].Y11) / pmeshele[i].miut;
+		ce[1][1] = abs(rm[i].Y22) / pmeshele[i].miut;
+		ce[2][2] = abs(rm[i].Y33) / pmeshele[i].miut;
 
-			ce[0][1] = -abs(rm[i].Y12) / pmeshele[i].miu;
-			ce[0][2] = -abs(rm[i].Y13) / pmeshele[i].miu;
-			ce[1][2] = -abs(rm[i].Y23) / pmeshele[i].miu;
+		ce[0][1] = -abs(rm[i].Y12) / pmeshele[i].miut;
+		ce[0][2] = -abs(rm[i].Y13) / pmeshele[i].miut;
+		ce[1][2] = -abs(rm[i].Y23) / pmeshele[i].miut;
 
-			ce[1][0] = ce[0][1];
-			ce[2][0] = ce[0][2];
-			ce[2][1] = ce[1][2];
-		} else {
-			ce[0][0] = abs(rm[i].Y11) / pmeshele[i].miut;
-			ce[1][1] = abs(rm[i].Y22) / pmeshele[i].miut;
-			ce[2][2] = abs(rm[i].Y33) / pmeshele[i].miut;
+		ce[1][0] = ce[0][1];
+		ce[2][0] = ce[0][2];
+		ce[2][1] = ce[1][2];
 
-			ce[0][1] = -abs(rm[i].Y12) / pmeshele[i].miut;
-			ce[0][2] = -abs(rm[i].Y13) / pmeshele[i].miut;
-			ce[1][2] = -abs(rm[i].Y23) / pmeshele[i].miut;
-
-			ce[1][0] = ce[0][1];
-			ce[2][0] = ce[0][2];
-			ce[2][1] = ce[1][2];
-		}
 		//将单元矩阵进行存储
 		for (int row = 0; row < 3; row++) {
 			for (int col = 0; col < 3; col++) {
@@ -311,14 +299,14 @@ bool CFastFEMcore::StaticAxisymmetric() {
 			}
 		}
 		//计算电流密度//要注意domain会不会越界
-		double jr = pmeshele[i].AREA*materialList[pmeshele[i].domain-1].Jr / 3;
+		double jr = pmeshele[i].AREA*materialList[pmeshele[i].domain - 1].Jr / 3;
 		pmeshnode[pmeshele[i].n[0]].I += jr;
 		pmeshnode[pmeshele[i].n[1]].I += jr;
 		pmeshnode[pmeshele[i].n[2]].I += jr;
 		//计算永磁部分
-		pmeshnode[pmeshele[i].n[0]].pm += materialList[pmeshele[i].domain-1].H_c / 2.*pmeshele[i].Q[0];
-		pmeshnode[pmeshele[i].n[1]].pm += materialList[pmeshele[i].domain-1].H_c / 2.*pmeshele[i].Q[1];
-		pmeshnode[pmeshele[i].n[2]].pm += materialList[pmeshele[i].domain-1].H_c / 2.*pmeshele[i].Q[2];
+		pmeshnode[pmeshele[i].n[0]].pm += materialList[pmeshele[i].domain - 1].H_c / 2.*pmeshele[i].Q[0];
+		pmeshnode[pmeshele[i].n[1]].pm += materialList[pmeshele[i].domain - 1].H_c / 2.*pmeshele[i].Q[1];
+		pmeshnode[pmeshele[i].n[2]].pm += materialList[pmeshele[i].domain - 1].H_c / 2.*pmeshele[i].Q[2];
 	}
 	//----using armadillo constructor function-----
 	sp_mat X(true, locs, vals, num_pts, num_pts, true, true);
@@ -345,7 +333,7 @@ bool CFastFEMcore::StaticAxisymmetric() {
 		x2[i] = i;
 	}
 	//---------the main loop---------------------------------
-	double Precision = 1e-6;
+
 	int steps = 250;
 
 	int count;
@@ -365,7 +353,7 @@ bool CFastFEMcore::StaticAxisymmetric() {
 
 			pmeshele[d34].B = sqrt(pmeshele[d34].By*pmeshele[d34].By +
 				pmeshele[d34].Bx*pmeshele[d34].Bx);
-			pmeshele[d34].miu = materialList[pmeshele[d34].domain-1].GetMiu(pmeshele[d34].B);
+			pmeshele[d34].miu = materialList[pmeshele[d34].domain - 1].GetMiu(pmeshele[d34].B);
 			y1[i] = pmeshele[d34].B;
 		}
 		//#pragma omp parallel for
@@ -408,6 +396,8 @@ bool CFastFEMcore::StaticAxisymmetric() {
 		}
 		INL.zeros();
 	}
+
+	// 求解结束，更新B
 	for (int i = 0; i < num_ele; i++) {
 		pmeshele[i].Bx = (pmeshele[i].Q[0] * pmeshnode[pmeshele[i].n[0]].A
 			+ pmeshele[i].Q[1] * pmeshnode[pmeshele[i].n[1]].A
@@ -420,6 +410,7 @@ bool CFastFEMcore::StaticAxisymmetric() {
 			pmeshele[i].Bx*pmeshele[i].Bx);
 	}
 
+	// 回收空间
 	if (rm != NULL) free(rm);
 	if (ydot != NULL) free(ydot);
 	if (Vi != NULL) free(Vi);
@@ -752,7 +743,7 @@ int CFastFEMcore::preCalculation() {
 		//主要根据材料属性完成单元当中miu,miut,的赋值；
 		//由于I,pm与形函数有关系，为实现分离，不在此计算
 		CMaterial  mat;
-		mat = materialList[pmeshele[i].domain-1];
+		mat = materialList[pmeshele[i].domain - 1];
 
 		if (mat.BHpoints == 0) {
 			pmeshele[i].miu = 1;
@@ -771,8 +762,9 @@ int CFastFEMcore::preCalculation() {
 //调用其他的子函数完成求解任务，这个求解可以有多个选项，
 //使用NR或者TLM迭代算法，或者选择不同的形函数。
 int CFastFEMcore::solve() {
+	openProject();
 	LoadMesh();
 	preCalculation();
-
+	StaticAxisymmetric();
 	return 0;
 }
