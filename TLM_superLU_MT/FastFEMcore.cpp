@@ -357,7 +357,7 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 
 			pmeshele[d34].B = sqrt(pmeshele[d34].By*pmeshele[d34].By +
 				pmeshele[d34].Bx*pmeshele[d34].Bx);
-			pmeshele[d34].miu = materialList[pmeshele[d34].domain - 1].GetMiu(pmeshele[d34].B);
+			pmeshele[d34].miu = materialList[pmeshele[d34].domain - 1].getMiu(pmeshele[d34].B);
 			y1[i] = pmeshele[d34].B;
 		}
 		//#pragma omp parallel for
@@ -871,4 +871,175 @@ void CFastFEMcore::readBHElement(QXmlStreamReader &reader) {
 
 	}
 	reader.skipCurrentElement();
+}
+
+//使用牛顿迭代实现非线性求解，是真的牛顿迭代而不是松弛迭代
+//牛顿迭代的公式推导，参见颜威利数值分析教材P54
+int CFastFEMcore::staticAxisymmetricNR() {
+	//所需要的变量
+	umat locs(2, 9 * num_ele);
+	locs.zeros();
+	vec vals = zeros<vec>(9 * num_ele);
+	double ce[3][3];
+	double cn[3][3];//用于牛顿迭代
+	vec bbJz = zeros<vec>(num_pts);
+	vec b = zeros<vec>(num_pts);
+	vec A = zeros<vec>(num_pts);
+	vec A_old = A;
+	vec INL = zeros<vec>(num_pts);
+	vec rpm = zeros<vec>(num_pts);
+	double * ydot = (double*)malloc(num_ele);
+	ResistMarix *rm = (ResistMarix*)malloc(num_ele * sizeof(ResistMarix));
+
+	std::vector <int> D34;
+	D34.empty();
+	for (int i = 0; i < num_ele; i++) {
+		if (!pmeshele[i].LinearFlag) {
+			D34.push_back(i);
+		}
+	}
+
+	int iter = 0;//迭代步数
+	while (1) {
+		//生成全局矩阵
+		for (int i = 0; i < num_ele; i++) {
+			//这部分只需计算一次即可
+			if (iter == 0) {
+				int flag = 0;
+				for (int f = 0; f < 3; f++)
+					if (pmeshnode[pmeshele[i].n[f]].x < 1e-9)
+						flag++;
+
+				if (flag == 2) {
+					ydot[i] = pmeshele[i].rc;
+				} else {
+					ydot[i] = 1 / (pmeshnode[pmeshele[i].n[0]].x + pmeshnode[pmeshele[i].n[1]].x);
+					ydot[i] += 1 / (pmeshnode[pmeshele[i].n[0]].x + pmeshnode[pmeshele[i].n[2]].x);
+					ydot[i] += 1 / (pmeshnode[pmeshele[i].n[1]].x + pmeshnode[pmeshele[i].n[2]].x);
+					ydot[i] = 1.5 / ydot[i];
+				}
+				//计算上三角矩阵，这些系数在求解过程当中是不变的
+				rm[i].Y11 = pmeshele[i].Q[0] * pmeshele[i].Q[0] + pmeshele[i].P[0] * pmeshele[i].P[0];
+				rm[i].Y12 = pmeshele[i].Q[0] * pmeshele[i].Q[1] + pmeshele[i].P[0] * pmeshele[i].P[1];
+				rm[i].Y13 = pmeshele[i].Q[0] * pmeshele[i].Q[2] + pmeshele[i].P[0] * pmeshele[i].P[2];
+				rm[i].Y22 = pmeshele[i].Q[1] * pmeshele[i].Q[1] + pmeshele[i].P[1] * pmeshele[i].P[1];
+				rm[i].Y23 = pmeshele[i].Q[1] * pmeshele[i].Q[2] + pmeshele[i].P[1] * pmeshele[i].P[2];
+				rm[i].Y33 = pmeshele[i].Q[2] * pmeshele[i].Q[2] + pmeshele[i].P[2] * pmeshele[i].P[2];
+
+				rm[i].Y11 /= 4. * pmeshele[i].AREA*ydot[i];
+				rm[i].Y12 /= 4. * pmeshele[i].AREA*ydot[i];
+				rm[i].Y13 /= 4. * pmeshele[i].AREA*ydot[i];
+				rm[i].Y22 /= 4. * pmeshele[i].AREA*ydot[i];
+				rm[i].Y23 /= 4. * pmeshele[i].AREA*ydot[i];
+				rm[i].Y33 /= 4. * pmeshele[i].AREA*ydot[i];
+
+				//计算电流密度//要注意domain会不会越界
+				double jr = pmeshele[i].AREA*materialList[pmeshele[i].domain - 1].Jr / 3;
+				pmeshnode[pmeshele[i].n[0]].I += jr;
+				pmeshnode[pmeshele[i].n[1]].I += jr;
+				pmeshnode[pmeshele[i].n[2]].I += jr;
+				//计算永磁部分
+				pmeshnode[pmeshele[i].n[0]].pm += materialList[pmeshele[i].domain - 1].H_c / 2.*pmeshele[i].Q[0];
+				pmeshnode[pmeshele[i].n[1]].pm += materialList[pmeshele[i].domain - 1].H_c / 2.*pmeshele[i].Q[1];
+				pmeshnode[pmeshele[i].n[2]].pm += materialList[pmeshele[i].domain - 1].H_c / 2.*pmeshele[i].Q[2];
+			}//end of iter=0
+			//miut对于线性就等于真值，对于非线性等于上一次的值
+			//主要求解结果不要漏掉miu0
+			ce[0][0] = abs(rm[i].Y11) / pmeshele[i].miut;
+			ce[1][1] = abs(rm[i].Y22) / pmeshele[i].miut;
+			ce[2][2] = abs(rm[i].Y33) / pmeshele[i].miut;
+
+			ce[0][1] = -abs(rm[i].Y12) / pmeshele[i].miut;
+			ce[0][2] = -abs(rm[i].Y13) / pmeshele[i].miut;
+			ce[1][2] = -abs(rm[i].Y23) / pmeshele[i].miut;
+
+			//计算牛顿迭代部分的单元矩阵项,如果是第一次迭代的话，A=0，
+			//所以就不计算了，参见颜威利书P56
+			double v[3];
+			CMaterial mat;
+			mat = materialList[pmeshele[i].domain - 1];
+			v[0] = rm[i].Y11*A(pmeshele[i].n[0]) +
+				rm[i].Y12*A(pmeshele[i].n[1]) +
+				rm[i].Y13*A(pmeshele[i].n[2]);
+			v[1] = rm[i].Y12*A(pmeshele[i].n[0]) +
+				rm[i].Y22*A(pmeshele[i].n[1]) +
+				rm[i].Y23*A(pmeshele[i].n[2]);
+			v[2] = rm[i].Y12*A(pmeshele[i].n[0]) +
+				rm[i].Y23*A(pmeshele[i].n[1]) +
+				rm[i].Y33*A(pmeshele[i].n[2]);
+
+			if (iter != 0) {
+				double tmp = mat.getdvdB / pmeshele[i].B / pmeshele[i].AREA;
+				cn[0][0] = v[0] * v[0] * tmp;
+				cn[1][1] = v[1] * v[1] * tmp;
+				cn[2][2] = v[2] * v[2] * tmp;
+
+				cn[0][1] = v[0] * v[1] * tmp;
+				cn[0][2] = v[0] * v[2] * tmp;
+				cn[1][2] = v[1] * v[2] * tmp;
+			}
+			ce[0][0] += cn[0][0];
+			ce[1][1] += cn[1][1];
+			ce[2][2] += cn[2][2];
+
+			ce[0][1] += cn[0][1];
+			ce[0][2] += cn[0][2];
+			ce[1][2] += cn[1][2];
+
+			ce[1][0] = ce[0][1];
+			ce[2][0] = ce[0][2];
+			ce[2][1] = ce[1][2];
+
+			for (int row = 0; row < 3; row++) {
+				for (int col = 0; col < 3; col++) {
+					locs(0, i * 9 + row * 3 + col) = pmeshele[i].n[row];
+					locs(1, i * 9 + row * 3 + col) = pmeshele[i].n[col];
+					vals(i * 9 + row * 3 + col) = ce[row][col];
+				}
+			}
+
+		}//end of elememt iteration
+		if (iter == 0) {
+			for (int i = 0; i < num_pts; i++) {
+				bbJz(i) = pmeshnode[i].I;
+				rpm(i) = pmeshnode[i].pm;
+			}
+			b = bbJz + rpm;
+		}
+		//使用构造函数来生成稀疏矩阵
+		sp_mat X;
+		X = sp_mat(true, locs, vals, num_pts, num_pts, true, true);
+
+		//---------------------superLU_MT---------------------------------------
+		CSuperLU_MT superlumt(num_pts, X, b);
+		superlumt.solve();
+		double *sol = NULL;
+		A_old = A;
+		sol = superlumt.getResult();
+		for (int i = 0; i < num_pts; i++) {
+			pmeshnode[i].A = sol[i] * miu0;//the A is r*A_real
+			A(i) = sol[i] * miu0;
+		}
+		double error = norm((A_old - A), 2) / norm(A, 2);
+		if (error < Precision) {
+			break;
+		}
+		//---------------------superLU--end----------------------------------
+		//------update miu----------------
+		for (int i = 0; i < D34.size(); i++) {
+			int d34 = D34[i];
+			pmeshele[d34].Bx = (pmeshele[d34].Q[0] * pmeshnode[pmeshele[d34].n[0]].A
+				+ pmeshele[d34].Q[1] * pmeshnode[pmeshele[d34].n[1]].A
+				+ pmeshele[d34].Q[2] * pmeshnode[pmeshele[d34].n[2]].A) / 2. / pmeshele[d34].AREA / ydot[d34];
+			pmeshele[d34].By = (pmeshele[d34].P[0] * pmeshnode[pmeshele[d34].n[0]].A
+				+ pmeshele[d34].P[1] * pmeshnode[pmeshele[d34].n[1]].A
+				+ pmeshele[d34].P[2] * pmeshnode[pmeshele[d34].n[2]].A) / 2. / pmeshele[d34].AREA / ydot[d34];
+
+			pmeshele[d34].B = sqrt(pmeshele[d34].By*pmeshele[d34].By +
+				pmeshele[d34].Bx*pmeshele[d34].Bx);
+			pmeshele[d34].miu = materialList[pmeshele[d34].domain - 1].getMiu(pmeshele[d34].B);
+			//y1[i] = pmeshele[d34].B;
+		}
+	}
+	return 0;
 }

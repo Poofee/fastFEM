@@ -52,7 +52,8 @@ public:
 	
 	CMaterial();
 	~CMaterial();
-	double GetMiu(double B);
+	double getMiu(double B);
+	double getdvdB(double B);//相对磁阻率对B的偏微分
 };
 class CBlock{
 public:
