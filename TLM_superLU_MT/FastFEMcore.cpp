@@ -1,4 +1,7 @@
-#include "FastFEMcore.h"
+#include <QFile>
+#include <QXmlStreamWriter>
+#include <QXmlStreamReader>
+#include <QDebug>
 #include <stdio.h>
 #include <stdlib.h>
 #include <cmath>
@@ -9,9 +12,10 @@
 #include <vector>
 #include <ctime>
 #include <omp.h>
-#include "SuperLU_MT.h"
 #include <QtAlgorithms>
 #include <QVector>
+#include "FastFEMcore.h"
+#include "SuperLU_MT.h"
 #include "spline.h"
 
 using namespace std;
@@ -223,7 +227,7 @@ int CFastFEMcore::LoadMesh() {
 
 
 // 这部分使用TLM进行求解
-bool CFastFEMcore::StaticAxisymmetric() {
+bool CFastFEMcore::StaticAxisymmetricTLM() {
 	double U0 = 1;// PI*4e-7;
 	std::vector <int> D34;
 	D34.empty();
@@ -417,26 +421,6 @@ bool CFastFEMcore::StaticAxisymmetric() {
 	if (Vr != NULL) free(Vr);
 	return true;
 }
-
-double CFastFEMcore::HB(double B) {
-	double miu;
-	double hint;
-	double h[11] = { 0, 200, 500, 1000, 2500, 5000, 10000, 15000, 100000, 500000, 550000 };
-	double b[11] = { 0, 1.2, 1.4, 1.5, 1.62, 1.71, 1.85, 1.851, 1.8511, 5, 5 };
-	std::vector<double> BB(b, b + 11);
-	std::vector<double> HH(h, h + 11);
-	tk::spline s;
-	s.set_points(BB, HH, false);
-	hint = s(B);
-	if (B > 4) {
-		B = 2;
-		miu = B / (1e4 + 5e6*(B - 1.85)) / miu0;
-	} else {
-		miu = B / hint / miu0;
-	}
-	return miu;
-}
-
 
 double CFastFEMcore::CalcForce() {
 	/*******2016-12-28 by Poofee*************/
@@ -717,7 +701,26 @@ double CFastFEMcore::CalcForce() {
 
 //打开工程文件，读取
 int CFastFEMcore::openProject() {
+	QFile ifile("project1.mag");
+	if (ifile.open(QIODevice::ReadOnly | QIODevice::Text)) {
 
+		QXmlStreamReader reader(&ifile);
+
+		while (!reader.atEnd()) {
+			if (reader.isStartElement()) {
+				if (reader.name() == "Project") {
+					readProjectElement(reader);
+				} else {
+					reader.raiseError("Not a valid Project file");
+				}
+			} else {
+				reader.readNext();
+			}
+		}
+	} else {
+		qDebug() << "read inbox file error...";
+	}
+	ifile.close();
 	return 0;
 }
 
@@ -747,7 +750,7 @@ int CFastFEMcore::preCalculation() {
 
 		if (mat.BHpoints == 0) {
 			pmeshele[i].miu = 1;
-			pmeshele[i].miut = 1;
+			pmeshele[i].miut = 1;//must be 1
 			pmeshele[i].LinearFlag = true;
 		} else {
 			pmeshele[i].miu = 1;
@@ -767,4 +770,105 @@ int CFastFEMcore::solve() {
 	preCalculation();
 	StaticAxisymmetric();
 	return 0;
+}
+
+
+void CFastFEMcore::readProjectElement(QXmlStreamReader &reader) {
+	Q_ASSERT(reader.isStartElement() && reader.name() == "Project");
+	reader.readNext();
+	while (!reader.atEnd()) {
+		if (reader.isEndElement()) {
+			//qDebug()<<reader.name();
+			//break;
+		}
+
+		if (reader.isStartElement()) {
+			if (reader.name() == "name") {
+				qDebug() << "name = " << reader.readElementText();
+			} else if (reader.name() == "version") {
+				qDebug() << "version = " << reader.readElementText();
+			} else if (reader.name() == "precision") {
+				qDebug() << "precision = " << reader.readElementText();
+			} else if (reader.name() == "unit") {
+				qDebug() << "unit = " << reader.readElementText();
+			} else if (reader.name() == "proType") {
+				qDebug() << "proType = " << reader.readElementText();
+			} else if (reader.name() == "coordinate") {
+				qDebug() << "coordinate = " << reader.readElementText();
+			} else if (reader.name() == "Domains") {
+				reader.readNextStartElement();
+				int numdomain;
+				if (reader.name() == "domainNum") {
+					numdomain = reader.readElementText().toInt();
+					qDebug() << "domainNum = " << numdomain;
+				}
+				for (int i = 0; i < numdomain; i++) {
+					readDomainElement(reader);
+				}
+
+			}
+		} else {
+			reader.readNext();
+		}
+	}
+}
+
+
+void CFastFEMcore::readDomainElement(QXmlStreamReader &reader) {
+	reader.readNext();
+	reader.readNext();
+	//qDebug()<<reader.name();
+	while (!(reader.isEndElement() && reader.name() == "Domain")) {
+		reader.readNextStartElement();
+		if (reader.name() == "domainName") {
+			qDebug() << "domainName = " << reader.readElementText();
+		} else if (reader.name() == "miu") {
+			qDebug() << "miu = " << reader.readElementText().toDouble();
+		} else if (reader.name() == "BH") {
+			readBHElement(reader);
+		} else if (reader.name() == "Jr") {
+			//qDebug()<<reader.name();
+			qDebug() << "Jr = " << reader.readElementText().toDouble();
+		} else if (reader.name() == "H_c") {
+			qDebug() << "H_c = " << reader.readElementText().toDouble();
+		}
+	}
+}
+
+
+void CFastFEMcore::readBHElement(QXmlStreamReader &reader) {
+	reader.readNextStartElement();
+	//qDebug()<<reader.name();
+	if (reader.name() == "BHpoints") {
+		int bhnum = reader.readElementText().toInt();
+		qDebug() << "BHpoints = " << bhnum;
+		if (bhnum != 0) {
+			reader.readNextStartElement();
+			if (reader.name() == "Bdata") {
+				for (int j = 0; j < bhnum; j++) {
+					reader.readNextStartElement();
+					if (reader.name() == "B") {
+						qDebug() << reader.readElementText();
+
+					}
+				}
+			}
+			//qDebug()<<reader.name();
+			reader.readNextStartElement();
+			//qDebug()<<reader.name();
+			reader.readNextStartElement();
+			//qDebug()<<reader.name();
+			if (reader.name() == "Hdata") {
+				for (int j = 0; j < bhnum; j++) {
+					reader.readNextStartElement();
+					if (reader.name() == "H") {
+						qDebug() << reader.readElementText();
+					}
+
+				}
+			}
+		}
+
+	}
+	reader.skipCurrentElement();
 }

@@ -21,11 +21,13 @@ public:
 	~CFastFEMcore();	
 	// load mesh
 	int LoadMesh();
-	double HB(double B);
-	bool StaticAxisymmetric();
+	bool StaticAxisymmetricTLM();
 	double CalcForce();
 	int openProject();
 	int preCalculation();
 	int solve();
+	void readProjectElement(QXmlStreamReader &reader);
+	void readDomainElement(QXmlStreamReader &reader);
+	void readBHElement(QXmlStreamReader &reader);
 };
 
