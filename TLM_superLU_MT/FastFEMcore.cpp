@@ -768,7 +768,7 @@ int CFastFEMcore::solve() {
 	openProject();
 	LoadMesh();
 	preCalculation();
-	StaticAxisymmetric();
+	StaticAxisymmetricTLM();
 	return 0;
 }
 
@@ -884,6 +884,7 @@ int CFastFEMcore::staticAxisymmetricNR() {
 	double cn[3][3];//用于牛顿迭代
 	vec bbJz = zeros<vec>(num_pts);
 	vec b = zeros<vec>(num_pts);
+	vec bn = zeros<vec>(num_pts);
 	vec A = zeros<vec>(num_pts);
 	vec A_old = A;
 	vec INL = zeros<vec>(num_pts);
@@ -997,7 +998,9 @@ int CFastFEMcore::staticAxisymmetricNR() {
 					vals(i * 9 + row * 3 + col) = ce[row][col];
 				}
 			}
-
+			bn(pmeshele[i].n[0]) += ce[0][0];
+			bn(pmeshele[i].n[1]) += ce[1][1];
+			bn(pmeshele[i].n[2]) += ce[2][2];
 		}//end of elememt iteration
 		if (iter == 0) {
 			for (int i = 0; i < num_pts; i++) {
@@ -1006,6 +1009,7 @@ int CFastFEMcore::staticAxisymmetricNR() {
 			}
 			b = bbJz + rpm;
 		}
+		b += bn;
 		//使用构造函数来生成稀疏矩阵
 		sp_mat X;
 		X = sp_mat(true, locs, vals, num_pts, num_pts, true, true);
@@ -1040,6 +1044,7 @@ int CFastFEMcore::staticAxisymmetricNR() {
 			pmeshele[d34].miu = materialList[pmeshele[d34].domain - 1].getMiu(pmeshele[d34].B);
 			//y1[i] = pmeshele[d34].B;
 		}
+		bn.zeros();
 		iter++;
 	}
 	return 0;
