@@ -1040,6 +1040,7 @@ int CFastFEMcore::staticAxisymmetricNR() {
 			pmeshele[d34].miu = materialList[pmeshele[d34].domain - 1].getMiu(pmeshele[d34].B);
 			//y1[i] = pmeshele[d34].B;
 		}
+		iter++;
 	}
 	return 0;
 }

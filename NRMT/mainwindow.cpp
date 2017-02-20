@@ -709,7 +709,7 @@ void MainWindow::NRCalculate(int & num_pts, int & num_ele, CNode *m_n, CElement 
         SUPERLU_FREE(C);
         SUPERLU_FREE(ferr);
         SUPERLU_FREE(berr);
-        Destroy_SuperNode_Matrix(&L);
+        Destroy_SuperNode_Matrix(&L);//”–Œ Ã‚£°£°£°
         Destroy_CompCol_Matrix(&U);
         /*-------------superLU end-----------*/
         for (int i = 0; i < D34.size(); i++) {
