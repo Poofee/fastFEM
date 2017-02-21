@@ -326,8 +326,8 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 	double *sol = NULL;
 	sol = superlumt.getResult();
 	for (int i = 0; i < num_pts; i++) {
-		pmeshnode[i].A = sol[i] * miu0;//the A is r*A_real
-		A(i) = sol[i] * miu0;
+		pmeshnode[i].A = sol[i] * miu0 /pmeshnode[i].x;//the A is r*A_real
+		A(i) = sol[i] * miu0 / pmeshnode[i].x;
 	}
 	//---------------------superLU--end----------------------------------
 	QVector<double> x1(D34.size()), y1(D34.size());
@@ -391,8 +391,8 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 		//NOW WE SOLVE THE LINEAR SYSTEM USING THE FACTORED FORM OF sluA.
 		superlumt.LUsolve();
 		for (int i = 0; i < num_pts; i++) {
-			pmeshnode[i].A = sol[i] * miu0;
-			A(i) = sol[i] * miu0;
+			pmeshnode[i].A = sol[i] * miu0 / pmeshnode[i].x;
+			A(i) = sol[i] * miu0 ;
 		}
 		double error = norm((A_old - A), 2) / norm(A, 2);
 		if (error < Precision) {
@@ -1017,7 +1017,7 @@ int CFastFEMcore::staticAxisymmetricNR() {
 		A_old = A;
 		sol = superlumt.getResult();
 		for (int i = 0; i < num_pts; i++) {
-			pmeshnode[i].A = sol[i] * miu0;//the A is r*A_real
+			pmeshnode[i].A = sol[i] * miu0 / pmeshnode[i].x;//the A is r*A_real
 			A(i) = sol[i] * miu0;
 		}
 		double error = norm((A_old - A), 2) / norm(A, 2);
