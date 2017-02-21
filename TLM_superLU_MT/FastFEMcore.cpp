@@ -908,6 +908,7 @@ int CFastFEMcore::staticAxisymmetricNR() {
 	double cn[3][3] = {0};//用于牛顿迭代
 	vec bbJz = zeros<vec>(num_pts);
 	vec b = zeros<vec>(num_pts);
+	vec BB = zeros<vec>(num_ele);
 	vec bn = zeros<vec>(num_pts);
 	vec A = zeros<vec>(num_pts);
 	vec A_old = A;
@@ -1037,14 +1038,14 @@ int CFastFEMcore::staticAxisymmetricNR() {
 			}
 			b = bbJz + rpm;
 		}
-		b += bn;
-		
+		bn += b;
+		qDebug() << "assemble";
 		//使用构造函数来生成稀疏矩阵
 		sp_mat X;
 		X = sp_mat(true, locs, vals, num_pts, num_pts, true, true);
 		
 		//---------------------superLU_MT---------------------------------------
-		CSuperLU_MT superlumt(num_pts, X, b);
+		CSuperLU_MT superlumt(num_pts, X, bn);
 		if (superlumt.solve() == 1){
 			qDebug() << "Error: superlumt.slove";
 			break;
@@ -1055,34 +1056,38 @@ int CFastFEMcore::staticAxisymmetricNR() {
 			sol = superlumt.getResult();
 
 			for (int i = 0; i < num_pts; i++) {
-				pmeshnode[i].A = sol[i] * miu0 / pmeshnode[i].x;//the A is r*A_real
-				A(i) = sol[i] * miu0;
+				pmeshnode[i].A = sol[i] * miu0;// / pmeshnode[i].x;//the A is r*A_real
+				A(i) = sol[i];
 			}
 		}
-		A.save("A.txt", arma::arma_ascii);
+		//A.save("A.txt", arma::arma_ascii);
+		qDebug() << "error";
+		
+		qDebug() << "superlu end";
+		//---------------------superLU--end----------------------------------
+		//有必要求出所有单元的B值
+		for (int i = 0; i < num_ele; i++) {			
+			pmeshele[i].Bx = (pmeshele[i].Q[0] * pmeshnode[pmeshele[i].n[0]].A
+				+ pmeshele[i].Q[1] * pmeshnode[pmeshele[i].n[1]].A
+				+ pmeshele[i].Q[2] * pmeshnode[pmeshele[i].n[2]].A);
+			pmeshele[i].By = (pmeshele[i].P[0] * pmeshnode[pmeshele[i].n[0]].A
+				+ pmeshele[i].P[1] * pmeshnode[pmeshele[i].n[1]].A
+				+ pmeshele[i].P[2] * pmeshnode[pmeshele[i].n[2]].A) ;
+
+			pmeshele[i].B = sqrt(pmeshele[i].By*pmeshele[i].By +
+				pmeshele[i].Bx*pmeshele[i].Bx) / 2. / pmeshele[i].AREA / ydot[i];
+			pmeshele[i].miu = materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B);
+			BB(i) = pmeshele[i].B;
+		}
+
+		BB.save("BB.txt", arma::arma_ascii);
 		double error = norm((A_old - A), 2) / norm(A, 2);
 		if (error < Precision) {
 			break;
 		}
-		
-		//---------------------superLU--end----------------------------------
-		//------update miu----------------
-		for (int i = 0; i < D34.size(); i++) {
-			int d34 = D34[i];
-			pmeshele[d34].Bx = (pmeshele[d34].Q[0] * pmeshnode[pmeshele[d34].n[0]].A
-				+ pmeshele[d34].Q[1] * pmeshnode[pmeshele[d34].n[1]].A
-				+ pmeshele[d34].Q[2] * pmeshnode[pmeshele[d34].n[2]].A) / 2. / pmeshele[d34].AREA / ydot[d34];
-			pmeshele[d34].By = (pmeshele[d34].P[0] * pmeshnode[pmeshele[d34].n[0]].A
-				+ pmeshele[d34].P[1] * pmeshnode[pmeshele[d34].n[1]].A
-				+ pmeshele[d34].P[2] * pmeshnode[pmeshele[d34].n[2]].A) / 2. / pmeshele[d34].AREA / ydot[d34];
-
-			pmeshele[d34].B = sqrt(pmeshele[d34].By*pmeshele[d34].By +
-				pmeshele[d34].Bx*pmeshele[d34].Bx);
-			pmeshele[d34].miu = materialList[pmeshele[d34].domain - 1].getMiu(pmeshele[d34].B);
-			//y1[i] = pmeshele[d34].B;
-		}
 		bn.zeros();
 		iter++;
+		qDebug() << iter;
 	}
 	if (rm != NULL) free(rm);
 	if (ydot != NULL) free(ydot);
