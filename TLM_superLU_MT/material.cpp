@@ -54,4 +54,5 @@ double CMaterial::getdvdB(double B) {
 			}
 		}
 	}
+	return 0;
 }
