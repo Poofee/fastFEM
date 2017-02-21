@@ -143,7 +143,7 @@ int main(int argc, char *argv[]) {
 	char buf[100], type[4], key[10];
 	FILE *fp;
 	//fp = stdin;
-	fp = fopen("E:\\Projects\\cplusplus\\SuperLU_MT_3.1\\EXAMPLE\\big.rua", "r");
+	fp = fopen("D:\\SuperLU_MT_3.1\\EXAMPLE\\big.rua", "r");
 
 	/* Line 1 */
 	fscanf(fp, "%72c", buf); buf[72] = 0;

@@ -41,6 +41,9 @@ double CMaterial::getMiu(double B) {
 //这里的处理仅仅使用了线性处理
 double CMaterial::getdvdB(double B) {
 	double slope, H, b;
+	if (B < 1e-9){//防止B=0
+		return 0;
+	}
 	if (BHpoints == 0) {
 		return 0;
 	} else {
@@ -54,4 +57,5 @@ double CMaterial::getdvdB(double B) {
 			}
 		}
 	}
+	return 0;
 }
