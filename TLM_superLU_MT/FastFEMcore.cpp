@@ -51,11 +51,11 @@ CFastFEMcore::~CFastFEMcore() {
 
 
 // load mesh
-int CFastFEMcore::LoadMesh() {
+int CFastFEMcore::LoadMesh(char*fn) {
 	char ch[256];
 	//------------open file----------------------------------
 	FILE * fp = NULL;
-	fp = fopen(filename, "r");
+	fp = fopen(fn, "r");
 	if (fp == NULL) {
 		//QMessageBox::warning(NULL, "Error:", "Error: opening file!",
 		//	QMessageBox::Ok, QMessageBox::Ok);
@@ -700,8 +700,8 @@ double CFastFEMcore::CalcForce() {
 }
 
 //打开工程文件，读取
-int CFastFEMcore::openProject() {
-	QFile ifile("project1.mag");
+int CFastFEMcore::openProject(QString proFile) {
+	QFile ifile(proFile);
 	if (ifile.open(QIODevice::ReadOnly | QIODevice::Text)) {
 
 		QXmlStreamReader reader(&ifile);
@@ -765,8 +765,8 @@ int CFastFEMcore::preCalculation() {
 //调用其他的子函数完成求解任务，这个求解可以有多个选项，
 //使用NR或者TLM迭代算法，或者选择不同的形函数。
 int CFastFEMcore::solve() {
-	openProject();
-	LoadMesh();
+	//openProject();
+	//LoadMesh();
 	preCalculation();
 	StaticAxisymmetricTLM();
 	return 0;
@@ -788,22 +788,24 @@ void CFastFEMcore::readProjectElement(QXmlStreamReader &reader) {
 			} else if (reader.name() == "version") {
 				qDebug() << "version = " << reader.readElementText();
 			} else if (reader.name() == "precision") {
-				qDebug() << "precision = " << reader.readElementText();
+				Precision = reader.readElementText().toDouble();
+				qDebug() << "precision = " << Precision;
 			} else if (reader.name() == "unit") {
-				qDebug() << "unit = " << reader.readElementText();
+				LengthUnits = reader.readElementText().toInt();
+				qDebug() << "unit = " << LengthUnits;
 			} else if (reader.name() == "proType") {
 				qDebug() << "proType = " << reader.readElementText();
 			} else if (reader.name() == "coordinate") {
 				qDebug() << "coordinate = " << reader.readElementText();
 			} else if (reader.name() == "Domains") {
 				reader.readNextStartElement();
-				int numdomain;
 				if (reader.name() == "domainNum") {
-					numdomain = reader.readElementText().toInt();
-					qDebug() << "domainNum = " << numdomain;
+					numDomain = reader.readElementText().toInt();
+					materialList = (CMaterial*)malloc(numDomain*sizeof(CMaterial));
+					qDebug() << "domainNum = " << numDomain;
 				}
-				for (int i = 0; i < numdomain; i++) {
-					readDomainElement(reader);
+				for (int i = 0; i < numDomain; i++) {
+					readDomainElement(reader,i);
 				}
 
 			}
@@ -814,7 +816,7 @@ void CFastFEMcore::readProjectElement(QXmlStreamReader &reader) {
 }
 
 
-void CFastFEMcore::readDomainElement(QXmlStreamReader &reader) {
+void CFastFEMcore::readDomainElement(QXmlStreamReader &reader,int i) {
 	reader.readNext();
 	reader.readNext();
 	//qDebug()<<reader.name();
@@ -823,32 +825,37 @@ void CFastFEMcore::readDomainElement(QXmlStreamReader &reader) {
 		if (reader.name() == "domainName") {
 			qDebug() << "domainName = " << reader.readElementText();
 		} else if (reader.name() == "miu") {
-			qDebug() << "miu = " << reader.readElementText().toDouble();
+			materialList[i].miu = reader.readElementText().toDouble();
+			qDebug() << "miu = " << materialList[i].miu;
 		} else if (reader.name() == "BH") {
-			readBHElement(reader);
+			readBHElement(reader,i);
 		} else if (reader.name() == "Jr") {
-			//qDebug()<<reader.name();
-			qDebug() << "Jr = " << reader.readElementText().toDouble();
+			materialList[i].Jr = reader.readElementText().toDouble();
+			qDebug() << "Jr = " << materialList[i].Jr;
 		} else if (reader.name() == "H_c") {
-			qDebug() << "H_c = " << reader.readElementText().toDouble();
+			materialList[i].H_c = reader.readElementText().toDouble();
+			qDebug() << "H_c = " << materialList[i].H_c;
 		}
 	}
 }
 
 
-void CFastFEMcore::readBHElement(QXmlStreamReader &reader) {
+void CFastFEMcore::readBHElement(QXmlStreamReader &reader,int i) {
 	reader.readNextStartElement();
 	//qDebug()<<reader.name();
 	if (reader.name() == "BHpoints") {
-		int bhnum = reader.readElementText().toInt();
-		qDebug() << "BHpoints = " << bhnum;
-		if (bhnum != 0) {
+		materialList[i].BHpoints = reader.readElementText().toInt();
+		qDebug() << "BHpoints = " << materialList[i].BHpoints;
+		if (materialList[i].BHpoints != 0) {
+			materialList[i].Bdata = (double*)malloc(materialList[i].BHpoints*sizeof(double));
+			materialList[i].Hdata = (double*)malloc(materialList[i].BHpoints*sizeof(double));
 			reader.readNextStartElement();
 			if (reader.name() == "Bdata") {
-				for (int j = 0; j < bhnum; j++) {
+				for (int j = 0; j < materialList[i].BHpoints; j++) {
 					reader.readNextStartElement();
 					if (reader.name() == "B") {
-						qDebug() << reader.readElementText();
+						materialList[i].Bdata[i] = reader.readElementText().toDouble();
+						qDebug() << materialList[i].Bdata[i];
 
 					}
 				}
@@ -859,10 +866,11 @@ void CFastFEMcore::readBHElement(QXmlStreamReader &reader) {
 			reader.readNextStartElement();
 			//qDebug()<<reader.name();
 			if (reader.name() == "Hdata") {
-				for (int j = 0; j < bhnum; j++) {
+				for (int j = 0; j < materialList[i].BHpoints; j++) {
 					reader.readNextStartElement();
 					if (reader.name() == "H") {
-						qDebug() << reader.readElementText();
+						materialList[i].Hdata[i] = reader.readElementText().toDouble();
+						qDebug() << materialList[i].Hdata[i];
 					}
 
 				}
@@ -970,7 +978,7 @@ int CFastFEMcore::staticAxisymmetricNR() {
 				rm[i].Y33*A(pmeshele[i].n[2]);
 
 			if (iter != 0) {
-				double tmp = mat.getdvdB / pmeshele[i].B / pmeshele[i].AREA;
+				double tmp = mat.getdvdB(pmeshele[i].B) / pmeshele[i].B / pmeshele[i].AREA;
 				cn[0][0] = v[0] * v[0] * tmp;
 				cn[1][1] = v[1] * v[1] * tmp;
 				cn[2][2] = v[2] * v[2] * tmp;

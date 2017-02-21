@@ -7,6 +7,7 @@ class CFastFEMcore
 public:
 	int num_pts;//节点数目
 	int num_ele;//单元数目
+	int numDomain;//域数目
 	CNode * pmeshnode;
 	CElement * pmeshele;
 	char filename[256];//
@@ -20,15 +21,15 @@ public:
 	CFastFEMcore();
 	~CFastFEMcore();	
 	// load mesh
-	int LoadMesh();
+	int LoadMesh(char*fn);
 	bool StaticAxisymmetricTLM();
 	double CalcForce();
-	int openProject();
+	int openProject(QString proFile);
 	int preCalculation();
 	int solve();
 	void readProjectElement(QXmlStreamReader &reader);
-	void readDomainElement(QXmlStreamReader &reader);
-	void readBHElement(QXmlStreamReader &reader);
+	void readDomainElement(QXmlStreamReader &reader, int i);
+	void readBHElement(QXmlStreamReader &reader,int i);
 	int staticAxisymmetricNR();
 };
 
