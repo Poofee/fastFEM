@@ -30,6 +30,6 @@ public:
 	void readProjectElement(QXmlStreamReader &reader);
 	void readDomainElement(QXmlStreamReader &reader, int i);
 	void readBHElement(QXmlStreamReader &reader,int i);
-	int staticAxisymmetricNR();
+	int StaticAxisymmetricNR();
 };
 

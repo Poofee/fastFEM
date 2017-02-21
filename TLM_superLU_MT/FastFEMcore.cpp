@@ -728,8 +728,7 @@ int CFastFEMcore::preCalculation() {
 			pmeshnode[pmeshele[i].n[2]].y) / 3;
 
 		//主要根据材料属性完成单元当中miu,miut,的赋值；
-		//由于I,pm与形函数有关系，为实现分离，不在此计算
-		
+		//由于I,pm与形函数有关系，为实现分离，不在此计算		
 
 		if (materialList[pmeshele[i].domain - 1].BHpoints == 0) {
 			pmeshele[i].miu = 1;
@@ -866,7 +865,7 @@ void CFastFEMcore::readBHElement(QXmlStreamReader &reader,int i) {
 
 //使用牛顿迭代实现非线性求解，是真的牛顿迭代而不是松弛迭代
 //牛顿迭代的公式推导，参见颜威利数值分析教材P54
-int CFastFEMcore::staticAxisymmetricNR() {
+int CFastFEMcore::StaticAxisymmetricNR() {
 	//所需要的变量
 	umat locs(2, 9 * num_ele);
 	locs.zeros();
