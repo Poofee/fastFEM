@@ -51,14 +51,13 @@ CFastFEMcore::~CFastFEMcore() {
 
 
 // load mesh
-int CFastFEMcore::LoadMesh(char*fn) {
+int CFastFEMcore::LoadMeshCOMSOL(char*fn) {
 	char ch[256];
 	//------------open file----------------------------------
 	FILE * fp = NULL;
 	fp = fopen(fn, "r");
 	if (fp == NULL) {
-		//QMessageBox::warning(NULL, "Error:", "Error: opening file!",
-		//	QMessageBox::Ok, QMessageBox::Ok);
+		qDebug() << "Error: opening file!";
 		return 1;
 	}
 	//--------------Read the head-----------------------------
@@ -75,22 +74,19 @@ int CFastFEMcore::LoadMesh(char*fn) {
 			pmeshnode[i].pm = 0;
 		}
 	} else {
-		//QMessageBox::warning(NULL, "Error:", "Error: reading num_pts!",
-		//	QMessageBox::Ok, QMessageBox::Ok);
+		qDebug() << "Error: reading num_pts!";
 		return 1;
 	}
 	int pts_ind;//the beginning of the points index
 
 	if (fscanf(fp, "%d # lowest mesh point index\n", &pts_ind) != 1) {
-		//QMessageBox::warning(NULL, "Error:", "Error: reading pts_ind!",
-		//	QMessageBox::Ok, QMessageBox::Ok);
+		qDebug() << "Error: reading pts_ind!";
 		return 1;
 	}
 	fgets(ch, 256, fp);
 	for (int i = pts_ind; i < num_pts; i++) {
 		if (fscanf(fp, "%lf %lf \n", &(pmeshnode[i].x), &(pmeshnode[i].y)) != 2) {
-			//QMessageBox::warning(NULL, "Error:", "Error: reading mesh point!",
-			//	QMessageBox::Ok, QMessageBox::Ok);
+			qDebug() << "Error: reading mesh point!";
 			return 1;
 		}
 	}
@@ -99,14 +95,12 @@ int CFastFEMcore::LoadMesh(char*fn) {
 		fgets(ch, 256, fp);
 	int num_vtx_ns, num_vtx_ele;
 	if (fscanf(fp, "%d # number of nodes per element\n", &num_vtx_ns) != 1) {
-		//QMessageBox::warning(NULL, "Error:", "Error: reading num_vtx_ns!",
-		//	QMessageBox::Ok, QMessageBox::Ok);
+		qDebug() << "Error: reading num_vtx_ns!";
 		return 1;
 	}
 
 	if (fscanf(fp, "%d # number of elements\n", &num_vtx_ele) != 1) {
-		//QMessageBox::warning(NULL, "Error:", "Error: reading num_vtx_ele!",
-		//	QMessageBox::Ok, QMessageBox::Ok);
+		qDebug() << "Error: reading num_vtx_ele!";
 		return 1;
 	}
 	fgets(ch, 256, fp);
@@ -115,8 +109,7 @@ int CFastFEMcore::LoadMesh(char*fn) {
 	vtx = (int*)calloc(num_vtx_ele, sizeof(int));
 	for (int i = 0; i < num_vtx_ele; i++) {
 		if (fscanf(fp, "%d \n", vtx + i) != 1) {
-			//QMessageBox::warning(NULL, "Error:", "Error: reading vertex condition!",
-			//	QMessageBox::Ok, QMessageBox::Ok);
+			qDebug() << "Error: reading vertex condition!";
 			return 1;
 		}
 	}
@@ -129,8 +122,7 @@ int CFastFEMcore::LoadMesh(char*fn) {
 	vtx2 = (int*)calloc(num_vtx_ele2, sizeof(int));
 	for (int i = 0; i < num_vtx_ele2; i++) {
 		if (fscanf(fp, "%d \n", vtx2 + i) != 1) {
-			//QMessageBox::warning(NULL, "Error:", "Error: reading vertex condition!",
-			//	QMessageBox::Ok, QMessageBox::Ok);
+			qDebug() << "Error: reading vertex condition!";
 			return 1;
 		}
 	}
@@ -140,14 +132,12 @@ int CFastFEMcore::LoadMesh(char*fn) {
 		fgets(ch, 256, fp);
 	int num_bdr_ns, num_bdr_ele;//number of nodes per element;number of elements
 	if (fscanf(fp, "%d # number of nodes per element\n", &num_bdr_ns) != 1) {
-		//QMessageBox::warning(NULL, "Error:", "Error: reading num_bdr_ns!",
-		//	QMessageBox::Ok, QMessageBox::Ok);
+		qDebug() << "Error: reading num_bdr_ns!";
 		return 1;
 	}
 
 	if (fscanf(fp, "%d # number of elements\n", &num_bdr_ele) != 1) {
-		//QMessageBox::warning(NULL, "Error:", "Error: reading num_bdr_ele!",
-		//	QMessageBox::Ok, QMessageBox::Ok);
+		qDebug() << "Error: reading num_bdr_ele!";
 		return 1;
 	}
 	fgets(ch, 256, fp);
@@ -162,8 +152,7 @@ int CFastFEMcore::LoadMesh(char*fn) {
 			pmeshnode[p1[i]].bdr = 1;
 			}*/
 		} else {
-			//QMessageBox::warning(NULL, "Error:", "Error: reading boundary condition!",
-			//	QMessageBox::Ok, QMessageBox::Ok);
+			qDebug() << "Error: reading boundary condition!";
 			return 1;
 		}
 	}
@@ -177,8 +166,7 @@ int CFastFEMcore::LoadMesh(char*fn) {
 	entity = (int*)calloc(num_entity, sizeof(int));
 	for (int i = 0; i < num_entity; i++) {
 		if (fscanf(fp, "%d \n", entity + i) != 1) {
-			//QMessageBox::warning(NULL, "Error:", "Error: reading boundary condition!",
-			//	QMessageBox::Ok, QMessageBox::Ok);
+			qDebug() << "Error: reading boundary condition!";
 			return 1;
 		}
 	}
@@ -188,24 +176,21 @@ int CFastFEMcore::LoadMesh(char*fn) {
 		fgets(ch, 256, fp);
 	int ns_per_ele;// num_ele;//number of nodes per element;number of elements
 	if (fscanf(fp, "%d # number of nodes per element\n", &ns_per_ele) != 1) {
-		//QMessageBox::warning(NULL, "Error:", "Error: reading ns_per_ele!",
-		//	QMessageBox::Ok, QMessageBox::Ok);
+		qDebug() << "Error: reading ns_per_ele!";
 		return 1;
 	}
 
 	if (fscanf(fp, "%d # number of elements\n", &num_ele) == 1) {
 		pmeshele = (CElement*)calloc(num_ele, sizeof(CElement));
 	} else {
-		//QMessageBox::warning(NULL, "Error:", "Error: reading num_ele!",
-		//	QMessageBox::Ok, QMessageBox::Ok);
+		qDebug() << "Error: reading num_ele!";
 		return 1;
 	}
 	fgets(ch, 256, fp);
 
 	for (int i = 0; i < num_ele; i++) {
 		if (fscanf(fp, "%d %d %d \n", &pmeshele[i].n[0], &pmeshele[i].n[1], &pmeshele[i].n[2]) != 3) {
-			//QMessageBox::warning(NULL, "Error:", "Error: reading elements points!",
-			//	QMessageBox::Ok, QMessageBox::Ok);
+			qDebug() << "Error: reading elements points!";
 			return 1;
 		}
 	}
@@ -216,8 +201,7 @@ int CFastFEMcore::LoadMesh(char*fn) {
 
 	for (int i = 0; i < num_domain; i++) {
 		if (fscanf(fp, "%d \n", &pmeshele[i].domain) != 1) {
-			//QMessageBox::warning(NULL, "Error:", "Error: reading domain points!",
-			//	QMessageBox::Ok, QMessageBox::Ok);
+			qDebug() << "Error: reading domain points!";
 			return 1;
 		}
 	}

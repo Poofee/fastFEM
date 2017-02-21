@@ -21,7 +21,7 @@ public:
 	CFastFEMcore();
 	~CFastFEMcore();	
 	// load mesh
-	int LoadMesh(char*fn);
+	int LoadMeshCOMSOL(char*fn);
 	bool StaticAxisymmetricTLM();
 	double CalcForce();
 	int openProject(QString proFile);
