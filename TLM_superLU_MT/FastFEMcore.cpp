@@ -23,13 +23,7 @@ using namespace arma;
 
 #define PI 3.14159265358979323846
 #define r 2
-#define INF 1
-#define AIR 2
-#define FIX 3
-#define MOV 4
-#define PM 5
-#define DOWNCOIL 6
-#define UPCOIL 7
+
 const double ste = 4;
 const double miu0 = PI*4e-7;
 
@@ -46,7 +40,7 @@ CFastFEMcore::~CFastFEMcore() {
 	//should free the space allocated
 	if (pmeshnode != NULL) free(pmeshnode);
 	if (pmeshele != NULL) free(pmeshele);
-	if (materialList != NULL) delete []materialList;
+	if (materialList != NULL) delete[]materialList;
 }
 
 
@@ -73,8 +67,7 @@ int CFastFEMcore::LoadMeshCOMSOL(char*fn) {
 			pmeshnode[i].I = 0;
 			pmeshnode[i].pm = 0;
 		}
-	}
-	else {
+	} else {
 		qDebug() << "Error: reading num_pts!";
 		return 1;
 	}
@@ -152,8 +145,7 @@ int CFastFEMcore::LoadMeshCOMSOL(char*fn) {
 			/*if (abs(pmeshnode[p1[i]].length() - 0.05) < 5e-3 || abs(pmeshnode[p1[i]].x) < 5e-5) {
 			pmeshnode[p1[i]].bdr = 1;
 			}*/
-		}
-		else {
+		} else {
 			qDebug() << "Error: reading boundary condition!";
 			return 1;
 		}
@@ -184,8 +176,7 @@ int CFastFEMcore::LoadMeshCOMSOL(char*fn) {
 
 	if (fscanf(fp, "%d # number of elements\n", &num_ele) == 1) {
 		pmeshele = (CElement*)calloc(num_ele, sizeof(CElement));
-	}
-	else {
+	} else {
 		qDebug() << "Error: reading num_ele!";
 		return 1;
 	}
@@ -228,7 +219,7 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 	umat locs(2, 9 * num_ele);
 	locs.zeros();
 	vec vals = zeros<vec>(9 * num_ele);
-	double ce[3][3] = {0};
+	double ce[3][3] = { 0 };
 	ResistMarix *rm = (ResistMarix*)malloc(num_ele * sizeof(ResistMarix));
 	vec bbJz = zeros<vec>(num_pts);
 	vec b = zeros<vec>(num_pts);//b = bbJz + INL;
@@ -242,13 +233,12 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 		//确定单元的近似半径
 		int flag = 0;
 		for (int f = 0; f < 3; f++)
-		if (pmeshnode[pmeshele[i].n[f]].x < 1e-9)
-			flag++;
+			if (pmeshnode[pmeshele[i].n[f]].x < 1e-9)
+				flag++;
 
 		if (flag == 2) {
 			ydot[i] = pmeshele[i].rc;
-		}
-		else {
+		} else {
 			ydot[i] = 1 / (pmeshnode[pmeshele[i].n[0]].x + pmeshnode[pmeshele[i].n[1]].x);
 			ydot[i] += 1 / (pmeshnode[pmeshele[i].n[0]].x + pmeshnode[pmeshele[i].n[2]].x);
 			ydot[i] += 1 / (pmeshnode[pmeshele[i].n[1]].x + pmeshnode[pmeshele[i].n[2]].x);
@@ -487,7 +477,7 @@ double CFastFEMcore::CalcForce() {
 		}
 		x1[3] = x1[0];
 		y1[3] = y1[0];
-		if (pmeshele[i].domain == AIR) {
+		if (pmeshele[i].domain == 2) {
 			for (int k = 0; k < 3; k++) {
 				if (fabs(x1[k] - xLeft) < delta) {
 					if (y1[k] >= yDown - delta && y1[k] <= yUp + delta) {
@@ -518,8 +508,7 @@ double CFastFEMcore::CalcForce() {
 		int index[3];
 		if (BCx == 0 && BCy == 0) {//outside
 			//newCurve->setBrush(Qt::NoBrush);
-		}
-		else if (BCy == 2 || BCy == 6) {//Y,2,edge
+		} else if (BCy == 2 || BCy == 6) {//Y,2,edge
 			//newCurve->setBrush(QColor(0, 0, 255));//blue
 			/****Find which point is moved,1?2?3?*****/
 			if (fabs(y1[0] - y1[1]) < delta) {
@@ -527,14 +516,12 @@ double CFastFEMcore::CalcForce() {
 				num = 2;
 				index[0] = 0;
 				index[1] = 1;
-			}
-			else if (fabs(y1[1] - y1[2]) < delta) {
+			} else if (fabs(y1[1] - y1[2]) < delta) {
 				ind = 0;
 				num = 2;
 				index[0] = 1;
 				index[1] = 2;
-			}
-			else if (fabs(y1[0] - y1[2]) < delta) {
+			} else if (fabs(y1[0] - y1[2]) < delta) {
 				ind = 1;
 				num = 2;
 				index[0] = 0;
@@ -544,8 +531,7 @@ double CFastFEMcore::CalcForce() {
 
 			gpx1.push_back(x1[ind]);
 			gpy1.push_back(y1[ind]);
-		}
-		else if (BCx == 0 && BCy % 2 == 1) {//Y,1,point
+		} else if (BCx == 0 && BCy % 2 == 1) {//Y,1,point
 			//newCurve->setBrush(QColor(255, 0, 0));
 			/****Find which point is moved,1?2?3?*****/
 			for (int k = 0; k < 3; k++) {
@@ -565,8 +551,7 @@ double CFastFEMcore::CalcForce() {
 			s = 1;
 			gpx2.push_back(x1[ind]);
 			gpy2.push_back(y1[ind]);
-		}
-		else if (BCx == 2 || BCx == 6) {//X,2,edge
+		} else if (BCx == 2 || BCx == 6) {//X,2,edge
 			//newCurve->setBrush(QColor(0, 0, 255));//blue
 			/****Find which point is moved,1?2?3?*****/
 			if (fabs(x1[0] - x1[1]) < delta) {
@@ -574,14 +559,12 @@ double CFastFEMcore::CalcForce() {
 				num = 2;
 				index[0] = 0;
 				index[1] = 1;
-			}
-			else if (fabs(x1[1] - x1[2]) < delta) {
+			} else if (fabs(x1[1] - x1[2]) < delta) {
 				ind = 0;
 				num = 2;
 				index[0] = 1;
 				index[1] = 2;
-			}
-			else if (fabs(x1[0] - x1[2]) < delta) {
+			} else if (fabs(x1[0] - x1[2]) < delta) {
 				ind = 1;
 				num = 2;
 				index[0] = 0;
@@ -590,8 +573,7 @@ double CFastFEMcore::CalcForce() {
 			s = 1;
 			gpx1.push_back(x1[ind]);
 			gpy1.push_back(y1[ind]);
-		}
-		else if (BCx % 2 == 1 && BCy == 0) {//X,1,point
+		} else if (BCx % 2 == 1 && BCy == 0) {//X,1,point
 			//newCurve->setBrush(QColor(255, 0, 0));
 			/****Find which point is moved,1?2?3?*****/
 			for (int k = 0; k < 3; k++) {
@@ -611,8 +593,7 @@ double CFastFEMcore::CalcForce() {
 			s = 1;
 			gpx2.push_back(x1[ind]);
 			gpy2.push_back(y1[ind]);
-		}
-		else {//corner,point
+		} else {//corner,point
 			//newCurve->setBrush(QColor(0, 255, 0));//green	
 			/****Find which point is moved,1?2?3?*****/
 			for (int k = 0; k < 3; k++) {
@@ -666,12 +647,10 @@ double CFastFEMcore::CalcForce() {
 				if (ind == 0) {
 					xf3 = 2. * beta3*((A3 - A2)*(2. * pmeshele[i].AREA) - beta3*(2. * pmeshele[i].AREA)*(pmeshele[i].Q[0]));
 					xf3 /= (2. * pmeshele[i].AREA)*(2. * pmeshele[i].AREA);
-				}
-				else if (ind == 1) {
+				} else if (ind == 1) {
 					xf3 = 2. * beta3*((A1 - A3)*(2. * pmeshele[i].AREA) - beta3*(2. * pmeshele[i].AREA)*(pmeshele[i].Q[1]));
 					xf3 /= (2. * pmeshele[i].AREA)*(2. * pmeshele[i].AREA);
-				}
-				else if (ind == 2) {
+				} else if (ind == 2) {
 					xf3 = 2. * beta3*((A2 - A1)*(2. * pmeshele[i].AREA) - beta3*(2. * pmeshele[i].AREA)*(pmeshele[i].Q[2]));
 					xf3 /= (2. * pmeshele[i].AREA)*(2. * pmeshele[i].AREA);
 				}
@@ -709,17 +688,14 @@ int CFastFEMcore::openProject(QString proFile) {
 			if (reader.isStartElement()) {
 				if (reader.name() == "Project") {
 					readProjectElement(reader);
-				}
-				else {
+				} else {
 					reader.raiseError("Not a valid Project file");
 				}
-			}
-			else {
+			} else {
 				reader.readNext();
 			}
 		}
-	}
-	else {
+	} else {
 		qDebug() << "read inbox file error...";
 	}
 	ifile.close();
@@ -746,19 +722,16 @@ int CFastFEMcore::preCalculation() {
 			pmeshnode[pmeshele[i].n[2]].y) / 3;
 
 		//主要根据材料属性完成单元当中miu,miut,的赋值；
-<<<<<<< HEAD
-		//由于I,pm与形函数有关系，为实现分离，不在此计算		
-=======
-		//由于I,pm与形函数有关系，为实现分离，不在此计算
 
->>>>>>> cbb74436346212824c636eed7fbf30e63c51cbe7
+		//由于I,pm与形函数有关系，为实现分离，不在此计算		
+
+		//由于I,pm与形函数有关系，为实现分离，不在此计算
 
 		if (materialList[pmeshele[i].domain - 1].BHpoints == 0) {
 			pmeshele[i].miu = 1;
 			pmeshele[i].miut = 1;//must be 1
 			pmeshele[i].LinearFlag = true;
-		}
-		else {
+		} else {
 			pmeshele[i].miu = 1;
 			pmeshele[i].miut = 100;
 			pmeshele[i].LinearFlag = false;
@@ -791,25 +764,19 @@ void CFastFEMcore::readProjectElement(QXmlStreamReader &reader) {
 		if (reader.isStartElement()) {
 			if (reader.name() == "name") {
 				qDebug() << "name = " << reader.readElementText();
-			}
-			else if (reader.name() == "version") {
+			} else if (reader.name() == "version") {
 				qDebug() << "version = " << reader.readElementText();
-			}
-			else if (reader.name() == "precision") {
+			} else if (reader.name() == "precision") {
 				Precision = reader.readElementText().toDouble();
 				qDebug() << "precision = " << Precision;
-			}
-			else if (reader.name() == "unit") {
+			} else if (reader.name() == "unit") {
 				LengthUnits = reader.readElementText().toInt();
 				qDebug() << "unit = " << LengthUnits;
-			}
-			else if (reader.name() == "proType") {
+			} else if (reader.name() == "proType") {
 				qDebug() << "proType = " << reader.readElementText();
-			}
-			else if (reader.name() == "coordinate") {
+			} else if (reader.name() == "coordinate") {
 				qDebug() << "coordinate = " << reader.readElementText();
-			}
-			else if (reader.name() == "Domains") {
+			} else if (reader.name() == "Domains") {
 				reader.readNextStartElement();
 				if (reader.name() == "domainNum") {
 					numDomain = reader.readElementText().toInt();
@@ -821,8 +788,7 @@ void CFastFEMcore::readProjectElement(QXmlStreamReader &reader) {
 				}
 
 			}
-		}
-		else {
+		} else {
 			reader.readNext();
 		}
 	}
@@ -837,19 +803,15 @@ void CFastFEMcore::readDomainElement(QXmlStreamReader &reader, int i) {
 		reader.readNextStartElement();
 		if (reader.name() == "domainName") {
 			qDebug() << "domainName = " << reader.readElementText();
-		}
-		else if (reader.name() == "miu") {
+		} else if (reader.name() == "miu") {
 			materialList[i].miu = reader.readElementText().toDouble();
 			qDebug() << "miu = " << materialList[i].miu;
-		}
-		else if (reader.name() == "BH") {
+		} else if (reader.name() == "BH") {
 			readBHElement(reader, i);
-		}
-		else if (reader.name() == "Jr") {
+		} else if (reader.name() == "Jr") {
 			materialList[i].Jr = reader.readElementText().toDouble();
 			qDebug() << "Jr = " << materialList[i].Jr;
-		}
-		else if (reader.name() == "H_c") {
+		} else if (reader.name() == "H_c") {
 			materialList[i].H_c = reader.readElementText().toDouble();
 			qDebug() << "H_c = " << materialList[i].H_c;
 		}
@@ -871,8 +833,8 @@ void CFastFEMcore::readBHElement(QXmlStreamReader &reader, int i) {
 				for (int j = 0; j < materialList[i].BHpoints; j++) {
 					reader.readNextStartElement();
 					if (reader.name() == "B") {
-						materialList[i].Bdata[i] = reader.readElementText().toDouble();
-						qDebug() << materialList[i].Bdata[i];
+						materialList[i].Bdata[j] = reader.readElementText().toDouble();
+						qDebug() << materialList[i].Bdata[j];
 
 					}
 				}
@@ -886,13 +848,13 @@ void CFastFEMcore::readBHElement(QXmlStreamReader &reader, int i) {
 				for (int j = 0; j < materialList[i].BHpoints; j++) {
 					reader.readNextStartElement();
 					if (reader.name() == "H") {
-						materialList[i].Hdata[i] = reader.readElementText().toDouble();
-						qDebug() << materialList[i].Hdata[i];
+						materialList[i].Hdata[j] = reader.readElementText().toDouble();
+						qDebug() << materialList[i].Hdata[j];
 					}
 
 				}
 			}
-		}else{
+		} else {
 			materialList[i].Bdata = NULL;
 			materialList[i].Hdata = NULL;
 		}
@@ -908,26 +870,17 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 	umat locs(2, 9 * num_ele);
 	locs.zeros();
 	vec vals = zeros<vec>(9 * num_ele);
-	double ce[3][3] = {0};
-	double cn[3][3] = {0};//用于牛顿迭代
+	double ce[3][3] = { 0 };
+	double cn[3][3] = { 0 };//用于牛顿迭代
 	vec bbJz = zeros<vec>(num_pts);
 	vec b = zeros<vec>(num_pts);
 	vec BB = zeros<vec>(num_ele);
 	vec bn = zeros<vec>(num_pts);
 	vec A = zeros<vec>(num_pts);
 	vec A_old = A;
-	vec INL = zeros<vec>(num_pts);
 	vec rpm = zeros<vec>(num_pts);
 	double * ydot = (double*)malloc(num_ele*sizeof(double));
 	ResistMarix *rm = (ResistMarix*)malloc(num_ele * sizeof(ResistMarix));
-
-	std::vector <int> D34;
-	D34.empty();
-	for (int i = 0; i < num_ele; i++) {
-		if (!pmeshele[i].LinearFlag) {
-			D34.push_back(i);
-		}
-	}
 
 	int iter = 0;//迭代步数
 	while (1) {
@@ -936,17 +889,15 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 			//这部分只需计算一次即可
 			if (iter == 0) {
 				int flag = 0;
-				for (int f = 0; f < 3; f++)
-				if (pmeshnode[pmeshele[i].n[f]].x < 1e-9)
-					flag++;
-
+				for (int f = 0; f < 3; f++) {
+					if (pmeshnode[pmeshele[i].n[f]].x < 1e-9) {
+						flag++;
+					}
+				}
+				//计算三角形重心半径
 				if (flag == 2) {
 					ydot[i] = pmeshele[i].rc;
-				}
-				else {
-					if (i == 6170){
-						int a = 1;
-					}
+				} else {
 					ydot[i] = 1 / (pmeshnode[pmeshele[i].n[0]].x + pmeshnode[pmeshele[i].n[1]].x);
 					ydot[i] += 1 / (pmeshnode[pmeshele[i].n[0]].x + pmeshnode[pmeshele[i].n[2]].x);
 					ydot[i] += 1 / (pmeshnode[pmeshele[i].n[1]].x + pmeshnode[pmeshele[i].n[2]].x);
@@ -960,12 +911,12 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 				rm[i].Y23 = pmeshele[i].Q[1] * pmeshele[i].Q[2] + pmeshele[i].P[1] * pmeshele[i].P[2];
 				rm[i].Y33 = pmeshele[i].Q[2] * pmeshele[i].Q[2] + pmeshele[i].P[2] * pmeshele[i].P[2];
 
-				rm[i].Y11 /= 4. * pmeshele[i].AREA*ydot[i];
-				rm[i].Y12 /= 4. * pmeshele[i].AREA*ydot[i];
-				rm[i].Y13 /= 4. * pmeshele[i].AREA*ydot[i];
-				rm[i].Y22 /= 4. * pmeshele[i].AREA*ydot[i];
-				rm[i].Y23 /= 4. * pmeshele[i].AREA*ydot[i];
-				rm[i].Y33 /= 4. * pmeshele[i].AREA*ydot[i];
+				rm[i].Y11 /= 4. * pmeshele[i].AREA;
+				rm[i].Y12 /= 4. * pmeshele[i].AREA;
+				rm[i].Y13 /= 4. * pmeshele[i].AREA;
+				rm[i].Y22 /= 4. * pmeshele[i].AREA;
+				rm[i].Y23 /= 4. * pmeshele[i].AREA;
+				rm[i].Y33 /= 4. * pmeshele[i].AREA;
 
 				//计算电流密度//要注意domain会不会越界
 				double jr = pmeshele[i].AREA*materialList[pmeshele[i].domain - 1].Jr / 3;
@@ -979,13 +930,13 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 			}//end of iter=0
 			//miut对于线性就等于真值，对于非线性等于上一次的值
 			//主要求解结果不要漏掉miu0
-			ce[0][0] = abs(rm[i].Y11) / pmeshele[i].miut;
-			ce[1][1] = abs(rm[i].Y22) / pmeshele[i].miut;
-			ce[2][2] = abs(rm[i].Y33) / pmeshele[i].miut;
+			ce[0][0] = abs(rm[i].Y11) / pmeshele[i].miut / ydot[i];
+			ce[1][1] = abs(rm[i].Y22) / pmeshele[i].miut / ydot[i];
+			ce[2][2] = abs(rm[i].Y33) / pmeshele[i].miut / ydot[i];
 
-			ce[0][1] = -abs(rm[i].Y12) / pmeshele[i].miut;
-			ce[0][2] = -abs(rm[i].Y13) / pmeshele[i].miut;
-			ce[1][2] = -abs(rm[i].Y23) / pmeshele[i].miut;
+			ce[0][1] = -abs(rm[i].Y12) / pmeshele[i].miut / ydot[i];
+			ce[0][2] = -abs(rm[i].Y13) / pmeshele[i].miut / ydot[i];
+			ce[1][2] = -abs(rm[i].Y23) / pmeshele[i].miut / ydot[i];
 
 			//计算牛顿迭代部分的单元矩阵项,如果是第一次迭代的话，A=0，
 			//所以就不计算了，参见颜威利书P56
@@ -1004,6 +955,7 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 			if (iter != 0) {
 				double tmp = materialList[pmeshele[i].domain - 1].getdvdB(pmeshele[i].B);
 				tmp /= pmeshele[i].B * pmeshele[i].AREA;
+				tmp /= ydot[i] * ydot[i];
 				cn[0][0] = v[0] * v[0] * tmp;
 				cn[1][1] = v[1] * v[1] * tmp;
 				cn[2][2] = v[2] * v[2] * tmp;
@@ -1031,9 +983,9 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 					vals(i * 9 + row * 3 + col) = ce[row][col];
 				}
 			}
-			bn(pmeshele[i].n[0]) += ce[0][0];
-			bn(pmeshele[i].n[1]) += ce[1][1];
-			bn(pmeshele[i].n[2]) += ce[2][2];
+			bn(pmeshele[i].n[0]) += cn[0][0];
+			bn(pmeshele[i].n[1]) += cn[1][1];
+			bn(pmeshele[i].n[2]) += cn[2][2];
 		}//end of elememt iteration
 		if (iter == 0) {
 			for (int i = 0; i < num_pts; i++) {
@@ -1043,18 +995,16 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 			b = bbJz + rpm;
 		}
 		bn += b;
-		qDebug() << "assemble";
 		//使用构造函数来生成稀疏矩阵
 		sp_mat X;
 		X = sp_mat(true, locs, vals, num_pts, num_pts, true, true);
-		
+
 		//---------------------superLU_MT---------------------------------------
 		CSuperLU_MT superlumt(num_pts, X, bn);
-		if (superlumt.solve() == 1){
+		if (superlumt.solve() == 1) {
 			qDebug() << "Error: superlumt.slove";
 			break;
-		}
-		else{
+		} else {
 			double *sol = NULL;
 			A_old = A;
 			sol = superlumt.getResult();
@@ -1064,36 +1014,40 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 				A(i) = sol[i];
 			}
 		}
-		//A.save("A.txt", arma::arma_ascii);
-		qDebug() << "error";
+		A.save("A.txt", arma::arma_ascii);
 		
-		qDebug() << "superlu end";
-		//---------------------superLU--end----------------------------------
 		//有必要求出所有单元的B值
-		for (int i = 0; i < num_ele; i++) {			
+		for (int i = 0; i < num_ele; i++) {
 			pmeshele[i].Bx = (pmeshele[i].Q[0] * pmeshnode[pmeshele[i].n[0]].A
 				+ pmeshele[i].Q[1] * pmeshnode[pmeshele[i].n[1]].A
 				+ pmeshele[i].Q[2] * pmeshnode[pmeshele[i].n[2]].A);
 			pmeshele[i].By = (pmeshele[i].P[0] * pmeshnode[pmeshele[i].n[0]].A
 				+ pmeshele[i].P[1] * pmeshnode[pmeshele[i].n[1]].A
-				+ pmeshele[i].P[2] * pmeshnode[pmeshele[i].n[2]].A) ;
+				+ pmeshele[i].P[2] * pmeshnode[pmeshele[i].n[2]].A);
 
 			pmeshele[i].B = sqrt(pmeshele[i].By*pmeshele[i].By +
 				pmeshele[i].Bx*pmeshele[i].Bx) / 2. / pmeshele[i].AREA / ydot[i];
-			pmeshele[i].miu = materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B);
+			pmeshele[i].miut = materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B);
+			if (pmeshele[i].miut == 0) {
+				int a = 1;
+			}
+			qDebug() << "pmeshele[i].B: "<<pmeshele[i].B;
+			qDebug() <<"pmeshele[i].miut"<< pmeshele[i].miut;
 			BB(i) = pmeshele[i].B;
 		}
 
 		BB.save("BB.txt", arma::arma_ascii);
 		double error = norm((A_old - A), 2) / norm(A, 2);
+		qDebug() << "error: " << error;
 		if (error < Precision) {
 			break;
 		}
 		bn.zeros();
 		iter++;
-		qDebug() << iter;
+		qDebug() <<"iter: "<< iter;
 	}
 	if (rm != NULL) free(rm);
 	if (ydot != NULL) free(ydot);
 	return 0;
 }
+

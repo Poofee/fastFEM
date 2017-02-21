@@ -15,6 +15,6 @@ int main(int argc, char *argv[])
 	fem.openProject("..\\model\\project1.mag");
 	fem.LoadMeshCOMSOL("..\\model\\mesh00.mphtxt");
 	fem.preCalculation();
-	fem.staticAxisymmetricNR();
+	fem.StaticAxisymmetricNR();
     return a.exec();
 }
