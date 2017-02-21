@@ -200,7 +200,7 @@ int CFastFEMcore::LoadMeshCOMSOL(char*fn) {
 	fgets(ch, 256, fp);
 
 	for (int i = 0; i < num_domain; i++) {
-		if (fscanf(fp, "%d \n", &pmeshele[i].domain) != 1) {
+		if (fscanf(fp, "%d \n", &pmeshele[i].domain) != 1) {			
 			qDebug() << "Error: reading domain points!";
 			return 1;
 		}
@@ -729,10 +729,9 @@ int CFastFEMcore::preCalculation() {
 
 		//主要根据材料属性完成单元当中miu,miut,的赋值；
 		//由于I,pm与形函数有关系，为实现分离，不在此计算
-		CMaterial  mat;
-		mat = materialList[pmeshele[i].domain - 1];
+		
 
-		if (mat.BHpoints == 0) {
+		if (materialList[pmeshele[i].domain - 1].BHpoints == 0) {
 			pmeshele[i].miu = 1;
 			pmeshele[i].miut = 1;//must be 1
 			pmeshele[i].LinearFlag = true;

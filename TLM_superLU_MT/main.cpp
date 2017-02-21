@@ -14,5 +14,6 @@ int main(int argc, char *argv[])
 	qDebug() << "current currentPath: " << QDir::currentPath();
 	fem.openProject("..\\model\\project1.mag");
 	fem.LoadMeshCOMSOL("..\\model\\mesh00.mphtxt");
+	fem.preCalculation();
     return a.exec();
 }
