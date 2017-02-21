@@ -46,7 +46,7 @@ CFastFEMcore::~CFastFEMcore() {
 	//should free the space allocated
 	if (pmeshnode != NULL) free(pmeshnode);
 	if (pmeshele != NULL) free(pmeshele);
-	if (materialList != NULL) free(materialList);
+	if (materialList != NULL) delete []materialList;
 }
 
 
@@ -228,7 +228,7 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 	umat locs(2, 9 * num_ele);
 	locs.zeros();
 	vec vals = zeros<vec>(9 * num_ele);
-	double ce[3][3];
+	double ce[3][3] = {0};
 	ResistMarix *rm = (ResistMarix*)malloc(num_ele * sizeof(ResistMarix));
 	vec bbJz = zeros<vec>(num_pts);
 	vec b = zeros<vec>(num_pts);//b = bbJz + INL;
@@ -809,7 +809,7 @@ void CFastFEMcore::readProjectElement(QXmlStreamReader &reader) {
 				reader.readNextStartElement();
 				if (reader.name() == "domainNum") {
 					numDomain = reader.readElementText().toInt();
-					materialList = (CMaterial*)malloc(numDomain*sizeof(CMaterial));
+					materialList = new CMaterial[numDomain];
 					qDebug() << "domainNum = " << numDomain;
 				}
 				for (int i = 0; i < numDomain; i++) {
@@ -888,6 +888,9 @@ void CFastFEMcore::readBHElement(QXmlStreamReader &reader, int i) {
 
 				}
 			}
+		}else{
+			materialList[i].Bdata = NULL;
+			materialList[i].Hdata = NULL;
 		}
 
 	}
@@ -901,8 +904,8 @@ int CFastFEMcore::staticAxisymmetricNR() {
 	umat locs(2, 9 * num_ele);
 	locs.zeros();
 	vec vals = zeros<vec>(9 * num_ele);
-	double ce[3][3];
-	double cn[3][3];//用于牛顿迭代
+	double ce[3][3] = {0};
+	double cn[3][3] = {0};//用于牛顿迭代
 	vec bbJz = zeros<vec>(num_pts);
 	vec b = zeros<vec>(num_pts);
 	vec bn = zeros<vec>(num_pts);
@@ -1035,10 +1038,11 @@ int CFastFEMcore::staticAxisymmetricNR() {
 			b = bbJz + rpm;
 		}
 		b += bn;
+		
 		//使用构造函数来生成稀疏矩阵
 		sp_mat X;
 		X = sp_mat(true, locs, vals, num_pts, num_pts, true, true);
-
+		
 		//---------------------superLU_MT---------------------------------------
 		CSuperLU_MT superlumt(num_pts, X, b);
 		if (superlumt.solve() == 1){
@@ -1055,6 +1059,7 @@ int CFastFEMcore::staticAxisymmetricNR() {
 				A(i) = sol[i] * miu0;
 			}
 		}
+		A.save("A.txt", arma::arma_ascii);
 		double error = norm((A_old - A), 2) / norm(A, 2);
 		if (error < Precision) {
 			break;

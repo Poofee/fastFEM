@@ -45,7 +45,7 @@ public:
 	int BHpoints;
 	double   *Bdata;
 	double *Hdata;
-	double *slope;
+	//double *slope;
 	double H_c;				// magnetization, A/m
 	double Theta_m;			// orientation of magnetization, degrees
 	double Jr;			// applied current density, MA/m^2

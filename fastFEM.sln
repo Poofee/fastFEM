@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.40629.0
+VisualStudioVersion = 12.0.21005.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SuperLU_MT_3.1", "SuperLU_MT_3.1\SuperLU_MT_3.1.vcxproj", "{26F7931C-A699-4CD2-8149-60573747218E}"
 EndProject
@@ -46,7 +46,7 @@ Global
 		{77681F14-7E2E-466C-957B-E1CE2C07A8A0}.Debug|Mixed Platforms.Build.0 = Debug|Win32
 		{77681F14-7E2E-466C-957B-E1CE2C07A8A0}.Debug|Win32.ActiveCfg = Debug|Win32
 		{77681F14-7E2E-466C-957B-E1CE2C07A8A0}.Debug|Win32.Build.0 = Debug|Win32
-		{77681F14-7E2E-466C-957B-E1CE2C07A8A0}.Debug|x64.ActiveCfg = Debug|Win32
+		{77681F14-7E2E-466C-957B-E1CE2C07A8A0}.Debug|x64.ActiveCfg = Debug|x64
 		{77681F14-7E2E-466C-957B-E1CE2C07A8A0}.Release|Any CPU.ActiveCfg = Release|Win32
 		{77681F14-7E2E-466C-957B-E1CE2C07A8A0}.Release|Mixed Platforms.ActiveCfg = Release|x64
 		{77681F14-7E2E-466C-957B-E1CE2C07A8A0}.Release|Mixed Platforms.Build.0 = Release|x64
