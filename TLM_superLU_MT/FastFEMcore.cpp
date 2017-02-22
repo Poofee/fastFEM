@@ -728,12 +728,12 @@ int CFastFEMcore::preCalculation() {
 		//由于I,pm与形函数有关系，为实现分离，不在此计算
 
 		if (materialList[pmeshele[i].domain - 1].BHpoints == 0) {
-			pmeshele[i].miu = 1;
-			pmeshele[i].miut = 1;//must be 1
+			pmeshele[i].miu = 1*miu0;
+			pmeshele[i].miut = 1*miu0;//must be 1
 			pmeshele[i].LinearFlag = true;
 		} else {
-			pmeshele[i].miu = 1;
-			pmeshele[i].miut = 100;
+			pmeshele[i].miu = 1*miu0;
+			pmeshele[i].miut = 100*miu0;
 			pmeshele[i].LinearFlag = false;
 		}
 	}
@@ -804,7 +804,7 @@ void CFastFEMcore::readDomainElement(QXmlStreamReader &reader, int i) {
 		if (reader.name() == "domainName") {
 			qDebug() << "domainName = " << reader.readElementText();
 		} else if (reader.name() == "miu") {
-			materialList[i].miu = reader.readElementText().toDouble();
+			materialList[i].miu = reader.readElementText().toDouble()*4*PI*1e-7;
 			qDebug() << "miu = " << materialList[i].miu;
 		} else if (reader.name() == "BH") {
 			readBHElement(reader, i);
@@ -948,14 +948,17 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 			v[1] = rm[i].Y12*A(pmeshele[i].n[0]) +
 				rm[i].Y22*A(pmeshele[i].n[1]) +
 				rm[i].Y23*A(pmeshele[i].n[2]);
-			v[2] = rm[i].Y12*A(pmeshele[i].n[0]) +
+			v[2] = rm[i].Y13*A(pmeshele[i].n[0]) +
 				rm[i].Y23*A(pmeshele[i].n[1]) +
 				rm[i].Y33*A(pmeshele[i].n[2]);
 
 			if (iter != 0) {
 				double tmp = materialList[pmeshele[i].domain - 1].getdvdB(pmeshele[i].B);
+				//qDebug() << "B: " << pmeshele[i].B;
+				//qDebug() << "tmp: " << tmp;
 				tmp /= pmeshele[i].B * pmeshele[i].AREA;
 				tmp /= ydot[i] * ydot[i];
+				
 				cn[0][0] = v[0] * v[0] * tmp;
 				cn[1][1] = v[1] * v[1] * tmp;
 				cn[2][2] = v[2] * v[2] * tmp;
@@ -963,6 +966,10 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 				cn[0][1] = v[0] * v[1] * tmp;
 				cn[0][2] = v[0] * v[2] * tmp;
 				cn[1][2] = v[1] * v[2] * tmp;
+
+				cn[1][0] = cn[0][1];
+				cn[2][0] = cn[0][2];
+				cn[2][1] = cn[1][2];
 			}
 			ce[0][0] += cn[0][0];
 			ce[1][1] += cn[1][1];
@@ -981,11 +988,11 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 					locs(0, i * 9 + row * 3 + col) = pmeshele[i].n[row];
 					locs(1, i * 9 + row * 3 + col) = pmeshele[i].n[col];
 					vals(i * 9 + row * 3 + col) = ce[row][col];
+
+					bn(pmeshele[i].n[row]) += cn[row][col] * pmeshnode[pmeshele[i].n[col]].A;
 				}
 			}
-			bn(pmeshele[i].n[0]) += cn[0][0];
-			bn(pmeshele[i].n[1]) += cn[1][1];
-			bn(pmeshele[i].n[2]) += cn[2][2];
+
 		}//end of elememt iteration
 		if (iter == 0) {
 			for (int i = 0; i < num_pts; i++) {
@@ -994,6 +1001,7 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 			}
 			b = bbJz + rpm;
 		}
+		//bn.save("bn.txt",arma::arma_ascii);
 		bn += b;
 		//使用构造函数来生成稀疏矩阵
 		sp_mat X;
@@ -1003,6 +1011,7 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 		CSuperLU_MT superlumt(num_pts, X, bn);
 		if (superlumt.solve() == 1) {
 			qDebug() << "Error: superlumt.slove";
+			qDebug() << "info: "<<superlumt.info;
 			break;
 		} else {
 			double *sol = NULL;
@@ -1010,11 +1019,11 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 			sol = superlumt.getResult();
 
 			for (int i = 0; i < num_pts; i++) {
-				pmeshnode[i].A = sol[i] * miu0;// / pmeshnode[i].x;//the A is r*A_real
+				pmeshnode[i].A = sol[i];// / pmeshnode[i].x;//the A is r*A_real
 				A(i) = sol[i];
 			}
 		}
-		A.save("A.txt", arma::arma_ascii);
+		//A.save("A.txt", arma::arma_ascii);
 		
 		//有必要求出所有单元的B值
 		for (int i = 0; i < num_ele; i++) {
@@ -1028,15 +1037,13 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 			pmeshele[i].B = sqrt(pmeshele[i].By*pmeshele[i].By +
 				pmeshele[i].Bx*pmeshele[i].Bx) / 2. / pmeshele[i].AREA / ydot[i];
 			pmeshele[i].miut = materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B);
-			if (pmeshele[i].miut == 0) {
-				int a = 1;
-			}
-			qDebug() << "pmeshele[i].B: "<<pmeshele[i].B;
-			qDebug() <<"pmeshele[i].miut"<< pmeshele[i].miut;
+			
+			//qDebug() << "pmeshele[i].B: "<<pmeshele[i].B;
+			//qDebug() <<"pmeshele[i].miut"<< pmeshele[i].miut;
 			BB(i) = pmeshele[i].B;
 		}
 
-		BB.save("BB.txt", arma::arma_ascii);
+		//BB.save("BB.txt", arma::arma_ascii);
 		double error = norm((A_old - A), 2) / norm(A, 2);
 		qDebug() << "error: " << error;
 		if (error < Precision) {
