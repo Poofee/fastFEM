@@ -36,9 +36,8 @@ CFastFEMcore::CFastFEMcore() {
 	materialList = NULL;
 
 	thePlot = new Plot();
-	thePlot->setWindowModality(Qt::WindowModal);
 	thePlot->show();
-	
+
 }
 
 
@@ -47,6 +46,7 @@ CFastFEMcore::~CFastFEMcore() {
 	if (pmeshnode != NULL) free(pmeshnode);
 	if (pmeshele != NULL) free(pmeshele);
 	if (materialList != NULL) delete[]materialList;
+	if (thePlot != NULL) delete thePlot;
 }
 
 
@@ -734,12 +734,12 @@ int CFastFEMcore::preCalculation() {
 		//由于I,pm与形函数有关系，为实现分离，不在此计算
 
 		if (materialList[pmeshele[i].domain - 1].BHpoints == 0) {
-			pmeshele[i].miu = 1*miu0;
-			pmeshele[i].miut = 1*miu0;//must be 1
+			pmeshele[i].miu = 1 * miu0;
+			pmeshele[i].miut = 1 * miu0;//must be 1
 			pmeshele[i].LinearFlag = true;
 		} else {
-			pmeshele[i].miu = 1*miu0;
-			pmeshele[i].miut = 100*miu0;
+			pmeshele[i].miu = 1 * miu0;
+			pmeshele[i].miut = 100 * miu0;
 			pmeshele[i].LinearFlag = false;
 		}
 	}
@@ -810,7 +810,7 @@ void CFastFEMcore::readDomainElement(QXmlStreamReader &reader, int i) {
 		if (reader.name() == "domainName") {
 			qDebug() << "domainName = " << reader.readElementText();
 		} else if (reader.name() == "miu") {
-			materialList[i].miu = reader.readElementText().toDouble()*4*PI*1e-7;
+			materialList[i].miu = reader.readElementText().toDouble() * 4 * PI*1e-7;
 			qDebug() << "miu = " << materialList[i].miu;
 		} else if (reader.name() == "BH") {
 			readBHElement(reader, i);
@@ -941,7 +941,7 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 					bbJz(pmeshele[i].n[j]) += jr;
 					// 计算永磁部分
 					rpm(pmeshele[i].n[j]) += materialList[pmeshele[i].domain - 1].H_c / 2.*pmeshele[i].Q[j];
-				}				
+				}
 			}//end of iter=0
 			//miut对于线性就等于真值，对于非线性等于上一次的值
 			//主要求解结果不要漏掉miu0
@@ -974,7 +974,7 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 				//qDebug() << "tmp: " << tmp;
 				tmp /= pmeshele[i].B * pmeshele[i].AREA;
 				tmp /= ydot[i] * ydot[i] * ydot[i];
-				
+
 				cn[0][0] = v[0] * v[0] * tmp;
 				cn[1][1] = v[1] * v[1] * tmp;
 				cn[2][2] = v[2] * v[2] * tmp;
@@ -1005,12 +1005,12 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 					locs(1, i * 9 + row * 3 + col) = pmeshele[i].n[col];
 					vals(i * 9 + row * 3 + col) = ce[row][col];
 
-					bn(pmeshele[i].n[row]) += cn[row][col] * pmeshnode[pmeshele[i].n[col]].A;
+					bn(pmeshele[i].n[row]) += cn[row][col] * A(pmeshele[i].n[col]);
 				}
 			}
 
 		}//end of elememt iteration
-		if (iter == 0) {			
+		if (iter == 0) {
 			b = bbJz + rpm;
 		}
 		//bn.save("bn.txt",arma::arma_ascii);
@@ -1023,7 +1023,7 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 		CSuperLU_MT superlumt(num_pts, X, bn);
 		if (superlumt.solve() == 1) {
 			qDebug() << "Error: superlumt.slove";
-			qDebug() << "info: "<<superlumt.info;
+			qDebug() << "info: " << superlumt.info;
 			break;
 		} else {
 			double *sol = NULL;
@@ -1036,19 +1036,19 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 			}
 		}
 		//A.save("A.txt", arma::arma_ascii);
-		
+
 		//有必要求出所有单元的B值
 		for (int i = 0; i < num_ele; i++) {
 			double bx = 0;
 			double by = 0;
-			for (int j = 0 ; j < 3; j++) {
-				bx += pmeshele[i].Q[j] * pmeshnode[pmeshele[i].n[j]].A;
-				by += pmeshele[i].P[j] * pmeshnode[pmeshele[i].n[j]].A;
+			for (int j = 0; j < 3; j++) {
+				bx += pmeshele[i].Q[j] * A(pmeshele[i].n[j]);
+				by += pmeshele[i].P[j] * A(pmeshele[i].n[j]);
 			}
 
-			pmeshele[i].B = sqrt(bx*bx+by*by) / 2. / pmeshele[i].AREA / ydot[i];
+			pmeshele[i].B = sqrt(bx*bx + by*by) / 2. / pmeshele[i].AREA / ydot[i];
 			pmeshele[i].miut = materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B);
-			
+
 			//qDebug() << "pmeshele[i].B: "<<pmeshele[i].B;
 			//qDebug() <<"pmeshele[i].miut"<< pmeshele[i].miut;
 			y[i] = pmeshele[i].B;
@@ -1062,12 +1062,12 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 		if (error < Precision) {
 			break;
 		}
-		bn.zeros();	
+		bn.zeros();
 
 		customplot->graph(0)->setData(x, y);
 		customplot->rescaleAxes(true);
 		customplot->replot();
-		
+
 	}
 	if (rm != NULL) free(rm);
 	if (ydot != NULL) free(ydot);

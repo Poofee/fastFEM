@@ -10,13 +10,15 @@ int main(int argc, char *argv[])
 	//Plot w;
     //w.show();
 	CFastFEMcore fem;
-	QMessageBox msgBox;
-	msgBox.setText("The document has been modified.");
-	msgBox.exec();
+	/*QMessageBox msgBox;
+	msgBox.setText("Press Ok.");
+	msgBox.exec();*/
+	QProgressDialog dialog;
+	dialog.exec();
 	qDebug() << "current applicationDirPath: " << QCoreApplication::applicationDirPath();
 	qDebug() << "current currentPath: " << QDir::currentPath();
-	fem.openProject("..\\model\\project1.mag");
-	fem.LoadMeshCOMSOL("..\\model\\mesh00.mphtxt");
+	fem.openProject("..\\model\\project2.mag");
+	fem.LoadMeshCOMSOL("..\\model\\model_normal.mphtxt");
 	fem.preCalculation();
 	fem.StaticAxisymmetricNR();
     return a.exec();

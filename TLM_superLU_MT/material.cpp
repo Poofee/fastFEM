@@ -47,7 +47,7 @@ double CMaterial::getdvdB(double B) {
 	if (B < 1e-9){//·ÀÖ¹B=0
 		return 0;
 	} else if (B > 3) {
-		B = 2;
+		//B = 2;
 	}
 	if (BHpoints == 0) {
 		return 0;
