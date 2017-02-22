@@ -17,6 +17,7 @@
 #include "FastFEMcore.h"
 #include "SuperLU_MT.h"
 #include "spline.h"
+#include "qcustomplot.h"
 
 using namespace std;
 using namespace arma;
@@ -33,6 +34,11 @@ CFastFEMcore::CFastFEMcore() {
 	pmeshnode = NULL;
 	pmeshele = NULL;
 	materialList = NULL;
+
+	thePlot = new Plot();
+	thePlot->setWindowModality(Qt::WindowModal);
+	thePlot->show();
+	
 }
 
 
@@ -882,6 +888,17 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 	double * ydot = (double*)malloc(num_ele*sizeof(double));
 	ResistMarix *rm = (ResistMarix*)malloc(num_ele * sizeof(ResistMarix));
 
+	QVector<double> x(num_ele);
+	QVector<double> y(num_ele);
+	QCustomPlot * customplot;
+	customplot = thePlot->getQcustomPlot();
+	customplot->addGraph();
+	customplot->graph(0)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, QPen(Qt::black, 1.5), QBrush(Qt::black), 3));
+	customplot->graph(0)->setPen(QPen(QColor(120, 120, 120), 2));
+	customplot->graph(0)->setLineStyle(QCPGraph::lsNone);
+	for (int i = 0; i < num_ele; i++) {
+		x[i] = i;
+	}
 	int iter = 0;//迭代步数
 	while (1) {
 		//生成全局矩阵
@@ -1034,7 +1051,7 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 			
 			//qDebug() << "pmeshele[i].B: "<<pmeshele[i].B;
 			//qDebug() <<"pmeshele[i].miut"<< pmeshele[i].miut;
-			BB(i) = pmeshele[i].B;
+			y[i] = pmeshele[i].B;
 		}
 
 		//BB.save("BB.txt", arma::arma_ascii);
@@ -1045,7 +1062,12 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 		if (error < Precision) {
 			break;
 		}
-		bn.zeros();		
+		bn.zeros();	
+
+		customplot->graph(0)->setData(x, y);
+		customplot->rescaleAxes(true);
+		customplot->replot();
+		
 	}
 	if (rm != NULL) free(rm);
 	if (ydot != NULL) free(ydot);

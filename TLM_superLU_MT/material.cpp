@@ -46,6 +46,8 @@ double CMaterial::getdvdB(double B) {
 	double slope, H, b;
 	if (B < 1e-9){//·ÀÖ¹B=0
 		return 0;
+	} else if (B > 3) {
+		B = 2;
 	}
 	if (BHpoints == 0) {
 		return 0;

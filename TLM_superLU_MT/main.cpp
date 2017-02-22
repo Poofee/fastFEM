@@ -7,9 +7,12 @@
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
-	Plot w;
-    w.show();
+	//Plot w;
+    //w.show();
 	CFastFEMcore fem;
+	QMessageBox msgBox;
+	msgBox.setText("The document has been modified.");
+	msgBox.exec();
 	qDebug() << "current applicationDirPath: " << QCoreApplication::applicationDirPath();
 	qDebug() << "current currentPath: " << QDir::currentPath();
 	fem.openProject("..\\model\\project1.mag");

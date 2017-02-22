@@ -3,7 +3,7 @@
 
 #include <QMainWindow>
 #include "qcustomplot.h"
-#include "datatype.h"
+
 
 namespace Ui {
 	class MainWindow;
@@ -16,9 +16,8 @@ class Plot : public QMainWindow
 public:
 	explicit Plot(QWidget *parent = 0);
 	~Plot();
-	
+	QCustomPlot* getQcustomPlot();
 public slots:
-	void TLMcalculation();
 
 private:
 	Ui::MainWindow *ui;

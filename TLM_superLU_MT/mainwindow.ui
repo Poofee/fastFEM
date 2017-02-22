@@ -16,7 +16,7 @@
   <widget class="QWidget" name="centralWidget">
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
-     <widget class="QCustomPlot" name="widget" native="true"/>
+     <widget class="QCustomPlot" name="qplot" native="true"/>
     </item>
    </layout>
   </widget>
