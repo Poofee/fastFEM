@@ -50,13 +50,11 @@ double CMaterial::getdvdB(double B) {
 	if (BHpoints == 0) {
 		return 0;
 	} else {
-		for (int i = 0; i < BHpoints - 1; i++) {
+		for (int i = 0; i < BHpoints - 2; i++) {
 			if (B >= Bdata[i] && B <= Bdata[i + 1]) {
 				slope = (Hdata[i + 1] - Hdata[i]) / (Bdata[i + 1] - Bdata[i]);
 				H = Hdata[i] + slope*(B - Bdata[i]);
 				b = Hdata[i] - slope * Bdata[i];
-
-
 				return -b/(B*B);
 			}
 		}

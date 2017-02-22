@@ -920,16 +920,15 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 
 				//计算电流密度//要注意domain会不会越界
 				double jr = pmeshele[i].AREA*materialList[pmeshele[i].domain - 1].Jr / 3;
-				pmeshnode[pmeshele[i].n[0]].I += jr;
-				pmeshnode[pmeshele[i].n[1]].I += jr;
-				pmeshnode[pmeshele[i].n[2]].I += jr;
-				//计算永磁部分
-				pmeshnode[pmeshele[i].n[0]].pm += materialList[pmeshele[i].domain - 1].H_c / 2.*pmeshele[i].Q[0];
-				pmeshnode[pmeshele[i].n[1]].pm += materialList[pmeshele[i].domain - 1].H_c / 2.*pmeshele[i].Q[1];
-				pmeshnode[pmeshele[i].n[2]].pm += materialList[pmeshele[i].domain - 1].H_c / 2.*pmeshele[i].Q[2];
+				for (int j = 0; j < 3; j++) {
+					bbJz(pmeshele[i].n[j]) += jr;
+					// 计算永磁部分
+					rpm(pmeshele[i].n[j]) += materialList[pmeshele[i].domain - 1].H_c / 2.*pmeshele[i].Q[j];
+				}				
 			}//end of iter=0
 			//miut对于线性就等于真值，对于非线性等于上一次的值
 			//主要求解结果不要漏掉miu0
+
 			ce[0][0] = abs(rm[i].Y11) / pmeshele[i].miut / ydot[i];
 			ce[1][1] = abs(rm[i].Y22) / pmeshele[i].miut / ydot[i];
 			ce[2][2] = abs(rm[i].Y33) / pmeshele[i].miut / ydot[i];
@@ -957,7 +956,7 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 				//qDebug() << "B: " << pmeshele[i].B;
 				//qDebug() << "tmp: " << tmp;
 				tmp /= pmeshele[i].B * pmeshele[i].AREA;
-				tmp /= ydot[i] * ydot[i];
+				tmp /= ydot[i] * ydot[i] * ydot[i];
 				
 				cn[0][0] = v[0] * v[0] * tmp;
 				cn[1][1] = v[1] * v[1] * tmp;
@@ -994,11 +993,7 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 			}
 
 		}//end of elememt iteration
-		if (iter == 0) {
-			for (int i = 0; i < num_pts; i++) {
-				bbJz(i) = pmeshnode[i].I;
-				rpm(i) = pmeshnode[i].pm;
-			}
+		if (iter == 0) {			
 			b = bbJz + rpm;
 		}
 		//bn.save("bn.txt",arma::arma_ascii);
@@ -1027,15 +1022,14 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 		
 		//有必要求出所有单元的B值
 		for (int i = 0; i < num_ele; i++) {
-			pmeshele[i].Bx = (pmeshele[i].Q[0] * pmeshnode[pmeshele[i].n[0]].A
-				+ pmeshele[i].Q[1] * pmeshnode[pmeshele[i].n[1]].A
-				+ pmeshele[i].Q[2] * pmeshnode[pmeshele[i].n[2]].A);
-			pmeshele[i].By = (pmeshele[i].P[0] * pmeshnode[pmeshele[i].n[0]].A
-				+ pmeshele[i].P[1] * pmeshnode[pmeshele[i].n[1]].A
-				+ pmeshele[i].P[2] * pmeshnode[pmeshele[i].n[2]].A);
+			double bx = 0;
+			double by = 0;
+			for (int j = 0 ; j < 3; j++) {
+				bx += pmeshele[i].Q[j] * pmeshnode[pmeshele[i].n[j]].A;
+				by += pmeshele[i].P[j] * pmeshnode[pmeshele[i].n[j]].A;
+			}
 
-			pmeshele[i].B = sqrt(pmeshele[i].By*pmeshele[i].By +
-				pmeshele[i].Bx*pmeshele[i].Bx) / 2. / pmeshele[i].AREA / ydot[i];
+			pmeshele[i].B = sqrt(bx*bx+by*by) / 2. / pmeshele[i].AREA / ydot[i];
 			pmeshele[i].miut = materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B);
 			
 			//qDebug() << "pmeshele[i].B: "<<pmeshele[i].B;
@@ -1045,13 +1039,13 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 
 		//BB.save("BB.txt", arma::arma_ascii);
 		double error = norm((A_old - A), 2) / norm(A, 2);
+		iter++;
+		qDebug() << "iter: " << iter;
 		qDebug() << "error: " << error;
 		if (error < Precision) {
 			break;
 		}
-		bn.zeros();
-		iter++;
-		qDebug() <<"iter: "<< iter;
+		bn.zeros();		
 	}
 	if (rm != NULL) free(rm);
 	if (ydot != NULL) free(ydot);
