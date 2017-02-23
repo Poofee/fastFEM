@@ -20,6 +20,6 @@ int main(int argc, char *argv[])
 	fem.openProject("..\\model\\project2.mag");
 	fem.LoadMeshCOMSOL("..\\model\\model_normal.mphtxt");
 	fem.preCalculation();
-	fem.StaticAxisymmetricNR();
+	fem.StaticAxisymmetricTLM();
     return a.exec();
 }

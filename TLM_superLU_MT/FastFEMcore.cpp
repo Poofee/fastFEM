@@ -16,7 +16,6 @@
 #include <QVector>
 #include "FastFEMcore.h"
 #include "SuperLU_MT.h"
-#include "spline.h"
 #include "qcustomplot.h"
 
 using namespace std;
@@ -212,7 +211,6 @@ int CFastFEMcore::LoadMeshCOMSOL(char*fn) {
 
 // 这部分使用TLM进行求解
 bool CFastFEMcore::StaticAxisymmetricTLM() {
-	double U0 = 1;// PI*4e-7;
 	std::vector <int> D34;
 	D34.empty();
 	for (int i = 0; i < num_ele; i++) {
@@ -288,61 +286,64 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 		}
 		//计算电流密度//要注意domain会不会越界
 		double jr = pmeshele[i].AREA*materialList[pmeshele[i].domain - 1].Jr / 3;
-		pmeshnode[pmeshele[i].n[0]].I += jr;
-		pmeshnode[pmeshele[i].n[1]].I += jr;
-		pmeshnode[pmeshele[i].n[2]].I += jr;
-		//计算永磁部分
-		pmeshnode[pmeshele[i].n[0]].pm += materialList[pmeshele[i].domain - 1].H_c / 2.*pmeshele[i].Q[0];
-		pmeshnode[pmeshele[i].n[1]].pm += materialList[pmeshele[i].domain - 1].H_c / 2.*pmeshele[i].Q[1];
-		pmeshnode[pmeshele[i].n[2]].pm += materialList[pmeshele[i].domain - 1].H_c / 2.*pmeshele[i].Q[2];
+		for (int j = 0; j < 3; j++) {
+			bbJz(pmeshele[i].n[j]) += jr;
+			// 计算永磁部分
+			rpm(pmeshele[i].n[j]) += materialList[pmeshele[i].domain - 1].H_c / 2.*pmeshele[i].Q[j];
+		}
 	}
 	//----using armadillo constructor function-----
 	sp_mat X(true, locs, vals, num_pts, num_pts, true, true);
 
-	for (int i = 0; i < num_pts; i++) {
-		bbJz(i) = pmeshnode[i].I;//set the current
-		rpm(i) = pmeshnode[i].pm;
-	}
-	b = bbJz + INL + rpm;
+	b = bbJz + rpm;
+	INL += b;
 	//---------------------superLU_MT---------------------------------------
-	CSuperLU_MT superlumt(num_pts, X, b);
-	superlumt.solve();
-	double *sol = NULL;
-	sol = superlumt.getResult();
-	for (int i = 0; i < num_pts; i++) {
-		pmeshnode[i].A = sol[i] * miu0 / pmeshnode[i].x;//the A is r*A_real
-		A(i) = sol[i] * miu0;
+	CSuperLU_MT superlumt(num_pts, X, INL);
+	if (superlumt.solve() == 1) {
+		qDebug() << "Error: superlumt.slove";
+		qDebug() << "info: " << superlumt.info;
+	} else {
+		double *sol = NULL;
+		A_old = A;
+		sol = superlumt.getResult();
+
+		for (int i = 0; i < num_pts; i++) {
+			pmeshnode[i].A = sol[i];// / pmeshnode[i].x;//the A is r*A_real
+			A(i) = sol[i];
+		}
 	}
 	//---------------------superLU--end----------------------------------
-	QVector<double> x1(D34.size()), y1(D34.size());
-	QVector<double> x2(num_pts), y2(num_pts);
-	for (int i = 0; i < D34.size(); ++i) {
-		x1[i] = i;
-		x2[i] = i;
-	}
+	//-----------绘图
+	QVector<double> x(num_ele), y(num_ele);
+	for (int i = 0; i < num_ele; ++i) {
+		x[i] = i;
+	}	
+	QCustomPlot * customplot;
+	customplot = thePlot->getQcustomPlot();
+	customplot->addGraph();
+	customplot->graph(0)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, QPen(Qt::black, 1.5), QBrush(Qt::black), 3));
+	customplot->graph(0)->setPen(QPen(QColor(120, 120, 120), 2));
+	customplot->graph(0)->setLineStyle(QCPGraph::lsNone);
+	customplot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
+
 	//---------the main loop---------------------------------
-
 	int steps = 250;
-
 	int count;
-	//int i,j;
 	Voltage *Vr = (Voltage*)calloc(D34.size(), sizeof(Voltage));
 	Voltage *Vi = (Voltage*)calloc(D34.size(), sizeof(Voltage));
 	for (count = 0; count < steps; count++) {
 		//------update miu----------------
-		for (int i = 0; i < D34.size(); i++) {
-			int d34 = D34[i];
-			pmeshele[d34].Bx = (pmeshele[d34].Q[0] * pmeshnode[pmeshele[d34].n[0]].A
-				+ pmeshele[d34].Q[1] * pmeshnode[pmeshele[d34].n[1]].A
-				+ pmeshele[d34].Q[2] * pmeshnode[pmeshele[d34].n[2]].A) / 2. / pmeshele[d34].AREA / ydot[d34];
-			pmeshele[d34].By = (pmeshele[d34].P[0] * pmeshnode[pmeshele[d34].n[0]].A
-				+ pmeshele[d34].P[1] * pmeshnode[pmeshele[d34].n[1]].A
-				+ pmeshele[d34].P[2] * pmeshnode[pmeshele[d34].n[2]].A) / 2. / pmeshele[d34].AREA / ydot[d34];
+		for (int i = 0; i < num_ele; i++) {			
+			double bx = 0;
+			double by = 0;
+			for (int j = 0; j < 3; j++) {
+				bx += pmeshele[i].Q[j] * A(pmeshele[i].n[j]);
+				by += pmeshele[i].P[j] * A(pmeshele[i].n[j]);
+			}
 
-			pmeshele[d34].B = sqrt(pmeshele[d34].By*pmeshele[d34].By +
-				pmeshele[d34].Bx*pmeshele[d34].Bx);
-			pmeshele[d34].miu = materialList[pmeshele[d34].domain - 1].getMiu(pmeshele[d34].B);
-			y1[i] = pmeshele[d34].B;
+			pmeshele[i].B = sqrt(bx*bx + by*by) / 2. / pmeshele[i].AREA / ydot[i];
+			pmeshele[i].miut = materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B);
+			y[i] = pmeshele[i].B;
 		}
 		//#pragma omp parallel for
 		for (int j = 0; j < D34.size(); j++) {
@@ -369,16 +370,30 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 			INL(pmeshele[i].n[2]) += 2. * Vi[j].V13*abs(rm[i].Y13) / pmeshele[i].miut;
 			INL(pmeshele[i].n[0]) += -2.0 *Vi[j].V13*abs(rm[i].Y13) / pmeshele[i].miut;
 		}
-		b = bbJz + INL + rpm;
-		A_old = A;
-
+		INL += b; 
 		//NOW WE SOLVE THE LINEAR SYSTEM USING THE FACTORED FORM OF sluA.
-		superlumt.LUsolve();
-		for (int i = 0; i < num_pts; i++) {
-			pmeshnode[i].A = sol[i] * miu0 / pmeshnode[i].x;
-			A(i) = sol[i] * miu0;
+		if (superlumt.solve() == 1) {
+			qDebug() << "Error: superlumt.slove";
+			qDebug() << "info: " << superlumt.info;
+			break;
+		} else {
+			double *sol = NULL;
+			A_old = A;
+			sol = superlumt.getResult();
+
+			for (int i = 0; i < num_pts; i++) {
+				pmeshnode[i].A = sol[i];// / pmeshnode[i].x;//the A is r*A_real
+				A(i) = sol[i];
+			}
 		}
 		double error = norm((A_old - A), 2) / norm(A, 2);
+		qDebug() << "iter: " << count;
+		qDebug() << "error: " << error;
+
+		customplot->graph(0)->setData(x, y);
+		customplot->rescaleAxes(true);
+		customplot->replot();
+
 		if (error < Precision) {
 			break;
 		}
@@ -387,15 +402,15 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 
 	// 求解结束，更新B
 	for (int i = 0; i < num_ele; i++) {
-		pmeshele[i].Bx = (pmeshele[i].Q[0] * pmeshnode[pmeshele[i].n[0]].A
-			+ pmeshele[i].Q[1] * pmeshnode[pmeshele[i].n[1]].A
-			+ pmeshele[i].Q[2] * pmeshnode[pmeshele[i].n[2]].A) / 2. / pmeshele[i].AREA / ydot[i];
-		pmeshele[i].By = (pmeshele[i].P[0] * pmeshnode[pmeshele[i].n[0]].A
-			+ pmeshele[i].P[1] * pmeshnode[pmeshele[i].n[1]].A
-			+ pmeshele[i].P[2] * pmeshnode[pmeshele[i].n[2]].A) / 2. / pmeshele[i].AREA / ydot[i];
+		double bx = 0;
+		double by = 0;
+		for (int j = 0; j < 3; j++) {
+			bx += pmeshele[i].Q[j] * A(pmeshele[i].n[j]);
+			by += pmeshele[i].P[j] * A(pmeshele[i].n[j]);
+		}
 
-		pmeshele[i].B = sqrt(pmeshele[i].By*pmeshele[i].By +
-			pmeshele[i].Bx*pmeshele[i].Bx);
+		pmeshele[i].B = sqrt(bx*bx + by*by) / 2. / pmeshele[i].AREA / ydot[i];
+		pmeshele[i].miut = materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B)/miu0;
 	}
 
 	// 回收空间
@@ -414,7 +429,7 @@ double CFastFEMcore::CalcForce() {
 	double yDown = -4.7e-3;
 	double yUp = 5.3e-3;
 	double delta = 1e-10;
-	double xForce = 0;
+//	double xForce = 0;
 	double yForce = 0;
 	yUp += ste * 1e-4;
 	yDown += ste * 1e-4;
@@ -896,6 +911,7 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 	customplot->graph(0)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, QPen(Qt::black, 1.5), QBrush(Qt::black), 3));
 	customplot->graph(0)->setPen(QPen(QColor(120, 120, 120), 2));
 	customplot->graph(0)->setLineStyle(QCPGraph::lsNone);
+	customplot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
 	for (int i = 0; i < num_ele; i++) {
 		x[i] = i;
 	}
@@ -1016,8 +1032,7 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 		//bn.save("bn.txt",arma::arma_ascii);
 		bn += b;
 		//使用构造函数来生成稀疏矩阵
-		sp_mat X;
-		X = sp_mat(true, locs, vals, num_pts, num_pts, true, true);
+		sp_mat X(true, locs, vals, num_pts, num_pts, true, true);
 
 		//---------------------superLU_MT---------------------------------------
 		CSuperLU_MT superlumt(num_pts, X, bn);
