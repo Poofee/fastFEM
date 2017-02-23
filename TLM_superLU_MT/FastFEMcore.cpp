@@ -37,7 +37,7 @@ CFastFEMcore::CFastFEMcore() {
 
 	thePlot = new Plot();
 	thePlot->show();
-
+	qApp->processEvents();//强制刷新界面
 }
 
 

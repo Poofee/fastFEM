@@ -13,8 +13,8 @@ int main(int argc, char *argv[])
 	/*QMessageBox msgBox;
 	msgBox.setText("Press Ok.");
 	msgBox.exec();*/
-	QProgressDialog dialog;
-	dialog.exec();
+	//QProgressDialog dialog;
+	//dialog.exec();
 	qDebug() << "current applicationDirPath: " << QCoreApplication::applicationDirPath();
 	qDebug() << "current currentPath: " << QDir::currentPath();
 	fem.openProject("..\\model\\project2.mag");
