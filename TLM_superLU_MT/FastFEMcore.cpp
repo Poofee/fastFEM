@@ -379,39 +379,43 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 		for (int j = 0; j < D34.size(); j++) {
 			int i = D34[j];
 			CElement *m_e = pmeshele+i;
+			int k, m, n;
+			k = m_e->n[0];
+			m = m_e->n[1];
+			n = m_e->n[2];
 			double rtmp;//do this to mark it as private
 			rtmp = (m_e->miut - m_e->miu) / (m_e->miu + m_e->miut);
 
-			Vr[j].V12 = (pmeshnode[m_e->n[0]].A - pmeshnode[m_e->n[1]].A) - Vi[j].V12;
-			Vr[j].V23 = (pmeshnode[m_e->n[1]].A - pmeshnode[m_e->n[2]].A) - Vi[j].V23;
-			Vr[j].V13 = (pmeshnode[m_e->n[2]].A - pmeshnode[m_e->n[0]].A) - Vi[j].V13;
+			Vr[j].V12 = (pmeshnode[k].A - pmeshnode[m].A) - Vi[j].V12;
+			Vr[j].V23 = (pmeshnode[m].A - pmeshnode[n].A) - Vi[j].V23;
+			Vr[j].V13 = (pmeshnode[n].A - pmeshnode[k].A) - Vi[j].V13;
 
 			if (rm[i].Y12 < 0) {
 				Vi[j].V12 = rtmp*Vr[j].V12;
-				INL(pmeshele[i].n[1]) += -2. *Vi[j].V12*abs(rm[i].Y12);
-				INL(pmeshele[i].n[0]) += 2. * Vi[j].V12 *abs(rm[i].Y12);
+				INL(m) += -2. *Vi[j].V12*abs(rm[i].Y12);
+				INL(k) += 2. * Vi[j].V12 *abs(rm[i].Y12);
 			} else {
-				Vi[j].V12 = (pmeshnode[m_e->n[0]].A - pmeshnode[m_e->n[1]].A);
-				INL(pmeshele[i].n[1]) += -1. *Vi[j].V12*abs(rm[i].Y12);
-				INL(pmeshele[i].n[0]) += 1. * Vi[j].V12 *abs(rm[i].Y12);
+				Vi[j].V12 = (pmeshnode[k].A - pmeshnode[m].A);
+				INL(m) += -1. *Vi[j].V12*abs(rm[i].Y12);
+				INL(k) += 1. * Vi[j].V12 *abs(rm[i].Y12);
 			}
 			if (rm[i].Y23 < 0) {
 				Vi[j].V23 = rtmp*Vr[j].V23;
-				INL(pmeshele[i].n[1]) += 2. * Vi[j].V23*abs(rm[i].Y23);
-				INL(pmeshele[i].n[2]) += -2. *Vi[j].V23*abs(rm[i].Y23);
+				INL(m) += 2. * Vi[j].V23*abs(rm[i].Y23);
+				INL(n) += -2. *Vi[j].V23*abs(rm[i].Y23);
 			} else {
-				Vi[j].V23 = (pmeshnode[m_e->n[1]].A - pmeshnode[m_e->n[2]].A);
-				INL(pmeshele[i].n[1]) += 1. * Vi[j].V23*abs(rm[i].Y23);
-				INL(pmeshele[i].n[2]) += -1. *Vi[j].V23*abs(rm[i].Y23);
+				Vi[j].V23 = (pmeshnode[m].A - pmeshnode[n].A);
+				INL(m) += 1. * Vi[j].V23*abs(rm[i].Y23);
+				INL(n) += -1. *Vi[j].V23*abs(rm[i].Y23);
 			}			
 			if (rm[i].Y13 < 0) {
 				Vi[j].V13 = Vr[j].V13 / rtmp;
-				INL(pmeshele[i].n[2]) += 2. * Vi[j].V13*abs(rm[i].Y13);
-				INL(pmeshele[i].n[0]) += -2.0 *Vi[j].V13*abs(rm[i].Y13);
+				INL(n) += 2. * Vi[j].V13*abs(rm[i].Y13);
+				INL(k) += -2.0 *Vi[j].V13*abs(rm[i].Y13);
 			} else {
-				Vi[j].V13 = (pmeshnode[m_e->n[2]].A - pmeshnode[m_e->n[0]].A);
-				INL(pmeshele[i].n[2]) += 1. * Vi[j].V13*abs(rm[i].Y13);
-				INL(pmeshele[i].n[0]) += -1.0 *Vi[j].V13*abs(rm[i].Y13);
+				Vi[j].V13 = (pmeshnode[n].A - pmeshnode[k].A);
+				INL(n) += 1. * Vi[j].V13*abs(rm[i].Y13);
+				INL(k) += -1.0 *Vi[j].V13*abs(rm[i].Y13);
 			}
 			//if (INL(pmeshele[i].n[2]) > 1e5) {
 			//	int a = 1;
@@ -797,22 +801,26 @@ int CFastFEMcore::openProject(QString proFile) {
 
 
 int CFastFEMcore::preCalculation() {
+	int k, m, n;
 	for (int i = 0; i < num_ele; i++) {
-		pmeshele[i].P[0] = pmeshnode[pmeshele[i].n[1]].y - pmeshnode[pmeshele[i].n[2]].y;
-		pmeshele[i].P[1] = pmeshnode[pmeshele[i].n[2]].y - pmeshnode[pmeshele[i].n[0]].y;
-		pmeshele[i].P[2] = pmeshnode[pmeshele[i].n[0]].y - pmeshnode[pmeshele[i].n[1]].y;
+		k = pmeshele[i].n[0];
+		m = pmeshele[i].n[1];
+		n = pmeshele[i].n[2];
+		pmeshele[i].P[0] = pmeshnode[m].y - pmeshnode[n].y;
+		pmeshele[i].P[1] = pmeshnode[n].y - pmeshnode[k].y;
+		pmeshele[i].P[2] = pmeshnode[k].y - pmeshnode[m].y;
 
-		pmeshele[i].Q[0] = pmeshnode[pmeshele[i].n[2]].x - pmeshnode[pmeshele[i].n[1]].x;
-		pmeshele[i].Q[1] = pmeshnode[pmeshele[i].n[0]].x - pmeshnode[pmeshele[i].n[2]].x;
-		pmeshele[i].Q[2] = pmeshnode[pmeshele[i].n[1]].x - pmeshnode[pmeshele[i].n[0]].x;
+		pmeshele[i].Q[0] = pmeshnode[n].x - pmeshnode[m].x;
+		pmeshele[i].Q[1] = pmeshnode[k].x - pmeshnode[n].x;
+		pmeshele[i].Q[2] = pmeshnode[m].x - pmeshnode[k].x;
 
 		pmeshele[i].AREA = 0.5*abs(pmeshele[i].P[1] * pmeshele[i].Q[2] - pmeshele[i].Q[1] * pmeshele[i].P[2]);
-		pmeshele[i].rc = (pmeshnode[pmeshele[i].n[0]].x +
-			pmeshnode[pmeshele[i].n[1]].x +
-			pmeshnode[pmeshele[i].n[2]].x) / 3;
-		pmeshele[i].zc = (pmeshnode[pmeshele[i].n[0]].y +
-			pmeshnode[pmeshele[i].n[1]].y +
-			pmeshnode[pmeshele[i].n[2]].y) / 3;
+		pmeshele[i].rc = (pmeshnode[k].x +
+			pmeshnode[m].x +
+			pmeshnode[n].x) / 3;
+		pmeshele[i].zc = (pmeshnode[k].y +
+			pmeshnode[m].y +
+			pmeshnode[n].y) / 3;
 
 		//主要根据材料属性完成单元当中miu,miut,的赋值；
 
@@ -1160,4 +1168,5 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 	if (ydot != NULL) free(ydot);
 	return 0;
 }
+
 
