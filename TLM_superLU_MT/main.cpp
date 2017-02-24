@@ -21,5 +21,6 @@ int main(int argc, char *argv[])
 	fem.LoadMeshCOMSOL("..\\model\\model_normal.mphtxt");
 	fem.preCalculation();
 	fem.StaticAxisymmetricTLM();
+	//fem.StaticAxisymmetricNR();
     return a.exec();
 }

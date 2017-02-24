@@ -19,12 +19,12 @@ public:
 	int n[3];// ni, nj, nk;//
 	double P[3];// Pi, Pj, Pk;
 	double Q[3];// Qi, Qj, Qk;
-	double AREA;
-	double Bx,By,B;
+	double AREA;//单元的面积变量
+	double Bx,By,B;//单元的磁感应强度B及其水平和竖直方向上的分量
 	double miu,miut;//对于非线性单元，迭代时的miu和初始时的miu；
 	int domain;//从工程文件会读取一个材料列表，这是当前单元的编号；
     double rc,zc;
-	bool LinearFlag;
+	bool LinearFlag;//定义逻辑变量LinearFlag，用来判断具体单元是否处于线性区域
 
 private:
 };

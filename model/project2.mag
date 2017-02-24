@@ -28,7 +28,7 @@
         </Domain>
         <Domain>
             <domainName>FIX</domainName>
-            <miu>1</miu>
+            <miu>100</miu>
             <BH>
                 <BHpoints>11</BHpoints>
                 <Bdata>
@@ -63,7 +63,7 @@
         </Domain>
         <Domain>
             <domainName>MOV</domainName>
-            <miu>1</miu>
+            <miu>100</miu>
             <BH>
                 <BHpoints>11</BHpoints>
                 <Bdata>
