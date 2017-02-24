@@ -979,10 +979,10 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 	QVector<double> y(num_ele);
 	QCustomPlot * customplot;
 	customplot = thePlot->getQcustomPlot();
-	customplot->addGraph();
-	customplot->graph(0)->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, QPen(Qt::black, 1.5), QBrush(Qt::black), 3));
-	customplot->graph(0)->setPen(QPen(QColor(120, 120, 120), 2));
-	customplot->graph(0)->setLineStyle(QCPGraph::lsNone);
+	QCPGraph *graph1 = customplot->addGraph();
+	graph1->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, QPen(Qt::black, 1.5), QBrush(Qt::black), 3));
+	graph1->setPen(QPen(QColor(120, 120, 120), 2));
+	graph1->setLineStyle(QCPGraph::lsNone);
 	customplot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
 	for (int i = 0; i < num_ele; i++) {
 		x[i] = i;
@@ -1034,13 +1034,13 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 			//miut对于线性就等于真值，对于非线性等于上一次的值
 			//主要求解结果不要漏掉miu0
 
-			ce[0][0] = abs(rm[i].Y11) / pmeshele[i].miut / ydot[i];
-			ce[1][1] = abs(rm[i].Y22) / pmeshele[i].miut / ydot[i];
-			ce[2][2] = abs(rm[i].Y33) / pmeshele[i].miut / ydot[i];
+			ce[0][0] = rm[i].Y11 / pmeshele[i].miut / ydot[i];
+			ce[1][1] = rm[i].Y22 / pmeshele[i].miut / ydot[i];
+			ce[2][2] = rm[i].Y33 / pmeshele[i].miut / ydot[i];
 
-			ce[0][1] = -abs(rm[i].Y12) / pmeshele[i].miut / ydot[i];
-			ce[0][2] = -abs(rm[i].Y13) / pmeshele[i].miut / ydot[i];
-			ce[1][2] = -abs(rm[i].Y23) / pmeshele[i].miut / ydot[i];
+			ce[0][1] = rm[i].Y12 / pmeshele[i].miut / ydot[i];
+			ce[0][2] = rm[i].Y13 / pmeshele[i].miut / ydot[i];
+			ce[1][2] = rm[i].Y23 / pmeshele[i].miut / ydot[i];
 
 			//计算牛顿迭代部分的单元矩阵项,如果是第一次迭代的话，A=0，
 			//所以就不计算了，参见颜威利书P56
@@ -1151,7 +1151,7 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 		}
 		bn.zeros();
 
-		customplot->graph(0)->setData(x, y);
+		graph1->setData(x, y);
 		customplot->rescaleAxes(true);
 		customplot->replot();
 
