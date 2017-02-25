@@ -50,7 +50,7 @@ CFastFEMcore::~CFastFEMcore() {
 
 
 // load mesh
-int CFastFEMcore::LoadMeshCOMSOL(char*fn) {
+int CFastFEMcore::Load2DMeshCOMSOL(char*fn) {
 	char ch[256];
 	//------------open file----------------------------------
 	FILE * fp = NULL;
@@ -64,7 +64,7 @@ int CFastFEMcore::LoadMeshCOMSOL(char*fn) {
 		fgets(ch, 256, fp);
 	}
 	//-----------------mesh point-----------------------------	
-
+	//读取节点数目
 	if (fscanf(fp, "%d # number of mesh points\n", &num_pts)) {
 		pmeshnode = (CNode*)calloc(num_pts, sizeof(CNode));
 
@@ -77,13 +77,15 @@ int CFastFEMcore::LoadMeshCOMSOL(char*fn) {
 		return 1;
 	}
 	int pts_ind;//the beginning of the points index
-
+	//读取节点索引，默认从0开始
 	if (fscanf(fp, "%d # lowest mesh point index\n", &pts_ind) != 1) {
 		qDebug() << "Error: reading pts_ind!";
 		return 1;
 	}
 	fgets(ch, 256, fp);
+	
 	for (int i = pts_ind; i < num_pts; i++) {
+		//读取x,y坐标
 		if (fscanf(fp, "%lf %lf \n", &(pmeshnode[i].x), &(pmeshnode[i].y)) != 2) {
 			qDebug() << "Error: reading mesh point!";
 			return 1;
@@ -93,6 +95,7 @@ int CFastFEMcore::LoadMeshCOMSOL(char*fn) {
 	for (int i = 0; i < 7; i++)
 		fgets(ch, 256, fp);
 	int num_vtx_ns, num_vtx_ele;
+	//
 	if (fscanf(fp, "%d # number of nodes per element\n", &num_vtx_ns) != 1) {
 		qDebug() << "Error: reading num_vtx_ns!";
 		return 1;
@@ -107,6 +110,7 @@ int CFastFEMcore::LoadMeshCOMSOL(char*fn) {
 	int *vtx;
 	vtx = (int*)calloc(num_vtx_ele, sizeof(int));
 	for (int i = 0; i < num_vtx_ele; i++) {
+		//好象是每一个域的顶点编号
 		if (fscanf(fp, "%d \n", vtx + i) != 1) {
 			qDebug() << "Error: reading vertex condition!";
 			return 1;
@@ -130,11 +134,12 @@ int CFastFEMcore::LoadMeshCOMSOL(char*fn) {
 	for (int i = 0; i < 5; i++)
 		fgets(ch, 256, fp);
 	int num_bdr_ns, num_bdr_ele;//number of nodes per element;number of elements
+	//读取一个边界单元中的数目，2D的话为2，表示线段
 	if (fscanf(fp, "%d # number of nodes per element\n", &num_bdr_ns) != 1) {
 		qDebug() << "Error: reading num_bdr_ns!";
 		return 1;
 	}
-
+	//读取线段边界数目
 	if (fscanf(fp, "%d # number of elements\n", &num_bdr_ele) != 1) {
 		qDebug() << "Error: reading num_bdr_ele!";
 		return 1;
@@ -145,11 +150,9 @@ int CFastFEMcore::LoadMeshCOMSOL(char*fn) {
 	p1 = (int*)calloc(num_bdr_ele, sizeof(int));
 	p2 = (int*)calloc(num_bdr_ele, sizeof(int));
 	for (int i = 0; i < num_bdr_ele; i++) {
+		//读取线段边界的起点和终点
 		if (fscanf(fp, "%d %d\n", p1 + i, p2 + i) == 2) {
-			//-----process the A=0 boundary--------------------------
-			/*if (abs(pmeshnode[p1[i]].length() - 0.05) < 5e-3 || abs(pmeshnode[p1[i]].x) < 5e-5) {
-			pmeshnode[p1[i]].bdr = 1;
-			}*/
+			pmeshnode[p1[i]].bdr = 1;			
 		} else {
 			qDebug() << "Error: reading boundary condition!";
 			return 1;
@@ -178,7 +181,7 @@ int CFastFEMcore::LoadMeshCOMSOL(char*fn) {
 		qDebug() << "Error: reading ns_per_ele!";
 		return 1;
 	}
-
+	//读取分网单元数目
 	if (fscanf(fp, "%d # number of elements\n", &num_ele) == 1) {
 		pmeshele = (CElement*)calloc(num_ele, sizeof(CElement));
 	} else {
@@ -186,7 +189,7 @@ int CFastFEMcore::LoadMeshCOMSOL(char*fn) {
 		return 1;
 	}
 	fgets(ch, 256, fp);
-
+	//读取分网三角单元的三个节点索引
 	for (int i = 0; i < num_ele; i++) {
 		if (fscanf(fp, "%d %d %d \n", &pmeshele[i].n[0], &pmeshele[i].n[1], &pmeshele[i].n[2]) != 3) {
 			qDebug() << "Error: reading elements points!";
@@ -195,10 +198,12 @@ int CFastFEMcore::LoadMeshCOMSOL(char*fn) {
 	}
 	//---------------Domain----------------------------------
 	int num_domain;
+	//读取domain数目
 	fscanf(fp, "%d # number of geometric entity indices\n", &num_domain);
 	fgets(ch, 256, fp);
-
+	
 	for (int i = 0; i < num_domain; i++) {
+		//读取每个单元所在的domain
 		if (fscanf(fp, "%d \n", &pmeshele[i].domain) != 1) {
 			qDebug() << "Error: reading domain points!";
 			return 1;

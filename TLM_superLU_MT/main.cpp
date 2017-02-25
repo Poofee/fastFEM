@@ -18,7 +18,7 @@ int main(int argc, char *argv[])
 	qDebug() << "current applicationDirPath: " << QCoreApplication::applicationDirPath();
 	qDebug() << "current currentPath: " << QDir::currentPath();
 	fem.openProject("..\\model\\project2.mag");
-	fem.LoadMeshCOMSOL("..\\model\\model_normal.mphtxt");
+	fem.Load2DMeshCOMSOL("..\\model\\model_normal.mphtxt");
 	fem.preCalculation();
 	//fem.StaticAxisymmetricTLM();
 	fem.StaticAxisymmetricNR();
