@@ -160,8 +160,8 @@ for i = 1:length(ia)
     %text(sum(XL((ia(i)),1:3))/3,sum(YL((ia(i)),1:3))/3,int2str(ia(i)));
 end
 
-for i=1:length(entity)
-   plot(X(p(entity(i),1:2)),Y(p(entity(i),1:2)),'-*k') ;
+for i=1:length(p)
+   plot(X(p((i),1:2)),Y(p((i),1:2)),'-*k') ;
    hold on
 end
 

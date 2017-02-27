@@ -807,6 +807,7 @@ int CFastFEMcore::openProject(QString proFile) {
 
 int CFastFEMcore::preCalculation() {
 	int k, m, n;
+	int num_bdr = 0;
 	for (int i = 0; i < num_ele; i++) {
 		k = pmeshele[i].n[0];
 		m = pmeshele[i].n[1];
@@ -841,6 +842,26 @@ int CFastFEMcore::preCalculation() {
 			pmeshele[i].miu = 1 * miu0;
 			pmeshele[i].miut = 100 * miu0;
 			pmeshele[i].LinearFlag = false;
+		}
+		//查找物理边界
+		if (pmeshele[i].domain == 1) {
+			pmeshnode[k].bdr = 3;
+			
+			pmeshnode[m].bdr = 3;
+			
+			pmeshnode[n].bdr = 3;
+						
+		} else {
+			//对称轴上的部分边界点
+			if (pmeshnode[k].bdr == 1 && pmeshnode[k].x < 1e-7) {
+				pmeshnode[k].bdr = 3;
+			}
+			if (pmeshnode[m].bdr == 1 && pmeshnode[m].x < 1e-7) {
+				pmeshnode[m].bdr = 3;
+			}
+			if (pmeshnode[n].bdr == 1 && pmeshnode[n].x < 1e-7) {
+				pmeshnode[n].bdr = 3;
+			}
 		}
 	}
 
@@ -975,11 +996,13 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 	//所需要的变量
 	umat locs(2, 9 * num_ele);
 	locs.zeros();
-	vec vals = zeros<vec>(9 * num_ele);
+	mat vals(1,9 * num_ele);
 	double ce[3][3] = { 0 };
 	double cn[3][3] = { 0 };//用于牛顿迭代
 	vec bbJz = zeros<vec>(num_pts);
 	vec b = zeros<vec>(num_pts);
+	uvec node_reorder = zeros<uvec>(num_pts);
+	uvec node_pos = zeros<uvec>(num_pts);
 	vec BB = zeros<vec>(num_ele);
 	vec bn = zeros<vec>(num_pts);
 	vec A = zeros<vec>(num_pts);
@@ -1000,7 +1023,23 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 	for (int i = 0; i < num_ele; i++) {
 		x[i] = i;
 	}
+	//重新对节点进行编号，将边界点分离
+	int node_bdr = 0;
+	for (int i = 0; i < num_pts; i++) {
+		if (pmeshnode[i].bdr == 3) {
+			node_bdr++;
+			node_reorder(num_pts - node_bdr) = i;
+			node_pos(i) = num_pts - node_bdr;
+			pmeshnode[i].A = 0;
+			A(i) = 0;
+		} else {
+			node_reorder(i - node_bdr) = i;
+			node_pos(i) = i - node_bdr;
+		}
+	}
+	vec unknown_b(num_pts - node_bdr);
 	int iter = 0;//迭代步数
+	int pos = 0;
 	while (1) {
 		//生成全局矩阵
 		for (int i = 0; i < num_ele; i++) {
@@ -1100,27 +1139,44 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 			ce[2][0] = ce[0][2];
 			ce[2][1] = ce[1][2];
 
+			
 			for (int row = 0; row < 3; row++) {
 				for (int col = 0; col < 3; col++) {
-					locs(0, i * 9 + row * 3 + col) = pmeshele[i].n[row];
-					locs(1, i * 9 + row * 3 + col) = pmeshele[i].n[col];
-					vals(i * 9 + row * 3 + col) = ce[row][col];
-
+					//判断节点是否在未知节点内
+					//得到排序之后的编号
+					int n_row = node_pos(pmeshele[i].n[row]);
+					int n_col = node_pos(pmeshele[i].n[col]);
+					if (n_row < num_pts - node_bdr && n_col < num_pts - node_bdr) {
+						locs(0, pos) = n_row;
+						locs(1, pos) = n_col;
+						vals(0,pos) = ce[row][col]; 
+						pos++;
+					}
+					
+					//bn的顺序并没有改
 					bn(pmeshele[i].n[row]) += cn[row][col] * A(pmeshele[i].n[col]);
 				}
 			}
 
 		}//end of elememt iteration
 		if (iter == 0) {
+			locs.reshape(2, pos);
+			vals.reshape(1, pos);
+		}
+		
+		if (iter == 0) {
 			b = bbJz + rpm;
 		}
 		//bn.save("bn.txt",arma::arma_ascii);
 		bn += b;
 		//使用构造函数来生成稀疏矩阵
-		sp_mat X(true, locs, vals, num_pts, num_pts, true, true);
-
+		sp_mat X(true, locs, vals, num_pts-node_bdr, num_pts-node_bdr, true, true);
+		
+		for (int i = 0; i < num_pts - node_bdr; i++) {
+			unknown_b(i) = bn(node_reorder(i));
+		}
 		//---------------------superLU_MT---------------------------------------
-		CSuperLU_MT superlumt(num_pts, X, bn);
+		CSuperLU_MT superlumt(num_pts - node_bdr, X, unknown_b);
 		if (superlumt.solve() == 1) {
 			qDebug() << "Error: superlumt.slove";
 			qDebug() << "info: " << superlumt.info;
@@ -1130,9 +1186,9 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 			A_old = A;
 			sol = superlumt.getResult();
 
-			for (int i = 0; i < num_pts; i++) {
-				pmeshnode[i].A = sol[i];// / pmeshnode[i].x;//the A is r*A_real
-				A(i) = sol[i];
+			for (int i = 0; i < num_pts - node_bdr; i++) {
+				pmeshnode[node_reorder(i)].A = sol[i];// / pmeshnode[i].x;//the A is r*A_real
+				A(node_reorder(i)) = sol[i];
 			}
 		}
 		//A.save("A.txt", arma::arma_ascii);
@@ -1163,10 +1219,12 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 			break;
 		}
 		bn.zeros();
+		pos = 0;
 
 		graph1->setData(x, y);
 		customplot->rescaleAxes(true);
 		customplot->replot();
+
 
 	}
 	if (rm != NULL) free(rm);

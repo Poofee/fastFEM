@@ -6,7 +6,7 @@ public:
 
 	double x, y;//the co
 	double A;//the solution
-	double bdr;//boundary type 0:constant;
+	double bdr;//boundary type 0:非边界;1:几何边界;2:物理边界3:既是物理边界，又是几何边界
 	double I;//current source
 	double pm;
 private:
