@@ -11,4 +11,4 @@
    - [ ] 新建工程的时候，如果需要Qt，尽量先用Qtcreator建立一个空的工程，然后导入到visual studio，这样会在工程当中用的是QTDIR这个宏，而不是全路径：
 test
 
-   ​
+test2
