@@ -261,15 +261,7 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 		rm[i].Y22 = pmeshele[i].Q[1] * pmeshele[i].Q[1] + pmeshele[i].P[1] * pmeshele[i].P[1];
 		rm[i].Y23 = pmeshele[i].Q[1] * pmeshele[i].Q[2] + pmeshele[i].P[1] * pmeshele[i].P[2];
 		rm[i].Y33 = pmeshele[i].Q[2] * pmeshele[i].Q[2] + pmeshele[i].P[2] * pmeshele[i].P[2];
-		if (rm[i].Y12 > 0) {
-			qDebug() << rm[i].Y12 << "+" << rm[i].Y13 << "=" << rm[i].Y12 + rm[i].Y13;
-		}
-		if (rm[i].Y13 > 0) {
-			qDebug() << rm[i].Y13 << "+" << rm[i].Y12 << "=" << rm[i].Y12 + rm[i].Y13;
-		}
-		if (rm[i].Y23 > 0) {
-			qDebug() << rm[i].Y23 << "+" << rm[i].Y12 << "=" << rm[i].Y12 + rm[i].Y23;
-		}
+		
 
 		rm[i].Y11 /= 4. * pmeshele[i].AREA*ydot[i] * pmeshele[i].miu;//猜测值
 		rm[i].Y12 /= 4. * pmeshele[i].AREA*ydot[i] * pmeshele[i].miu;
@@ -282,28 +274,21 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 
 		//生成单元矩阵，线性与非线性
 		// 因为线性与非线性的差不多，所以不再分开讨论了
-		ce[0][0] = abs(rm[i].Y11);
-		ce[1][1] = abs(rm[i].Y22);
-		ce[2][2] = abs(rm[i].Y33);
+		ce[0][0] = rm[i].Y11;
+		ce[1][1] = rm[i].Y22;
+		ce[2][2] = rm[i].Y33;
 
-		if (rm[i].Y12 < 0) {
+		if (pmeshele[i].LinearFlag) {
+			ce[0][1] = rm[i].Y12;
+			ce[0][2] = rm[i].Y13;
+			ce[1][2] = rm[i].Y23;			
+		} else {
 			ce[0][1] = -abs(rm[i].Y12);
-		} else {
-			ce[0][1] = 0;
-		}
-
-		ce[1][0] = ce[0][1];
-		if (rm[i].Y13 < 0) {
 			ce[0][2] = -abs(rm[i].Y13);
-		} else {
-			ce[0][2] = 0;
-		}
-		ce[2][0] = ce[0][2];
-		if (rm[i].Y23 < 0) {
 			ce[1][2] = -abs(rm[i].Y23);
-		} else {
-			ce[1][2] = 0;
 		}
+		ce[1][0] = ce[0][1];
+		ce[2][0] = ce[0][2];
 		ce[2][1] = ce[1][2];
 
 		//将单元矩阵进行存储
@@ -341,9 +326,6 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 		for (int i = 0; i < num_pts; i++) {
 			pmeshnode[i].A = sol[i];// / pmeshnode[i].x;//the A is r*A_real
 			A(i) = sol[i];
-			if (A(i) > 1e5) {
-				int a = 1;
-			}
 		}
 	}
 	//---------------------superLU--end----------------------------------
@@ -396,56 +378,34 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 			Vr[j].V13 = (pmeshnode[n].A - pmeshnode[k].A) - Vi[j].V13;
 
 			if (rm[i].Y12 < 0) {
-				Vi[j].V12 = rtmp*Vr[j].V12;
+				Vi[j].V12 = Vr[j].V12 * rtmp;
 				INL(m) += -2. *Vi[j].V12*abs(rm[i].Y12);
 				INL(k) += 2. * Vi[j].V12 *abs(rm[i].Y12);
 			} else {
-				Vi[j].V12 = (pmeshnode[k].A - pmeshnode[m].A);
-				INL(m) += -1. *Vi[j].V12*abs(rm[i].Y12);
-				INL(k) += 1. * Vi[j].V12 *abs(rm[i].Y12);
+				Vi[j].V12 = Vr[j].V12 + (pmeshnode[k].A - pmeshnode[m].A)*m_e->miu / m_e->miut;
+				INL(m) += -2. *Vi[j].V12*abs(rm[i].Y12);
+				INL(k) += 2. * Vi[j].V12 *abs(rm[i].Y12);
 			}
 			if (rm[i].Y23 < 0) {
-				Vi[j].V23 = rtmp*Vr[j].V23;
+				Vi[j].V23 = Vr[j].V23*rtmp;
 				INL(m) += 2. * Vi[j].V23*abs(rm[i].Y23);
 				INL(n) += -2. *Vi[j].V23*abs(rm[i].Y23);
 			} else {
-				Vi[j].V23 = (pmeshnode[m].A - pmeshnode[n].A);
-				INL(m) += 1. * Vi[j].V23*abs(rm[i].Y23);
-				INL(n) += -1. *Vi[j].V23*abs(rm[i].Y23);
+				Vi[j].V23 = Vr[j].V23 + (pmeshnode[m].A - pmeshnode[n].A)*m_e->miu / m_e->miut;
+				INL(m) += 2. * Vi[j].V23*abs(rm[i].Y23);
+				INL(n) += -2. *Vi[j].V23*abs(rm[i].Y23);
 			}
 			if (rm[i].Y13 < 0) {
-				Vi[j].V13 = Vr[j].V13 / rtmp;
+				Vi[j].V13 = Vr[j].V13 * rtmp;
 				INL(n) += 2. * Vi[j].V13*abs(rm[i].Y13);
 				INL(k) += -2.0 *Vi[j].V13*abs(rm[i].Y13);
 			} else {
-				Vi[j].V13 = (pmeshnode[n].A - pmeshnode[k].A);
-				INL(n) += 1. * Vi[j].V13*abs(rm[i].Y13);
-				INL(k) += -1.0 *Vi[j].V13*abs(rm[i].Y13);
+				Vi[j].V13 = Vr[j].V13 + (pmeshnode[n].A - pmeshnode[k].A)*m_e->miu / m_e->miut;
+				INL(n) += 2. * Vi[j].V13*abs(rm[i].Y13);
+				INL(k) += -2.0 *Vi[j].V13*abs(rm[i].Y13);
 			}
-			//if (INL(pmeshele[i].n[2]) > 1e5) {
-			//	int a = 1;
-			//	qDebug() << INL(pmeshele[i].n[2]);
-			//	qDebug() << rm[i].Y23;
-			//	qDebug() << rm[i].Y13;
-			//}
-			//if (INL(pmeshele[i].n[1]) > 1e5) {
-			//	int a = 1;
-			//	qDebug() << INL(pmeshele[i].n[1]);
-			//	qDebug() << rm[i].Y12;
-			//	qDebug() << rm[i].Y23;
-			//}
-			//if (INL(pmeshele[i].n[0]) > 1e5) {
-			//	int a = 1;
-			//	qDebug() << INL(pmeshele[i].n[0]);
-			//	qDebug() << rm[i].Y12;
-			//	qDebug() << rm[i].Y13;
-			//}
 		}
-		//for (int j = 0; j < D34.size(); j++) {
-		//	if (INL(j) > 1e5) {
-		//		int a = 1;
-		//	}
-		//}
+		
 		//INL.save("INL.txt", arma::arma_ascii);
 		INL = INL + b;
 		//NOW WE SOLVE THE LINEAR SYSTEM USING THE FACTORED FORM OF sluA.
@@ -461,9 +421,6 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 			for (int i = 0; i < num_pts; i++) {
 				pmeshnode[i].A = sol[i];// / pmeshnode[i].x;//the A is r*A_real
 				A(i) = sol[i];
-				if (A(i) > 1e5) {
-					int a = 1;
-				}
 			}
 		}
 		//A.save("A.txt", arma::arma_ascii);
@@ -1074,7 +1031,7 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 				rm[i].Y22 /= 4. * pmeshele[i].AREA;
 				rm[i].Y23 /= 4. * pmeshele[i].AREA;
 				rm[i].Y33 /= 4. * pmeshele[i].AREA;
-
+				
 				//计算电流密度//要注意domain会不会越界
 				double jr = pmeshele[i].AREA*materialList[pmeshele[i].domain - 1].Jr / 3;
 				for (int j = 0; j < 3; j++) {
@@ -1093,7 +1050,7 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 			ce[0][1] = rm[i].Y12 / pmeshele[i].miut / ydot[i];
 			ce[0][2] = rm[i].Y13 / pmeshele[i].miut / ydot[i];
 			ce[1][2] = rm[i].Y23 / pmeshele[i].miut / ydot[i];
-
+			
 			//计算牛顿迭代部分的单元矩阵项,如果是第一次迭代的话，A=0，
 			//所以就不计算了，参见颜威利书P56
 			double v[3];
@@ -1125,7 +1082,7 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 				cn[0][1] = v[0] * v[1] * tmp;
 				cn[0][2] = v[0] * v[2] * tmp;
 				cn[1][2] = v[1] * v[2] * tmp;
-
+				//qDebug() << cn[0][0];
 				cn[1][0] = cn[0][1];
 				cn[2][0] = cn[0][2];
 				cn[2][1] = cn[1][2];
