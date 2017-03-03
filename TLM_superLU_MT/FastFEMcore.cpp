@@ -223,11 +223,12 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 			D34.push_back(i);
 		}
 	}
-
+	uvec node_reorder = zeros<uvec>(num_pts);
+	uvec node_pos = zeros<uvec>(num_pts);
 	//------------build C Matrix-----------------------------
 	umat locs(2, 9 * num_ele);
 	locs.zeros();
-	vec vals = zeros<vec>(9 * num_ele);
+	mat vals(1,9 * num_ele);
 	double ce[3][3] = { 0 };
 	ResistMarix *rm = (ResistMarix*)malloc(num_ele * sizeof(ResistMarix));
 	vec bbJz = zeros<vec>(num_pts);
@@ -237,6 +238,22 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 	vec INL = zeros<vec>(num_pts);
 	vec rpm = zeros<vec>(num_pts);
 	double * ydot = (double*)malloc(num_ele*sizeof(double));
+	//重新对节点进行编号，将边界点分离
+	int node_bdr = 0;
+	for (int i = 0; i < num_pts; i++) {
+		if (pmeshnode[i].bdr == 3) {
+			node_bdr++;
+			node_reorder(num_pts - node_bdr) = i;
+			node_pos(i) = num_pts - node_bdr;
+			pmeshnode[i].A = 0;
+			A(i) = 0;
+		} else {
+			node_reorder(i - node_bdr) = i;
+			node_pos(i) = i - node_bdr;
+		}
+	}
+	vec unknown_b(num_pts - node_bdr);
+	int pos = 0;
 	//轴对称：A'=rA,v'=v/r,
 	for (int i = 0; i < num_ele; i++) {
 		//确定单元的近似半径
@@ -294,9 +311,16 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 		//将单元矩阵进行存储
 		for (int row = 0; row < 3; row++) {
 			for (int col = 0; col < 3; col++) {
-				locs(0, i * 9 + row * 3 + col) = pmeshele[i].n[row];
-				locs(1, i * 9 + row * 3 + col) = pmeshele[i].n[col];
-				vals(i * 9 + row * 3 + col) = ce[row][col];
+				//判断节点是否在未知节点内
+				//得到排序之后的编号
+				int n_row = node_pos(pmeshele[i].n[row]);
+				int n_col = node_pos(pmeshele[i].n[col]);
+				if (n_row < num_pts - node_bdr && n_col < num_pts - node_bdr) {
+					locs(0, pos) = n_row;
+					locs(1, pos) = n_col;
+					vals(0, pos) = ce[row][col];
+					pos++;
+				}
 			}
 		}
 		//计算电流密度//要注意domain会不会越界
@@ -307,14 +331,19 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 			rpm(pmeshele[i].n[j]) += materialList[pmeshele[i].domain - 1].H_c / 2.*pmeshele[i].Q[j];
 		}
 	}
+	locs.reshape(2, pos);
+	vals.reshape(1, pos);
 	//----using armadillo constructor function-----
-	sp_mat X(true, locs, vals, num_pts, num_pts, true, true);
+	sp_mat X(true, locs, vals, num_pts - node_bdr, num_pts - node_bdr, true, true);
 
 	b = bbJz + rpm;
 	INL += b;
+	for (int i = 0; i < num_pts - node_bdr; i++) {
+		unknown_b(i) = INL(node_reorder(i));
+	}
 	//INL.save("INL.txt", arma::arma_ascii);
 	//---------------------superLU_MT---------------------------------------
-	CSuperLU_MT superlumt(num_pts, X, INL);
+	CSuperLU_MT superlumt(num_pts - node_bdr, X, unknown_b);
 	if (superlumt.solve() == 1) {
 		qDebug() << "Error: superlumt.slove";
 		qDebug() << "info: " << superlumt.info;
@@ -323,9 +352,9 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 		A_old = A;
 		sol = superlumt.getResult();
 
-		for (int i = 0; i < num_pts; i++) {
-			pmeshnode[i].A = sol[i];// / pmeshnode[i].x;//the A is r*A_real
-			A(i) = sol[i];
+		for (int i = 0; i < num_pts - node_bdr; i++) {
+			pmeshnode[node_reorder(i)].A = sol[i];// / pmeshnode[i].x;//the A is r*A_real
+			A(node_reorder(i)) = sol[i];
 		}
 	}
 	//---------------------superLU--end----------------------------------
@@ -383,32 +412,35 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 				INL(m) += -2. *Vi[j].V12*abs(rm[i].Y12);
 				INL(k) += 2. * Vi[j].V12 *abs(rm[i].Y12);
 			} else {
-				Vi[j].V12 = Vr[j].V12 + (pmeshnode[k].A - pmeshnode[m].A)*m_e->miu / m_e->miut;
-				INL(m) += -2. *Vi[j].V12*abs(rm[i].Y12);
-				INL(k) += 2. * Vi[j].V12 *abs(rm[i].Y12);
+				Vi[j].V12 = Vr[j].V12 / rtmp;// +(pmeshnode[k].A - pmeshnode[m].A)*m_e->miu / m_e->miut;
+				INL(m) += 2. *Vi[j].V12*abs(rm[i].Y12);
+				INL(k) += -2. * Vi[j].V12 *abs(rm[i].Y12);
 			}
 			if (rm[i].Y23 < 0) {
 				Vi[j].V23 = Vr[j].V23*rtmp;
 				INL(m) += 2. * Vi[j].V23*abs(rm[i].Y23);
 				INL(n) += -2. *Vi[j].V23*abs(rm[i].Y23);
 			} else {
-				Vi[j].V23 = Vr[j].V23 + (pmeshnode[m].A - pmeshnode[n].A)*m_e->miu / m_e->miut;
-				INL(m) += 2. * Vi[j].V23*abs(rm[i].Y23);
-				INL(n) += -2. *Vi[j].V23*abs(rm[i].Y23);
+				Vi[j].V23 = Vr[j].V23 / rtmp;// +(pmeshnode[m].A - pmeshnode[n].A)*m_e->miu / m_e->miut;
+				INL(m) += -2. * Vi[j].V23*abs(rm[i].Y23);
+				INL(n) += 2. *Vi[j].V23*abs(rm[i].Y23);
 			}
 			if (rm[i].Y13 < 0) {
 				Vi[j].V13 = Vr[j].V13 * rtmp;
 				INL(n) += 2. * Vi[j].V13*abs(rm[i].Y13);
 				INL(k) += -2.0 *Vi[j].V13*abs(rm[i].Y13);
 			} else {
-				Vi[j].V13 = Vr[j].V13 + (pmeshnode[n].A - pmeshnode[k].A)*m_e->miu / m_e->miut;
-				INL(n) += 2. * Vi[j].V13*abs(rm[i].Y13);
-				INL(k) += -2.0 *Vi[j].V13*abs(rm[i].Y13);
+				Vi[j].V13 = Vr[j].V13 / rtmp;// +(pmeshnode[n].A - pmeshnode[k].A)*m_e->miu / m_e->miut;
+				INL(n) += -2. * Vi[j].V13*abs(rm[i].Y13);
+				INL(k) += 2.0 *Vi[j].V13*abs(rm[i].Y13);
 			}
 		}
 		
 		//INL.save("INL.txt", arma::arma_ascii);
 		INL = INL + b;
+		for (int i = 0; i < num_pts - node_bdr; i++) {
+			unknown_b(i) = INL(node_reorder(i));
+		}
 		//NOW WE SOLVE THE LINEAR SYSTEM USING THE FACTORED FORM OF sluA.
 		if (superlumt.LUsolve() == 1) {
 			qDebug() << "Error: superlumt.slove";
@@ -419,9 +451,9 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 			A_old = A;
 			sol = superlumt.getResult();
 
-			for (int i = 0; i < num_pts; i++) {
-				pmeshnode[i].A = sol[i];// / pmeshnode[i].x;//the A is r*A_real
-				A(i) = sol[i];
+			for (int i = 0; i < num_pts - node_bdr; i++) {
+				pmeshnode[node_reorder(i)].A = sol[i];// / pmeshnode[i].x;//the A is r*A_real
+				A(node_reorder(i)) = sol[i];
 			}
 		}
 		//A.save("A.txt", arma::arma_ascii);
