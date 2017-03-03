@@ -3,7 +3,7 @@ close all
 
 
 % 获得单元和节点关系信息，并且得到每个几何Domain与其单元的关系
-fp = fopen('E:\Projects\cplusplus\model\model_fine.mphtxt', 'r');
+fp = fopen('E:\Projects\cplusplus\model\model_normal.mphtxt', 'r');
 %-------------Read the head
 for i=1:1:18
     tline = fgets(fp);
@@ -145,17 +145,14 @@ for i = 1:num_elements
             
         end
     end
-    
+    if i == 2879
+        fill(XL(i,1:3),YL(i,1:3),colors(4));
+        hold on;
+    end
 end
 ia = vtx+1;
 for i = 1:length(ia)
     plot(X(ia(i)),Y(ia(i)),'*r');
-    hold on
-    %text(sum(XL((ia(i)),1:3))/3,sum(YL((ia(i)),1:3))/3,int2str(ia(i)));
-end
-ia = entity;
-for i = 1:length(ia)
-    fill(XL(ia(i),1:3),YL(ia(i),1:3),'y');
     hold on
     %text(sum(XL((ia(i)),1:3))/3,sum(YL((ia(i)),1:3))/3,int2str(ia(i)));
 end

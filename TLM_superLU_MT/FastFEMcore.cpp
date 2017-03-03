@@ -242,17 +242,17 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 		//确定单元的近似半径
 		int flag = 0;
 		for (int f = 0; f < 3; f++)
-			if (pmeshnode[pmeshele[i].n[f]].x < 1e-9)
+			if (pmeshnode[pmeshele[i].n[f]].x < 1e-7)
 				flag++;
 
-		//if (flag == 2) {
+		if (flag == 2) {
 		ydot[i] = pmeshele[i].rc;
-		//} else {
-		//	ydot[i] = 1 / (pmeshnode[pmeshele[i].n[0]].x + pmeshnode[pmeshele[i].n[1]].x);
-		//	ydot[i] += 1 / (pmeshnode[pmeshele[i].n[0]].x + pmeshnode[pmeshele[i].n[2]].x);
-		//	ydot[i] += 1 / (pmeshnode[pmeshele[i].n[1]].x + pmeshnode[pmeshele[i].n[2]].x);
-		//	ydot[i] = 1.5 / ydot[i];
-		//}
+		} else {
+			ydot[i] = 1 / (pmeshnode[pmeshele[i].n[0]].x + pmeshnode[pmeshele[i].n[1]].x);
+			ydot[i] += 1 / (pmeshnode[pmeshele[i].n[0]].x + pmeshnode[pmeshele[i].n[2]].x);
+			ydot[i] += 1 / (pmeshnode[pmeshele[i].n[1]].x + pmeshnode[pmeshele[i].n[2]].x);
+			ydot[i] = 1.5 / ydot[i];
+		}
 		//qDebug() << ydot[i];
 		//计算单元导纳
 		rm[i].Y11 = pmeshele[i].Q[0] * pmeshele[i].Q[0] + pmeshele[i].P[0] * pmeshele[i].P[0];
@@ -360,6 +360,7 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 			pmeshele[i].B = sqrt(bx*bx + by*by) / 2. / pmeshele[i].AREA / ydot[i];
 			pmeshele[i].miut = materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B);
 
+			//y[i] = (A(pmeshele[i].n[0]) + A(pmeshele[i].n[1]) + A(pmeshele[i].n[2]))/3;
 			y[i] = pmeshele[i].B;
 		}
 		//#pragma omp parallel for
