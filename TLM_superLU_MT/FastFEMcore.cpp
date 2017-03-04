@@ -300,9 +300,30 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 			ce[0][2] = rm[i].Y13;
 			ce[1][2] = rm[i].Y23;			
 		} else {
-			ce[0][1] = -abs(rm[i].Y12);
-			ce[0][2] = -abs(rm[i].Y13);
-			ce[1][2] = -abs(rm[i].Y23);
+			if (rm[i].Y12 < 0){
+				ce[0][1] = -abs(rm[i].Y12);
+			}
+			else{
+				ce[0][0] += abs(rm[i].Y12);
+				ce[1][1] += abs(rm[i].Y12);
+				ce[0][1] = 0;
+			}
+			if (rm[i].Y13 < 0){
+				ce[0][2] = -abs(rm[i].Y13);
+			}
+			else{
+				ce[0][0] += abs(rm[i].Y13);
+				ce[2][2] += abs(rm[i].Y13);
+				ce[0][2] = 0;
+			}
+			if (rm[i].Y23 < 0){
+				ce[1][2] = -abs(rm[i].Y23);
+			}
+			else{
+				ce[1][1] += abs(rm[i].Y23);
+				ce[2][2] += abs(rm[i].Y23);
+				ce[1][2] = 0;
+			}			
 		}
 		ce[1][0] = ce[0][1];
 		ce[2][0] = ce[0][2];
@@ -412,27 +433,27 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 				INL(m) += -2. *Vi[j].V12*abs(rm[i].Y12);
 				INL(k) += 2. * Vi[j].V12 *abs(rm[i].Y12);
 			} else {
-				Vi[j].V12 = Vr[j].V12 / rtmp;// +(pmeshnode[k].A - pmeshnode[m].A)*m_e->miu / m_e->miut;
-				INL(m) += 2. *Vi[j].V12*abs(rm[i].Y12);
-				INL(k) += -2. * Vi[j].V12 *abs(rm[i].Y12);
+				Vi[j].V12 = (pmeshnode[k].A - pmeshnode[m].A);
+				INL(k) += -1. *Vi[j].V12*abs(rm[i].Y12);
+				INL(m) += 1. * Vi[j].V12 *abs(rm[i].Y12);
 			}
 			if (rm[i].Y23 < 0) {
 				Vi[j].V23 = Vr[j].V23*rtmp;
 				INL(m) += 2. * Vi[j].V23*abs(rm[i].Y23);
 				INL(n) += -2. *Vi[j].V23*abs(rm[i].Y23);
 			} else {
-				Vi[j].V23 = Vr[j].V23 / rtmp;// +(pmeshnode[m].A - pmeshnode[n].A)*m_e->miu / m_e->miut;
-				INL(m) += -2. * Vi[j].V23*abs(rm[i].Y23);
-				INL(n) += 2. *Vi[j].V23*abs(rm[i].Y23);
+				Vi[j].V23 = (pmeshnode[m].A - pmeshnode[n].A);
+				INL(m) += -1. * Vi[j].V23*abs(rm[i].Y23);
+				INL(n) += 1. *Vi[j].V23*abs(rm[i].Y23);
 			}
 			if (rm[i].Y13 < 0) {
 				Vi[j].V13 = Vr[j].V13 * rtmp;
 				INL(n) += 2. * Vi[j].V13*abs(rm[i].Y13);
 				INL(k) += -2.0 *Vi[j].V13*abs(rm[i].Y13);
 			} else {
-				Vi[j].V13 = Vr[j].V13 / rtmp;// +(pmeshnode[n].A - pmeshnode[k].A)*m_e->miu / m_e->miut;
-				INL(n) += -2. * Vi[j].V13*abs(rm[i].Y13);
-				INL(k) += 2.0 *Vi[j].V13*abs(rm[i].Y13);
+				Vi[j].V13 = (pmeshnode[n].A - pmeshnode[k].A);
+				INL(n) += -1. * Vi[j].V13*abs(rm[i].Y13);
+				INL(k) += 1.0 *Vi[j].V13*abs(rm[i].Y13);
 			}
 		}
 		
