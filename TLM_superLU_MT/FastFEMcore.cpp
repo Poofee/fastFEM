@@ -50,7 +50,7 @@ CFastFEMcore::~CFastFEMcore() {
 
 
 // load mesh
-int CFastFEMcore::Load2DMeshCOMSOL(char*fn) {
+int CFastFEMcore::Load2DMeshCOMSOL(const char fn[]) {
 	char ch[256];
 	//------------open file----------------------------------
 	FILE * fp = NULL;
@@ -232,11 +232,9 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 	double ce[3][3] = { 0 };
 	ResistMarix *rm = (ResistMarix*)malloc(num_ele * sizeof(ResistMarix));
 	vec bbJz = zeros<vec>(num_pts);
-	vec b = zeros<vec>(num_pts);//b = bbJz + INL;
 	vec A = zeros<vec>(num_pts);
 	vec A_old = A;
 	vec INL = zeros<vec>(num_pts);
-	vec rpm = zeros<vec>(num_pts);
 	double * ydot = (double*)malloc(num_ele*sizeof(double));
 	//重新对节点进行编号，将边界点分离
 	int node_bdr = 0;
@@ -252,7 +250,7 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 			node_pos(i) = i - node_bdr;
 		}
 	}
-	vec unknown_b(num_pts - node_bdr);
+	double* unknown_b = (double*)calloc(num_pts - node_bdr,sizeof(double));
 	int pos = 0;
 	//轴对称：A'=rA,v'=v/r,
 	for (int i = 0; i < num_ele; i++) {
@@ -277,8 +275,7 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 		rm[i].Y13 = pmeshele[i].Q[0] * pmeshele[i].Q[2] + pmeshele[i].P[0] * pmeshele[i].P[2];
 		rm[i].Y22 = pmeshele[i].Q[1] * pmeshele[i].Q[1] + pmeshele[i].P[1] * pmeshele[i].P[1];
 		rm[i].Y23 = pmeshele[i].Q[1] * pmeshele[i].Q[2] + pmeshele[i].P[1] * pmeshele[i].P[2];
-		rm[i].Y33 = pmeshele[i].Q[2] * pmeshele[i].Q[2] + pmeshele[i].P[2] * pmeshele[i].P[2];
-		
+		rm[i].Y33 = pmeshele[i].Q[2] * pmeshele[i].Q[2] + pmeshele[i].P[2] * pmeshele[i].P[2];		
 
 		rm[i].Y11 /= 4. * pmeshele[i].AREA*ydot[i] * pmeshele[i].miu;//猜测值
 		rm[i].Y12 /= 4. * pmeshele[i].AREA*ydot[i] * pmeshele[i].miu;
@@ -287,41 +284,39 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 		rm[i].Y23 /= 4. * pmeshele[i].AREA*ydot[i] * pmeshele[i].miu;
 		rm[i].Y33 /= 4. * pmeshele[i].AREA*ydot[i] * pmeshele[i].miu;
 
-
-
 		//生成单元矩阵，线性与非线性
 		// 因为线性与非线性的差不多，所以不再分开讨论了
 		ce[0][0] = rm[i].Y11;
 		ce[1][1] = rm[i].Y22;
 		ce[2][2] = rm[i].Y33;
 
-		if (pmeshele[i].LinearFlag) {
+		if (pmeshele[i].LinearFlag) {//线性区，不用计算
 			ce[0][1] = rm[i].Y12;
 			ce[0][2] = rm[i].Y13;
 			ce[1][2] = rm[i].Y23;			
 		} else {
-			if (rm[i].Y12 < 0){
-				ce[0][1] = -abs(rm[i].Y12);
+			if (rm[i].Y12 < 0){//电阻
+				ce[0][1] = rm[i].Y12;
 			}
 			else{
-				ce[0][0] += abs(rm[i].Y12);
-				ce[1][1] += abs(rm[i].Y12);
-				ce[0][1] = 0;
+				ce[0][0] += rm[i].Y12;//在对角项上减去受控源
+				ce[1][1] += rm[i].Y12;
+				ce[0][1] = 0;//受控源在右侧，所以为0
 			}
 			if (rm[i].Y13 < 0){
-				ce[0][2] = -abs(rm[i].Y13);
+				ce[0][2] = rm[i].Y13;
 			}
 			else{
-				ce[0][0] += abs(rm[i].Y13);
-				ce[2][2] += abs(rm[i].Y13);
+				ce[0][0] += rm[i].Y13;
+				ce[2][2] += rm[i].Y13;
 				ce[0][2] = 0;
 			}
 			if (rm[i].Y23 < 0){
-				ce[1][2] = -abs(rm[i].Y23);
+				ce[1][2] = rm[i].Y23;
 			}
 			else{
-				ce[1][1] += abs(rm[i].Y23);
-				ce[2][2] += abs(rm[i].Y23);
+				ce[1][1] += rm[i].Y23;
+				ce[2][2] += rm[i].Y23;
 				ce[1][2] = 0;
 			}			
 		}
@@ -349,18 +344,17 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 		for (int j = 0; j < 3; j++) {
 			bbJz(pmeshele[i].n[j]) += jr;
 			// 计算永磁部分
-			rpm(pmeshele[i].n[j]) += materialList[pmeshele[i].domain - 1].H_c / 2.*pmeshele[i].Q[j];
+			bbJz(pmeshele[i].n[j]) += materialList[pmeshele[i].domain - 1].H_c / 2.*pmeshele[i].Q[j];
 		}
 	}
-	locs.reshape(2, pos);
+	locs.reshape(2, pos);//重新调整大小
 	vals.reshape(1, pos);
 	//----using armadillo constructor function-----
 	sp_mat X(true, locs, vals, num_pts - node_bdr, num_pts - node_bdr, true, true);
 
-	b = bbJz + rpm;
-	INL += b;
+	INL += bbJz;
 	for (int i = 0; i < num_pts - node_bdr; i++) {
-		unknown_b(i) = INL(node_reorder(i));
+		unknown_b[i] = INL(node_reorder(i));
 	}
 	//INL.save("INL.txt", arma::arma_ascii);
 	//---------------------superLU_MT---------------------------------------
@@ -372,14 +366,14 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 		double *sol = NULL;
 		A_old = A;
 		sol = superlumt.getResult();
-
+		//取得结果
 		for (int i = 0; i < num_pts - node_bdr; i++) {
 			pmeshnode[node_reorder(i)].A = sol[i];// / pmeshnode[i].x;//the A is r*A_real
 			A(node_reorder(i)) = sol[i];
 		}
 	}
 	//---------------------superLU--end----------------------------------
-	//-----------绘图
+	//-----------绘图----------------------------------------
 	QVector<double> x(num_ele), y(num_ele);
 	for (int i = 0; i < num_ele; ++i) {
 		x[i] = i;
@@ -391,7 +385,6 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 	graph1->setPen(QPen(QColor(120, 120, 120), 2));
 	graph1->setLineStyle(QCPGraph::lsNone);
 	customplot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
-
 	//---------the main loop---------------------------------
 	int steps = 250;
 	int count;
@@ -406,7 +399,6 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 				bx += pmeshele[i].Q[j] * A(pmeshele[i].n[j]);
 				by += pmeshele[i].P[j] * A(pmeshele[i].n[j]);
 			}
-
 			pmeshele[i].B = sqrt(bx*bx + by*by) / 2. / pmeshele[i].AREA / ydot[i];
 			pmeshele[i].miut = materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B);
 
@@ -430,37 +422,35 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 
 			if (rm[i].Y12 < 0) {
 				Vi[j].V12 = Vr[j].V12 * rtmp;
-				INL(m) += -2. *Vi[j].V12*abs(rm[i].Y12);
-				INL(k) += 2. * Vi[j].V12 *abs(rm[i].Y12);
+				INL(k) += -2. *Vi[j].V12*rm[i].Y12;
+				INL(m) += 2. * Vi[j].V12 *rm[i].Y12;
 			} else {
 				Vi[j].V12 = (pmeshnode[k].A - pmeshnode[m].A);
-				INL(k) += -1. *Vi[j].V12*abs(rm[i].Y12);
-				INL(m) += 1. * Vi[j].V12 *abs(rm[i].Y12);
+				INL(k) += -1. *Vi[j].V12*rm[i].Y12;
+				INL(m) += 1. * Vi[j].V12 *rm[i].Y12;
 			}
 			if (rm[i].Y23 < 0) {
 				Vi[j].V23 = Vr[j].V23*rtmp;
-				INL(m) += 2. * Vi[j].V23*abs(rm[i].Y23);
-				INL(n) += -2. *Vi[j].V23*abs(rm[i].Y23);
+				INL(m) += -2. * Vi[j].V23*rm[i].Y23;
+				INL(n) += 2. *Vi[j].V23*rm[i].Y23;
 			} else {
 				Vi[j].V23 = (pmeshnode[m].A - pmeshnode[n].A);
-				INL(m) += -1. * Vi[j].V23*abs(rm[i].Y23);
-				INL(n) += 1. *Vi[j].V23*abs(rm[i].Y23);
+				INL(m) += -1. * Vi[j].V23*rm[i].Y23;
+				INL(n) += 1. *Vi[j].V23*rm[i].Y23;
 			}
 			if (rm[i].Y13 < 0) {
 				Vi[j].V13 = Vr[j].V13 * rtmp;
-				INL(n) += 2. * Vi[j].V13*abs(rm[i].Y13);
-				INL(k) += -2.0 *Vi[j].V13*abs(rm[i].Y13);
+				INL(n) += -2. * Vi[j].V13*rm[i].Y13;
+				INL(k) += 2.0 *Vi[j].V13*rm[i].Y13;
 			} else {
 				Vi[j].V13 = (pmeshnode[n].A - pmeshnode[k].A);
-				INL(n) += -1. * Vi[j].V13*abs(rm[i].Y13);
-				INL(k) += 1.0 *Vi[j].V13*abs(rm[i].Y13);
+				INL(n) += -1. * Vi[j].V13*rm[i].Y13;
+				INL(k) += 1.0 *Vi[j].V13*rm[i].Y13;
 			}
 		}
-		
-		//INL.save("INL.txt", arma::arma_ascii);
-		INL = INL + b;
+		INL = INL + bbJz;
 		for (int i = 0; i < num_pts - node_bdr; i++) {
-			unknown_b(i) = INL(node_reorder(i));
+			unknown_b[i] = INL(node_reorder(i));
 		}
 		//NOW WE SOLVE THE LINEAR SYSTEM USING THE FACTORED FORM OF sluA.
 		if (superlumt.LUsolve() == 1) {
@@ -477,7 +467,6 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 				A(node_reorder(i)) = sol[i];
 			}
 		}
-		//A.save("A.txt", arma::arma_ascii);
 		double error = norm((A_old - A), 2) / norm(A, 2);
 		qDebug() << "iter: " << count;
 		qDebug() << "error: " << error;
@@ -491,7 +480,6 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 		}
 		INL.zeros();
 	}
-
 	// 求解结束，更新B
 	for (int i = 0; i < num_ele; i++) {
 		double bx = 0;
@@ -500,16 +488,15 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 			bx += pmeshele[i].Q[j] * A(pmeshele[i].n[j]);
 			by += pmeshele[i].P[j] * A(pmeshele[i].n[j]);
 		}
-
 		pmeshele[i].B = sqrt(bx*bx + by*by) / 2. / pmeshele[i].AREA / ydot[i];
 		pmeshele[i].miut = materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B);
 	}
-
 	// 回收空间
 	if (rm != NULL) free(rm);
 	if (ydot != NULL) free(ydot);
 	if (Vi != NULL) free(Vi);
 	if (Vr != NULL) free(Vr);
+	if (unknown_b != NULL) free(unknown_b);
 	return true;
 }
 
@@ -818,7 +805,7 @@ int CFastFEMcore::openProject(QString proFile) {
 
 int CFastFEMcore::preCalculation() {
 	int k, m, n;
-	int num_bdr = 0;
+	
 	for (int i = 0; i < num_ele; i++) {
 		k = pmeshele[i].n[0];
 		m = pmeshele[i].n[1];
@@ -1011,14 +998,11 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 	double ce[3][3] = { 0 };
 	double cn[3][3] = { 0 };//用于牛顿迭代
 	vec bbJz = zeros<vec>(num_pts);
-	vec b = zeros<vec>(num_pts);
 	uvec node_reorder = zeros<uvec>(num_pts);
 	uvec node_pos = zeros<uvec>(num_pts);
-	vec BB = zeros<vec>(num_ele);
 	vec bn = zeros<vec>(num_pts);
 	vec A = zeros<vec>(num_pts);
 	vec A_old = A;
-	vec rpm = zeros<vec>(num_pts);
 	double * ydot = (double*)malloc(num_ele*sizeof(double));
 	ResistMarix *rm = (ResistMarix*)malloc(num_ele * sizeof(ResistMarix));
 
@@ -1048,7 +1032,7 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 			node_pos(i) = i - node_bdr;
 		}
 	}
-	vec unknown_b(num_pts - node_bdr);
+	double* unknown_b = (double*)calloc(num_pts - node_bdr, sizeof(double));
 	int iter = 0;//迭代步数
 	int pos = 0;
 	while (1) {
@@ -1091,7 +1075,7 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 				for (int j = 0; j < 3; j++) {
 					bbJz(pmeshele[i].n[j]) += jr;
 					// 计算永磁部分
-					rpm(pmeshele[i].n[j]) += materialList[pmeshele[i].domain - 1].H_c / 2.*pmeshele[i].Q[j];
+					bbJz(pmeshele[i].n[j]) += materialList[pmeshele[i].domain - 1].H_c / 2.*pmeshele[i].Q[j];
 				}
 			}//end of iter=0
 			//miut对于线性就等于真值，对于非线性等于上一次的值
@@ -1153,7 +1137,6 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 			ce[2][0] = ce[0][2];
 			ce[2][1] = ce[1][2];
 
-
 			for (int row = 0; row < 3; row++) {
 				for (int col = 0; col < 3; col++) {
 					//判断节点是否在未知节点内
@@ -1166,28 +1149,22 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 						vals(0, pos) = ce[row][col];
 						pos++;
 					}
-
 					//bn的顺序并没有改
 					bn(pmeshele[i].n[row]) += cn[row][col] * A(pmeshele[i].n[col]);
 				}
 			}
-
 		}//end of elememt iteration
 		if (iter == 0) {
 			locs.reshape(2, pos);
 			vals.reshape(1, pos);
-		}
-
-		if (iter == 0) {
-			b = bbJz + rpm;
-		}
-		//bn.save("bn.txt",arma::arma_ascii);
-		bn += b;
+		}		
+		
+		bn += bbJz;
 		//使用构造函数来生成稀疏矩阵
 		sp_mat X(true, locs, vals, num_pts - node_bdr, num_pts - node_bdr, true, true);
 
 		for (int i = 0; i < num_pts - node_bdr; i++) {
-			unknown_b(i) = bn(node_reorder(i));
+			unknown_b[i] = bn(node_reorder(i));
 		}
 		//---------------------superLU_MT---------------------------------------
 		CSuperLU_MT superlumt(num_pts - node_bdr, X, unknown_b);
@@ -1205,8 +1182,6 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 				A(node_reorder(i)) = sol[i];
 			}
 		}
-		//A.save("A.txt", arma::arma_ascii);
-
 		//有必要求出所有单元的B值
 		for (int i = 0; i < num_ele; i++) {
 			double bx = 0;
@@ -1215,16 +1190,11 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 				bx += pmeshele[i].Q[j] * A(pmeshele[i].n[j]);
 				by += pmeshele[i].P[j] * A(pmeshele[i].n[j]);
 			}
-
 			pmeshele[i].B = sqrt(bx*bx + by*by) / 2. / pmeshele[i].AREA / ydot[i];
 			pmeshele[i].miut = materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B);
 
-			//qDebug() << "pmeshele[i].B: "<<pmeshele[i].B;
-			//qDebug() <<"pmeshele[i].miut"<< pmeshele[i].miut;
 			y[i] = pmeshele[i].B;
 		}
-
-		//BB.save("BB.txt", arma::arma_ascii);
 		double error = norm((A_old - A), 2) / norm(A, 2);
 		iter++;
 		qDebug() << "iter: " << iter;
@@ -1238,11 +1208,10 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 		graph1->setData(x, y);
 		customplot->rescaleAxes(true);
 		customplot->replot();
-
-
 	}
 	if (rm != NULL) free(rm);
 	if (ydot != NULL) free(ydot);
+	if (unknown_b != NULL) free(unknown_b);
 	return 0;
 }
 

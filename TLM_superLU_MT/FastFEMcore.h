@@ -21,7 +21,7 @@ public:
 	CFastFEMcore();
 	~CFastFEMcore();	
 	// load mesh
-	int Load2DMeshCOMSOL(char*fn);//载入分网信息函数
+	int Load2DMeshCOMSOL(const char fn[]);//载入分网信息函数
 	bool StaticAxisymmetricTLM();//使用TLM静态轴对称磁场的计算函数
 	double CalcForce();//电磁力计算函数
 	int openProject(QString proFile);//打开工程文件函数
