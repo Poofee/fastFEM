@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2013
-VisualStudioVersion = 12.0.21005.1
+VisualStudioVersion = 12.0.40629.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "SuperLU_MT_3.1", "SuperLU_MT_3.1\SuperLU_MT_3.1.vcxproj", "{26F7931C-A699-4CD2-8149-60573747218E}"
 EndProject
@@ -12,8 +12,6 @@ EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NRMT", "NRMT\NRMT.vcxproj", "{D06C6FAC-3FC0-3DA8-A188-A7C0FBA19BF3}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "triangle", "triangle\triangle.vcxproj", "{FD8ED472-CA84-32E6-A90C-E5FD163A7AC6}"
-EndProject
-Project("{F088123C-0E9E-452A-89E6-6BA2F21D5CAC}") = "Modeling", "Modeling\Modeling.modelproj", "{FBC121C3-A63C-458B-B4E8-FEC4956B17CB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -89,18 +87,6 @@ Global
 		{FD8ED472-CA84-32E6-A90C-E5FD163A7AC6}.Release|Win32.ActiveCfg = Release|x64
 		{FD8ED472-CA84-32E6-A90C-E5FD163A7AC6}.Release|x64.ActiveCfg = Release|x64
 		{FD8ED472-CA84-32E6-A90C-E5FD163A7AC6}.Release|x64.Build.0 = Release|x64
-		{FBC121C3-A63C-458B-B4E8-FEC4956B17CB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{FBC121C3-A63C-458B-B4E8-FEC4956B17CB}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{FBC121C3-A63C-458B-B4E8-FEC4956B17CB}.Debug|Mixed Platforms.ActiveCfg = Debug|Any CPU
-		{FBC121C3-A63C-458B-B4E8-FEC4956B17CB}.Debug|Mixed Platforms.Build.0 = Debug|Any CPU
-		{FBC121C3-A63C-458B-B4E8-FEC4956B17CB}.Debug|Win32.ActiveCfg = Debug|Any CPU
-		{FBC121C3-A63C-458B-B4E8-FEC4956B17CB}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{FBC121C3-A63C-458B-B4E8-FEC4956B17CB}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{FBC121C3-A63C-458B-B4E8-FEC4956B17CB}.Release|Any CPU.Build.0 = Release|Any CPU
-		{FBC121C3-A63C-458B-B4E8-FEC4956B17CB}.Release|Mixed Platforms.ActiveCfg = Release|Any CPU
-		{FBC121C3-A63C-458B-B4E8-FEC4956B17CB}.Release|Mixed Platforms.Build.0 = Release|Any CPU
-		{FBC121C3-A63C-458B-B4E8-FEC4956B17CB}.Release|Win32.ActiveCfg = Release|Any CPU
-		{FBC121C3-A63C-458B-B4E8-FEC4956B17CB}.Release|x64.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
