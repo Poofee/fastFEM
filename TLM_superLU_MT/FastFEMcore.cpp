@@ -356,7 +356,6 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 	for (int i = 0; i < num_pts - node_bdr; i++) {
 		unknown_b[i] = INL(node_reorder(i));
 	}
-	//INL.save("INL.txt", arma::arma_ascii);
 	//---------------------superLU_MT---------------------------------------
 	CSuperLU_MT superlumt(num_pts - node_bdr, X, unknown_b);
 	if (superlumt.solve() == 1) {
@@ -422,33 +421,27 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 
 			if (rm[i].Y12 < 0) {
 				Vi[j].V12 = Vr[j].V12 * rtmp;
-				INL(k) += -2. *Vi[j].V12*rm[i].Y12;
-				INL(m) += 2. * Vi[j].V12 *rm[i].Y12;
 			} else {
-				Vi[j].V12 = (pmeshnode[k].A - pmeshnode[m].A);
-				INL(k) += -1. *Vi[j].V12*rm[i].Y12;
-				INL(m) += 1. * Vi[j].V12 *rm[i].Y12;
+				Vi[j].V12 = 0.5*(pmeshnode[k].A - pmeshnode[m].A);
 			}
+			INL(k) += -2. *Vi[j].V12*rm[i].Y12;
+			INL(m) += 2. * Vi[j].V12 *rm[i].Y12;
 			if (rm[i].Y23 < 0) {
 				Vi[j].V23 = Vr[j].V23*rtmp;
-				INL(m) += -2. * Vi[j].V23*rm[i].Y23;
-				INL(n) += 2. *Vi[j].V23*rm[i].Y23;
 			} else {
-				Vi[j].V23 = (pmeshnode[m].A - pmeshnode[n].A);
-				INL(m) += -1. * Vi[j].V23*rm[i].Y23;
-				INL(n) += 1. *Vi[j].V23*rm[i].Y23;
+				Vi[j].V23 = 0.5*(pmeshnode[m].A - pmeshnode[n].A);
 			}
+			INL(m) += -2. * Vi[j].V23*rm[i].Y23;
+			INL(n) += 2. *Vi[j].V23*rm[i].Y23;
 			if (rm[i].Y13 < 0) {
 				Vi[j].V13 = Vr[j].V13 * rtmp;
-				INL(n) += -2. * Vi[j].V13*rm[i].Y13;
-				INL(k) += 2.0 *Vi[j].V13*rm[i].Y13;
 			} else {
-				Vi[j].V13 = (pmeshnode[n].A - pmeshnode[k].A);
-				INL(n) += -1. * Vi[j].V13*rm[i].Y13;
-				INL(k) += 1.0 *Vi[j].V13*rm[i].Y13;
+				Vi[j].V13 = 0.5*(pmeshnode[n].A - pmeshnode[k].A);
 			}
+			INL(n) += -2. * Vi[j].V13*rm[i].Y13;
+			INL(k) += 2.0 *Vi[j].V13*rm[i].Y13;
 		}
-		INL = INL + bbJz;
+		INL += bbJz;
 		for (int i = 0; i < num_pts - node_bdr; i++) {
 			unknown_b[i] = INL(node_reorder(i));
 		}
@@ -1112,7 +1105,6 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 					tmp /= pmeshele[i].B * pmeshele[i].AREA;//B==0?
 					tmp /= ydot[i] * ydot[i] * ydot[i];
 				}
-
 				cn[0][0] = v[0] * v[0] * tmp;
 				cn[1][1] = v[1] * v[1] * tmp;
 				cn[2][2] = v[2] * v[2] * tmp;
@@ -1120,7 +1112,7 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 				cn[0][1] = v[0] * v[1] * tmp;
 				cn[0][2] = v[0] * v[2] * tmp;
 				cn[1][2] = v[1] * v[2] * tmp;
-				//qDebug() << cn[0][0];
+				
 				cn[1][0] = cn[0][1];
 				cn[2][0] = cn[0][2];
 				cn[2][1] = cn[1][2];
@@ -1158,7 +1150,6 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 			locs.reshape(2, pos);
 			vals.reshape(1, pos);
 		}		
-		
 		bn += bbJz;
 		//使用构造函数来生成稀疏矩阵
 		sp_mat X(true, locs, vals, num_pts - node_bdr, num_pts - node_bdr, true, true);
