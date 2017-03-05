@@ -6,7 +6,7 @@ CSuperLU_MT::CSuperLU_MT() {
 }
 
 
-CSuperLU_MT::CSuperLU_MT(int mm, arma::sp_mat &X, arma::vec &b) {
+CSuperLU_MT::CSuperLU_MT(int mm, arma::sp_mat &X, double * b) {
 	/* Default parameters to control factorization. */
 	nprocs = 1;
 	fact = EQUILIBRATE;
@@ -41,7 +41,7 @@ CSuperLU_MT::CSuperLU_MT(int mm, arma::sp_mat &X, arma::vec &b) {
 	dCreate_Dense_Matrix(&sluX, m, nrhs, rhsx, m, SLU_DN, SLU_D, SLU_GE);
 	//
 
-	rhsb = const_cast<double*>(b.mem);
+	rhsb = b;
 	dCreate_Dense_Matrix(&sluB, m, nrhs, rhsb, m, SLU_DN, SLU_D, SLU_GE);
 	Bstore = (DNformat*)sluB.Store;
 	//double *Bmat = (double*)Bstore->nzval;

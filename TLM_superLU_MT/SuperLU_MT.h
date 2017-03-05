@@ -31,7 +31,7 @@ public:
 	superlu_memusage_t superlu_memusage;
 
 	CSuperLU_MT();
-	CSuperLU_MT(int mm, arma::sp_mat& X,arma::vec& b);
+	CSuperLU_MT(int mm, arma::sp_mat& X,double *b);
 	int solve();
 	int LUsolve();
 	double * getResult();
