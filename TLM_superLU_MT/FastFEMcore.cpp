@@ -384,9 +384,18 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 	graph1->setPen(QPen(QColor(120, 120, 120), 2));
 	graph1->setLineStyle(QCPGraph::lsNone);
 	customplot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
+	customplot->xAxis->setLabel("x");
+	customplot->xAxis->setRange(0, num_ele);
+	//customplot->xAxis->setAutoTickStep(false);
+	//customplot->xAxis->setTicks(false);
+	customplot->yAxis->setLabel("y");
+	customplot->yAxis->setRange(0, 0.6);
+	//customplot->xAxis2->setTicks(false);
+	//customplot->yAxis->setScaleRatio(ui->widget->xAxis, 1.0);
 	//---------the main loop---------------------------------
 	int steps = 250;
 	int count;
+	double alpha = 0.1;
 	Voltage *Vr = (Voltage*)calloc(D34.size(), sizeof(Voltage));
 	Voltage *Vi = (Voltage*)calloc(D34.size(), sizeof(Voltage));
 	for (count = 0; count < steps; count++) {
@@ -422,21 +431,21 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 			if (rm[i].Y12 < 0) {
 				Vi[j].V12 = Vr[j].V12 * rtmp;
 			} else {
-				Vi[j].V12 = 0.5*(pmeshnode[k].A - pmeshnode[m].A);
+				Vi[j].V12 = (1 - alpha)*Vi[j].V12 + alpha*0.5*(pmeshnode[k].A - pmeshnode[m].A);
 			}
 			INL(k) += -2. *Vi[j].V12*rm[i].Y12;
 			INL(m) += 2. * Vi[j].V12 *rm[i].Y12;
 			if (rm[i].Y23 < 0) {
 				Vi[j].V23 = Vr[j].V23*rtmp;
 			} else {
-				Vi[j].V23 = 0.5*(pmeshnode[m].A - pmeshnode[n].A);
+				Vi[j].V23 = (1 - alpha)*Vi[j].V23 + alpha*0.5*(pmeshnode[m].A - pmeshnode[n].A);
 			}
 			INL(m) += -2. * Vi[j].V23*rm[i].Y23;
 			INL(n) += 2. *Vi[j].V23*rm[i].Y23;
 			if (rm[i].Y13 < 0) {
 				Vi[j].V13 = Vr[j].V13 * rtmp;
 			} else {
-				Vi[j].V13 = 0.5*(pmeshnode[n].A - pmeshnode[k].A);
+				Vi[j].V13 = (1 - alpha)*Vi[j].V13 + alpha*0.5*(pmeshnode[n].A - pmeshnode[k].A);
 			}
 			INL(n) += -2. * Vi[j].V13*rm[i].Y13;
 			INL(k) += 2.0 *Vi[j].V13*rm[i].Y13;
@@ -465,7 +474,8 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 		qDebug() << "error: " << error;
 
 		graph1->setData(x, y);
-		customplot->rescaleAxes(true);
+		//customplot->yAxis->setRange(0, 5);
+		//customplot->rescaleAxes(true);
 		customplot->replot();
 
 		if (error < Precision) {
@@ -844,13 +854,13 @@ int CFastFEMcore::preCalculation() {
 
 		} else {
 			//对称轴上的部分边界点
-			if (pmeshnode[k].bdr == 1 && pmeshnode[k].x < 1e-7) {
+			if (pmeshnode[k].bdr == 1 && pmeshnode[k].x < 1e-8) {
 				pmeshnode[k].bdr = 3;
 			}
-			if (pmeshnode[m].bdr == 1 && pmeshnode[m].x < 1e-7) {
+			if (pmeshnode[m].bdr == 1 && pmeshnode[m].x < 1e-8) {
 				pmeshnode[m].bdr = 3;
 			}
-			if (pmeshnode[n].bdr == 1 && pmeshnode[n].x < 1e-7) {
+			if (pmeshnode[n].bdr == 1 && pmeshnode[n].x < 1e-8) {
 				pmeshnode[n].bdr = 3;
 			}
 		}
@@ -1004,10 +1014,18 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 	QCustomPlot * customplot;
 	customplot = thePlot->getQcustomPlot();
 	QCPGraph *graph1 = customplot->addGraph();
-	graph1->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, QPen(Qt::black, 1.5), QBrush(Qt::black), 3));
+	graph1->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, QPen(Qt::red, 1.5), QBrush(Qt::black), 3));
 	graph1->setPen(QPen(QColor(120, 120, 120), 2));
 	graph1->setLineStyle(QCPGraph::lsNone);
 	customplot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
+	customplot->xAxis->setLabel("x");
+	customplot->xAxis->setRange(0, num_ele);
+	//customplot->xAxis->setAutoTickStep(false);
+	//customplot->xAxis->setTicks(false);
+	customplot->yAxis->setLabel("y");
+	customplot->yAxis->setRange(0, 4);
+	//customplot->xAxis2->setTicks(false);
+	//customplot->yAxis->setScaleRatio(ui->widget->xAxis, 1.0);
 	for (int i = 0; i < num_ele; i++) {
 		x[i] = i;
 	}
@@ -1190,14 +1208,14 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 		iter++;
 		qDebug() << "iter: " << iter;
 		qDebug() << "error: " << error;
-		if (error < Precision) {
+		if (error < Precision || iter > 200) {
 			break;
 		}
 		bn.zeros();
 		pos = 0;
 
 		graph1->setData(x, y);
-		customplot->rescaleAxes(true);
+		//customplot->rescaleAxes(true);
 		customplot->replot();
 	}
 	if (rm != NULL) free(rm);
