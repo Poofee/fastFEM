@@ -268,7 +268,6 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 			ydot[i] += 1 / (pmeshnode[pmeshele[i].n[1]].x + pmeshnode[pmeshele[i].n[2]].x);
 			ydot[i] = 1.5 / ydot[i];
 		}
-		//qDebug() << ydot[i];
 		//计算单元导纳
 		rm[i].Y11 = pmeshele[i].Q[0] * pmeshele[i].Q[0] + pmeshele[i].P[0] * pmeshele[i].P[0];
 		rm[i].Y12 = pmeshele[i].Q[0] * pmeshele[i].Q[1] + pmeshele[i].P[0] * pmeshele[i].P[1];
@@ -395,7 +394,7 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 	//---------the main loop---------------------------------
 	int steps = 250;
 	int count;
-	double alpha = 0.1;
+	double alpha = 1;
 	Voltage *Vr = (Voltage*)calloc(D34.size(), sizeof(Voltage));
 	Voltage *Vi = (Voltage*)calloc(D34.size(), sizeof(Voltage));
 	for (count = 0; count < steps; count++) {
@@ -470,13 +469,12 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 			}
 		}
 		double error = norm((A_old - A), 2) / norm(A, 2);
-		qDebug() << "iter: " << count;
-		qDebug() << "error: " << error;
+		//qDebug() << "iter: " << count;
+		//qDebug() << "error: " << error;
 
-		graph1->setData(x, y);
-		//customplot->yAxis->setRange(0, 5);
+		//graph1->setData(x, y);
 		//customplot->rescaleAxes(true);
-		customplot->replot();
+		//customplot->replot();
 
 		if (error < Precision) {
 			break;
@@ -891,25 +889,29 @@ void CFastFEMcore::readProjectElement(QXmlStreamReader &reader) {
 
 		if (reader.isStartElement()) {
 			if (reader.name() == "name") {
-				qDebug() << "name = " << reader.readElementText();
+				reader.readElementText();
+				//qDebug() << "name = " << reader.readElementText();
 			} else if (reader.name() == "version") {
-				qDebug() << "version = " << reader.readElementText();
+				reader.readElementText();
+				//qDebug() << "version = " << reader.readElementText();
 			} else if (reader.name() == "precision") {
 				Precision = reader.readElementText().toDouble();
-				qDebug() << "precision = " << Precision;
+				//qDebug() << "precision = " << Precision;
 			} else if (reader.name() == "unit") {
 				LengthUnits = reader.readElementText().toInt();
-				qDebug() << "unit = " << LengthUnits;
+				//qDebug() << "unit = " << LengthUnits;
 			} else if (reader.name() == "proType") {
-				qDebug() << "proType = " << reader.readElementText();
+				reader.readElementText();
+				//qDebug() << "proType = " << reader.readElementText();
 			} else if (reader.name() == "coordinate") {
-				qDebug() << "coordinate = " << reader.readElementText();
+				reader.readElementText();
+				//qDebug() << "coordinate = " << reader.readElementText();
 			} else if (reader.name() == "Domains") {
 				reader.readNextStartElement();
 				if (reader.name() == "domainNum") {
 					numDomain = reader.readElementText().toInt();
 					materialList = new CMaterial[numDomain];
-					qDebug() << "domainNum = " << numDomain;
+					//qDebug() << "domainNum = " << numDomain;
 				}
 				for (int i = 0; i < numDomain; i++) {
 					readDomainElement(reader, i);
@@ -930,18 +932,19 @@ void CFastFEMcore::readDomainElement(QXmlStreamReader &reader, int i) {
 	while (!(reader.isEndElement() && reader.name() == "Domain")) {
 		reader.readNextStartElement();
 		if (reader.name() == "domainName") {
-			qDebug() << "domainName = " << reader.readElementText();
+			reader.readElementText();
+			//qDebug() << "domainName = " << reader.readElementText();
 		} else if (reader.name() == "miu") {
 			materialList[i].miu = reader.readElementText().toDouble() * 4 * PI*1e-7;
-			qDebug() << "miu = " << materialList[i].miu;
+			//qDebug() << "miu = " << materialList[i].miu;
 		} else if (reader.name() == "BH") {
 			readBHElement(reader, i);
 		} else if (reader.name() == "Jr") {
 			materialList[i].Jr = reader.readElementText().toDouble();
-			qDebug() << "Jr = " << materialList[i].Jr;
+			//qDebug() << "Jr = " << materialList[i].Jr;
 		} else if (reader.name() == "H_c") {
 			materialList[i].H_c = reader.readElementText().toDouble();
-			qDebug() << "H_c = " << materialList[i].H_c;
+			//qDebug() << "H_c = " << materialList[i].H_c;
 		}
 	}
 }
@@ -952,7 +955,7 @@ void CFastFEMcore::readBHElement(QXmlStreamReader &reader, int i) {
 	//qDebug()<<reader.name();
 	if (reader.name() == "BHpoints") {
 		materialList[i].BHpoints = reader.readElementText().toInt();
-		qDebug() << "BHpoints = " << materialList[i].BHpoints;
+		//qDebug() << "BHpoints = " << materialList[i].BHpoints;
 		if (materialList[i].BHpoints != 0) {
 			materialList[i].Bdata = (double*)malloc(materialList[i].BHpoints*sizeof(double));
 			materialList[i].Hdata = (double*)malloc(materialList[i].BHpoints*sizeof(double));
@@ -962,8 +965,7 @@ void CFastFEMcore::readBHElement(QXmlStreamReader &reader, int i) {
 					reader.readNextStartElement();
 					if (reader.name() == "B") {
 						materialList[i].Bdata[j] = reader.readElementText().toDouble();
-						qDebug() << materialList[i].Bdata[j];
-
+						//qDebug() << materialList[i].Bdata[j];
 					}
 				}
 			}
@@ -977,7 +979,7 @@ void CFastFEMcore::readBHElement(QXmlStreamReader &reader, int i) {
 					reader.readNextStartElement();
 					if (reader.name() == "H") {
 						materialList[i].Hdata[j] = reader.readElementText().toDouble();
-						qDebug() << materialList[i].Hdata[j];
+						//qDebug() << materialList[i].Hdata[j];
 					}
 
 				}
@@ -1206,17 +1208,17 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 		}
 		double error = norm((A_old - A), 2) / norm(A, 2);
 		iter++;
-		qDebug() << "iter: " << iter;
-		qDebug() << "error: " << error;
+		//qDebug() << "iter: " << iter;
+		//qDebug() << "error: " << error;
 		if (error < Precision || iter > 200) {
 			break;
 		}
 		bn.zeros();
 		pos = 0;
 
-		graph1->setData(x, y);
+		//graph1->setData(x, y);
 		//customplot->rescaleAxes(true);
-		customplot->replot();
+		//customplot->replot();
 	}
 	if (rm != NULL) free(rm);
 	if (ydot != NULL) free(ydot);
