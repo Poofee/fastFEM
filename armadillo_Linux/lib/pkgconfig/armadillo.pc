@@ -1,0 +1,11 @@
+prefix=/usr
+exec_prefix=${prefix}
+libdir=/usr/lib
+includedir=/usr/include
+
+Name: armadillo
+Description: Fast C++ matrix library with syntax similar to MATLAB and Octave
+URL: http://arma.sourceforge.net
+Version: 7.800.1
+Cflags: -I${includedir}
+Libs: -L${libdir} -larmadillo
