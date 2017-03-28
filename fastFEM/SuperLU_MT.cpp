@@ -31,9 +31,13 @@ CSuperLU_MT::CSuperLU_MT(int mm, arma::sp_mat &X, double * b) {
 
 	/* create matrix A in Harwell-Boeing format.*/
 	m = mm; n = mm; nnz = X.n_nonzero;
-	a = const_cast<double *>(X.values);
-	asub = (int*)const_cast<arma::u32 *>(X.row_indices);
-	xa = (int*)const_cast<arma::u32 *>(X.col_ptrs);
+    a = const_cast<double *>(X.values);
+    //bug:arma,uint;superlu,int
+    //this place, use <> deconst the const variable,
+    //and use () to force change the type,
+    //note there exist data loss
+    asub = (int*)const_cast<unsigned int*>(X.row_indices);
+    xa = (int*)const_cast<unsigned int*>(X.col_ptrs);
 	dCreate_CompCol_Matrix(&sluA, m, n, nnz, a, asub, xa, SLU_NC, SLU_D, SLU_GE);
 
 	//------create B and X-------------------

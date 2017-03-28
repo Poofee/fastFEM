@@ -1,7 +1,14 @@
 #pragma once
 #include "slu_mt_ddefs.h"
+//define 32 bit word, must be consistant with other solver
+//must be placed before include file
+#if !defined(ARMA_32BIT_WORD)
+#define ARMA_32BIT_WORD
+#endif
 #include <armadillo>
 #include <vector>
+
+
 
 class CSuperLU_MT
 {
