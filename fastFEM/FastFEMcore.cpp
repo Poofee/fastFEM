@@ -56,7 +56,7 @@ int CFastFEMcore::Load2DMeshCOMSOL(const char fn[]) {
 	FILE * fp = NULL;
 	fp = fopen(fn, "r");
 	if (fp == NULL) {
-		qDebug() << "Error: opening file!";
+        qDebug() << "Error: openning file!";
 		return 1;
 	}
 	//--------------Read the head-----------------------------
@@ -472,9 +472,9 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 		//qDebug() << "iter: " << count;
 		//qDebug() << "error: " << error;
 
-		//graph1->setData(x, y);
-		//customplot->rescaleAxes(true);
-		//customplot->replot();
+        //graph1->setData(x, y);
+        //customplot->rescaleAxes(true);
+        //customplot->replot();
 
 		if (error < Precision) {
 			break;
@@ -1216,9 +1216,9 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 		bn.zeros();
 		pos = 0;
 
-		//graph1->setData(x, y);
-		//customplot->rescaleAxes(true);
-		//customplot->replot();
+        //graph1->setData(x, y);
+        //customplot->rescaleAxes(true);
+        //customplot->replot();
 	}
 	if (rm != NULL) free(rm);
 	if (ydot != NULL) free(ydot);

@@ -6,7 +6,7 @@
 
 QT       += core gui
 
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+greaterThan(QT_MAJOR_VERSION, 4): QT += widgets printsupport#necessary for qcustomplot
 
 #output excution file name
 TARGET = fastFEM
@@ -14,8 +14,7 @@ TARGET = fastFEM
 #project type:app lib vcapp vclib
 TEMPLATE = app
 
-#output directory
-DESTDIR = ../x64/Linux
+CONFIG += debug_and_release
 
 #source file lists
 SOURCES += \
@@ -37,12 +36,26 @@ HEADERS += \
     FastFEMcore.h \
     plot.h \
     spline.h \
-    SuperLU_MT.h
+    SuperLU_MT.h \
+    ../qcustomplot/qcustomplot.h
 
 
 unix {
+
+CONFIG(debug,debug|release){
+#output directory
+DESTDIR = ../x64/Linux/debug
+}else{
+#output directory
+DESTDIR = ../x64/Linux/release
+}
 #librarys
-LIBS +=
+LIBS += \
+    -L../SuperLU_MT_3.1 -lsuperlu_mt_OPENMP \
+    -lgomp\
+    -lpthread \
+    ../armadillo//lib/libarmadillo.so \
+    ../openblas/lib/libopenblas.so
 
 #additional include path
 INCLUDEPATH += \
