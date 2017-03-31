@@ -52,16 +52,22 @@ DESTDIR = ../x64/Linux/release
 #librarys
 LIBS += \
     -L../SuperLU_MT_3.1 -lsuperlu_mt_OPENMP \
-    -lgomp\
-    -lpthread \
     ../armadillo//lib/libarmadillo.so \
-    ../openblas/lib/libopenblas.so
+    -L../spral/lib -lspralgpu \
+    -L../metis -lmetis \
+    -L../openblas/lib -lopenblas \
+    -L/usr/local/cuda/lib64 -lcudart \
+    -L/usr/local/cuda/lib64  -lcublas\
+    -lgfortran -lm -lquadmath  \
+    -lpthread \
+    -lgomp
 
 #additional include path
 INCLUDEPATH += \
     ../armadillo/include \
     ../qcustomplot \
     ../SuperLU_MT_3.1/SRC \
+    ../spral/include \
 }
 
 win32 {
