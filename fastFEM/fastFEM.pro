@@ -65,7 +65,22 @@ INCLUDEPATH += \
 }
 
 win32 {
+CONFIG(debug,debug|release){
+#output directory
+DESTDIR = ../x64/Debug
+}else{
+#output directory
+DESTDIR = ../x64/Release
+}
 #librarys
-LIBS +=
+LIBS += \
+    ..\SuperLU_MT_3.1\SuperLU_MT_3.1.lib \
+    ..\OpenBLAS-v0.2.15-Win64-int32\lib\libopenblas.dll.a
+
+#additional include path
+INCLUDEPATH += \
+    ..\armadillo\include \
+    ..\qcustomplot \
+    ..\SuperLU_MT_3.1\SRC \
 
 }

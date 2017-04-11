@@ -13,9 +13,9 @@ int main(int argc, char *argv[])
 	qDebug() << "current applicationDirPath: " << QCoreApplication::applicationDirPath();
 	qDebug() << "current currentPath: " << QDir::currentPath();
 
-    fem.openProject("..//..//..//model//project1.mag");
+    fem.openProject("..\\..\\..\\model\\project1.mag");
 
-    if (fem.Load2DMeshCOMSOL("..//..//..//model//mesh.mphtxt") == 0) {
+    if (fem.Load2DMeshCOMSOL("..\\..\\..\\model\\mesh.mphtxt") == 0) {
 		fem.preCalculation();
 		t1 = SuperLU_timer_();
 		fem.StaticAxisymmetricNR();

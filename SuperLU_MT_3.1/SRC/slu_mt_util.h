@@ -109,6 +109,7 @@ typedef enum {LUSUP, UCOL, LSUB, USUB}       MemType;
 #define BADCOL   35
 #define BADPAN   BADCOL
 #define BADREP   35
+#define MACH OPENMP
 
 /*
  * Type definitions
