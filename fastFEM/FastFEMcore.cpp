@@ -357,6 +357,50 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 	}
 	//---------------------superLU_MT---------------------------------------
 	CSuperLU_MT superlumt(num_pts - node_bdr, X, unknown_b);
+    //-----------qt plot
+    QCustomPlot * customplot1;
+    customplot1 = thePlot->getQcustomPlot();
+    QCPGraph *graph3 = customplot1->addGraph();
+    graph3->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, QPen(Qt::black, 3), QBrush(Qt::black), 3));
+    graph3->setPen(QPen(QColor(120, 120, 120), 2));
+    graph3->setLineStyle(QCPGraph::lsNone);
+    customplot1->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
+    customplot1->xAxis->setLabel("x");
+    //customplot1->xAxis->setRange(0,26);
+    customplot1->xAxis->setAutoTickStep(false);
+    customplot1->xAxis->setAutoTickLabels(false);
+    customplot1->xAxis->setTickStep(1);
+    customplot1->xAxis->setTickLabels(false);
+    customplot1->xAxis->setTicks(false);
+    customplot1->yAxis->setLabel("y");
+    //customplot1->yAxis->setRange(0,26);
+    customplot1->yAxis->setAutoTickStep(false);
+    customplot1->yAxis->setAutoTickLabels(false);
+    customplot1->yAxis->setTickStep(1);
+    customplot1->yAxis->setTickLabels(false);
+    customplot1->yAxis->setTicks(false);
+    customplot1->yAxis->setScaleRatio(customplot1->xAxis, 1);
+
+    QVector<double> xn(4), yn(4);
+    xn[0] = 0;xn[1] = num_pts - node_bdr;xn[2]=num_pts - node_bdr;xn[3]=0;
+    yn[0] = 0;yn[1] = 0;yn[2]=num_pts - node_bdr;yn[3]=num_pts - node_bdr;
+    QCPCurve *newCurve = new QCPCurve(customplot1->xAxis, customplot1->yAxis);
+    newCurve->setBrush(QColor(255, 0, 0,100));
+    newCurve->setData(xn, yn);
+
+    int *asub = (int*)const_cast<unsigned int*>(X.row_indices);
+    int *xa = (int*)const_cast<unsigned int*>(X.col_ptrs);
+    QVector<double> xnn(X.n_nonzero), ynn(X.n_nonzero);
+    for(int i=0;i < num_pts - node_bdr;i++){
+        for(int j = xa[i];j < xa[i+1];j++){
+            ynn[j] = num_pts - node_bdr - i;
+            xnn[j] = asub[j];
+        }
+    }
+    graph3->setData(xnn, ynn);
+    customplot1->rescaleAxes(true);
+    customplot1->replot();
+    //---------------------------------
 	if (superlumt.solve() == 1) {
 		qDebug() << "Error: superlumt.slove";
 		qDebug() << "info: " << superlumt.info;
@@ -383,13 +427,14 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 	graph1->setPen(QPen(QColor(120, 120, 120), 2));
 	graph1->setLineStyle(QCPGraph::lsNone);
 	customplot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
-	customplot->xAxis->setLabel("x");
-	customplot->xAxis->setRange(0, num_ele);
+    //customplot->xAxis->setLabel("x");
+    //customplot->xAxis->setRange(0, num_ele);
 	//customplot->xAxis->setAutoTickStep(false);
-	//customplot->xAxis->setTicks(false);
-	customplot->yAxis->setLabel("y");
-	customplot->yAxis->setRange(0, 0.6);
-	//customplot->xAxis2->setTicks(false);
+    customplot->xAxis->setTicks(false);
+    //customplot->yAxis->setLabel("y");
+    //customplot->yAxis->setRange(0, 0.6);
+    customplot->yAxis->setTicks(false);
+    customplot->xAxis2->setTicks(false);
 	//customplot->yAxis->setScaleRatio(ui->widget->xAxis, 1.0);
 	//---------the main loop---------------------------------
 	int steps = 250;
