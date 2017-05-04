@@ -16,6 +16,7 @@ public:
     ~MainWindow();
 public slots:
     void cal();
+
 private:
     Ui::MainWindow *ui;
 };

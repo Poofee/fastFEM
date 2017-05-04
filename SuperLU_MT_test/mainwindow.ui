@@ -33,6 +33,7 @@
     <property name="title">
      <string>File</string>
     </property>
+    <addaction name="actionCal"/>
    </widget>
    <addaction name="menuFile"/>
   </widget>

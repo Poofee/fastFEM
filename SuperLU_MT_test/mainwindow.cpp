@@ -1,4 +1,5 @@
 #include <QMenu>
+#include <QVector>
 #include <QAction>
 #include <QMenuBar>
 #include <stdio.h>
@@ -50,7 +51,7 @@ int_t dParseFloatFormat(char *buf, int_t *num, int_t *size) {
     while (*tmp++ != '(');
     *num = atoi(tmp); /*sscanf(tmp, "%d", num);*/
     while (*tmp != 'E' && *tmp != 'e' && *tmp != 'D' && *tmp != 'd'
-        && *tmp != 'F' && *tmp != 'f') {
+           && *tmp != 'F' && *tmp != 'f') {
         /* May find kP before nE/nD/nF, like (1P6F13.6). In this case the
         num picked up refers to P, which should be skipped. */
         if (*tmp == 'p' || *tmp == 'P') {
@@ -120,8 +121,9 @@ MainWindow::MainWindow(QWidget *parent) :
     QMenu * file = menuBar()->addMenu(tr("File"));
     file->addAction(calAction);
 
-    cal();
+
     ui->setupUi(this);
+    connect(ui->actionCal,SIGNAL(triggered()),this,SLOT(cal()));
 }
 
 MainWindow::~MainWindow()
@@ -235,6 +237,46 @@ void MainWindow::cal(){
 
     fclose(fp);
 
+    //-----------qt plot
+    QCustomPlot * customplot;
+    customplot = ui->qplot;
+    QCPGraph *graph1 = customplot->addGraph();
+    graph1->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, QPen(Qt::black, 3), QBrush(Qt::black), 3));
+    graph1->setPen(QPen(QColor(120, 120, 120), 2));
+    graph1->setLineStyle(QCPGraph::lsNone);
+    customplot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
+    customplot->xAxis->setLabel("x");
+    customplot->xAxis->setRange(0,26);
+    customplot->xAxis->setAutoTickStep(false);
+    customplot->xAxis->setAutoTickLabels(false);
+    customplot->xAxis->setTickStep(1);
+    customplot->yAxis->setLabel("y");
+    customplot->yAxis->setRange(0,26);
+    customplot->yAxis->setAutoTickStep(false);
+    customplot->yAxis->setAutoTickLabels(false);
+    customplot->yAxis->setTickStep(1);
+    customplot->yAxis->setScaleRatio(customplot->xAxis, 1);
+
+
+    QVector<double> x(nnz), y(nnz);
+    QVector<double> x1(4), y1(4);
+    x1[0] = 0;x1[1] = 24;x1[2]=24;x1[3]=0;
+    y1[0] = 0;y1[1] = 0;y1[2]=24;y1[3]=24;
+    QCPCurve *newCurve = new QCPCurve(customplot->xAxis, customplot->yAxis);
+    newCurve->setBrush(QColor(255, 0, 0,100));
+    newCurve->setData(x1, y1);
+
+    for(int i=0;i < m;i++){
+        for(int j = xa[i];j < xa[i+1];j++){
+            y[j] = 24 - i;
+            x[j] = asub[j];
+        }
+    }
+    graph1->setData(x, y);
+    //customplot->rescaleAxes(true);
+    customplot->replot();
+
+
     dCreate_CompCol_Matrix(&A, m, n, nnz, a, asub, xa, SLU_NC, SLU_D, SLU_GE);
     Astore = (NCformat*)A.Store;
     qDebug()<<"Dimension " <<A.nrow<< "x"<< A.ncol<< "; # nonzeros "<< Astore->nnz ;
@@ -284,3 +326,4 @@ void MainWindow::cal(){
     Destroy_SuperNode_SCP(&L);
     Destroy_CompCol_NCP(&U);
 }
+
