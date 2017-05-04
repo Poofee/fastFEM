@@ -103,7 +103,7 @@ int_t dReadValues(FILE *fp, int_t n, double *destination, int_t perline, int_t p
 	return 0;
 }
 
-int main(int argc, char *argv[]) {
+int oldmain() {
 	SuperMatrix   A;
 	NCformat *Astore;
 	double   *a;
@@ -263,6 +263,8 @@ int main(int argc, char *argv[]) {
 	Destroy_SuperNode_SCP(&L);
 	Destroy_CompCol_NCP(&U);
 	getchar();
+
+    return 0;
 }
 
 /*
