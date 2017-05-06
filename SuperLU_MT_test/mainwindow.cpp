@@ -263,8 +263,8 @@ void MainWindow::cal(){
     customplot->yAxis->setScaleRatio(customplot->xAxis, 1);
 
     QVector<double> x1(4), y1(4);
-    x1[0] = 0;x1[1] = 24;x1[2]=24;x1[3]=0;
-    y1[0] = 0;y1[1] = 0;y1[2]=24;y1[3]=24;
+    x1[0] = 0;x1[1] = m-1;x1[2]=m-1;x1[3]=0;
+    y1[0] = 0;y1[1] = 0;y1[2]=m-1;y1[3]=m-1;
     QCPCurve *newCurve = new QCPCurve(customplot->xAxis, customplot->yAxis);
     newCurve->setBrush(QColor(255, 0, 0,100));
     newCurve->setData(x1, y1);
@@ -273,7 +273,7 @@ void MainWindow::cal(){
     for(int i=0;i < m;i++){//col
         for(int j = xa[i];j < xa[i+1];j++){
             x[j] = i;
-            y[j] = 24-asub[j];//row
+            y[j] = m-1-asub[j];//row
             //qDebug()<<"y"<<y[j];
             //qDebug()<<"x"<<x[j];
         }
@@ -321,8 +321,8 @@ void MainWindow::cal(){
         graphU->setLineStyle(QCPGraph::lsNone);
 
         QVector<double> xU(4), yU(4);
-        xU[0] = 0+25;xU[1] = 24+25;xU[2]=24+25;xU[3]=0+25;
-        yU[0] = 0;yU[1] = 0;yU[2]=24;yU[3]=24;
+        xU[0] = 0+m;xU[1] = m-1+m;xU[2]=m-1+m;xU[3]=0+m;
+        yU[0] = 0;yU[1] = 0;yU[2]=m-1;yU[3]=m-1;
         QCPCurve *newCurveU = new QCPCurve(customplot->xAxis, customplot->yAxis);
         newCurveU->setBrush(QColor(255, 0, 0,100));
         newCurveU->setData(xU, yU);
@@ -333,8 +333,8 @@ void MainWindow::cal(){
         graphL->setLineStyle(QCPGraph::lsNone);
 
         QVector<double> xL(2), yL(2);
-        xL[0] = 0+25;xL[1] = 24+25;
-        yL[0] = 24;yL[1] = 0;
+        xL[0] = 0+m;xL[1] = m-1+m;
+        yL[0] = m-1;yL[1] = 0;
         QCPCurve *newCurveL = new QCPCurve(customplot->xAxis, customplot->yAxis);
         newCurveL->setBrush(QColor(255, 0, 0,100));
         newCurveL->setData(xL, yL);
@@ -376,7 +376,7 @@ void MainWindow::cal(){
 
                         if(fabs(value)>1e-9){
                             xnL[count] = fsupc+m;
-                            ynL[count] = 24 - irow;
+                            ynL[count] = m-1 - irow;
 
                             count++;
 
@@ -390,7 +390,6 @@ void MainWindow::cal(){
                         }
 
                         ++luptr;
-                        //rhs_work[irow] -= rhs_work[fsupc] * Lval[luptr];
                     }
                 }
             } else {
@@ -403,7 +402,7 @@ void MainWindow::cal(){
 
                             if(fabs(value)>1e-9){
                                 xnL[count] = fsupc+i+m;
-                                ynL[count] = 24 - irow;
+                                ynL[count] = m-1 - irow;
 
                                 count++;
 
@@ -413,7 +412,6 @@ void MainWindow::cal(){
                                     level[irow] = std::max(level[fsupc+i],level[irow]);
                                 }
                             }
-
                             ++luptr;
                         }
                     }
