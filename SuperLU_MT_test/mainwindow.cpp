@@ -268,7 +268,7 @@ void MainWindow::cal(){
     y1[0] = 0;y1[1] = 0;y1[2]=m-1;y1[3]=m-1;
     QCPCurve *newCurve = new QCPCurve(customplot->xAxis, customplot->yAxis);
     newCurve->setBrush(QColor(255, 0, 0,100));
-    newCurve->setData(x1, y1);
+    //newCurve->setData(x1, y1);
 
     QVector<double> x(nnz), y(nnz);
     for(int i=0;i < m;i++){//col
@@ -279,7 +279,7 @@ void MainWindow::cal(){
             //qDebug()<<"x"<<x[j];
         }
     }
-    graph1->setData(x, y);
+    //graph1->setData(x, y);
     //customplot->rescaleAxes(true);
     customplot->replot();
     //-----------------------------------------------
@@ -420,7 +420,7 @@ void MainWindow::cal(){
 
             } /* if-else: nsupc == 1 ... */
         } /* for L-solve */
-        graphU->setData(xnU, ynU);
+        //graphU->setData(xnU, ynU);
         graphL->setData(xnL, ynL);
         qDebug()<<"count "<<count;
         int maxLevel = 0;
