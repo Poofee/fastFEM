@@ -171,7 +171,8 @@ void MainWindow::cal(){
     char buf[100], type[4], key[10];
     FILE *fp;
     //fp = stdin;
-    fp = fopen("..\\..\\SuperLU_MT_test\\g5.rua", "r");
+    //fp = fopen("..\\..\\SuperLU_MT_test\\g5.rua", "r");
+    fp = fopen("..\\..\\SuperLU_MT_test\\big.rua", "r");
     qDebug()<<fp;
     /* Line 1 */
     fscanf(fp, "%72c", buf); buf[72] = 0;
@@ -422,9 +423,13 @@ void MainWindow::cal(){
         graphU->setData(xnU, ynU);
         graphL->setData(xnL, ynL);
         qDebug()<<"count "<<count;
+        int maxLevel = 0;
         for(int i = 0;i < m;i++){
-            qDebug()<<i<<" "<<level[i];
+            //qDebug()<<i<<" "<<level[i];
+            maxLevel = maxLevel > level[i] ? maxLevel : level[i];
         }
+        qDebug()<<maxLevel;
+
 
         //-----------------------------------------
         qDebug()<<"#NZ in factor L = "<<Lstore->nnz;
