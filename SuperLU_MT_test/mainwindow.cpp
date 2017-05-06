@@ -3,6 +3,7 @@
 #include <QAction>
 #include <QMenuBar>
 #include <stdio.h>
+#include  <math.h>
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 /*! \file
@@ -354,6 +355,10 @@ void MainWindow::cal(){
         int fsupc,istart,nsupr,nsupc,nrow;
         int count = 0;
         double value;
+        QVector<int> level(m);
+        for(int i = 0;i < m;i++){
+            level[i] = 0;
+        }
         for (int ksupno = 0; ksupno <= Lstore->nsuper; ++ksupno) {
             fsupc = Lstore->sup_to_colbeg[ksupno];
             istart = Lstore->rowind_colbeg[fsupc];
@@ -367,11 +372,21 @@ void MainWindow::cal(){
                     for (int iptr=istart; iptr < Lstore->rowind_colend[fsupc]; iptr++){
                         int irow = Lstore->rowind[iptr];
                         value = ((double*)Lstore->nzval)[luptr];
+
+
                         if(fabs(value)>1e-9){
                             xnL[count] = fsupc+m;
                             ynL[count] = 24 - irow;
 
                             count++;
+
+                            if(irow >= fsupc){
+                                if(irow == fsupc){
+                                    level[irow] += 1;
+                                }else if(irow > fsupc){
+                                    level[irow] = std::max(level[fsupc],level[irow]);
+                                }
+                            }
                         }
 
                         ++luptr;
@@ -385,11 +400,18 @@ void MainWindow::cal(){
                         for(int iptr = istart; iptr < Lstore->rowind_colend[fsupc];iptr++){
                             int irow = Lstore->rowind[iptr];
                             value = ((double*)Lstore->nzval)[luptr];
+
                             if(fabs(value)>1e-9){
                                 xnL[count] = fsupc+i+m;
                                 ynL[count] = 24 - irow;
 
                                 count++;
+
+                                if(irow == fsupc+i){
+                                    level[irow] += 1;
+                                }else if(irow > fsupc+i){
+                                    level[irow] = std::max(level[fsupc+i],level[irow]);
+                                }
                             }
 
                             ++luptr;
@@ -402,6 +424,9 @@ void MainWindow::cal(){
         graphU->setData(xnU, ynU);
         graphL->setData(xnL, ynL);
         qDebug()<<"count "<<count;
+        for(int i = 0;i < m;i++){
+            qDebug()<<i<<" "<<level[i];
+        }
 
         //-----------------------------------------
         qDebug()<<"#NZ in factor L = "<<Lstore->nnz;
