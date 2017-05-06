@@ -230,14 +230,18 @@ void MainWindow::cal(){
     dallocateA(n, nnz, &a, &asub, &xa);
 
     dReadVector(fp, m + 1, xa, colnum, colsize);
+
     dReadVector(fp, nnz, asub, rownum, rowsize);
+    //    for(int i = 0;i <nnz;i++){
+    //        qDebug()<<asub[i];
+    //    }
     if (numer_lines) {
         dReadValues(fp, nnz, a, valnum, valsize);
     }
 
     fclose(fp);
 
-    //-----------qt plot
+    //-----------qt plot----------------------
     QCustomPlot * customplot;
     customplot = ui->qplot;
     QCPGraph *graph1 = customplot->addGraph();
@@ -257,8 +261,6 @@ void MainWindow::cal(){
     customplot->yAxis->setTickStep(1);
     customplot->yAxis->setScaleRatio(customplot->xAxis, 1);
 
-
-    QVector<double> x(nnz), y(nnz);
     QVector<double> x1(4), y1(4);
     x1[0] = 0;x1[1] = 24;x1[2]=24;x1[3]=0;
     y1[0] = 0;y1[1] = 0;y1[2]=24;y1[3]=24;
@@ -266,16 +268,19 @@ void MainWindow::cal(){
     newCurve->setBrush(QColor(255, 0, 0,100));
     newCurve->setData(x1, y1);
 
-    for(int i=0;i < m;i++){
+    QVector<double> x(nnz), y(nnz);
+    for(int i=0;i < m;i++){//col
         for(int j = xa[i];j < xa[i+1];j++){
-            y[j] = 24 - i;
-            x[j] = asub[j];
+            x[j] = i;
+            y[j] = 24-asub[j];//row
+            //qDebug()<<"y"<<y[j];
+            //qDebug()<<"x"<<x[j];
         }
     }
     graph1->setData(x, y);
     //customplot->rescaleAxes(true);
     customplot->replot();
-
+    //-----------------------------------------------
 
     dCreate_CompCol_Matrix(&A, m, n, nnz, a, asub, xa, SLU_NC, SLU_D, SLU_GE);
     Astore = (NCformat*)A.Store;
@@ -308,6 +313,97 @@ void MainWindow::cal(){
 
         Lstore = (SCPformat *)L.Store;
         Ustore = (NCPformat *)U.Store;
+        //-----------------------------------------
+        QCPGraph *graphU = customplot->addGraph();
+        graphU->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, QPen(Qt::red, 3), QBrush(Qt::red), 3));
+        graphU->setPen(QPen(QColor(120, 120, 120), 2));
+        graphU->setLineStyle(QCPGraph::lsNone);
+
+        QVector<double> xU(4), yU(4);
+        xU[0] = 0+25;xU[1] = 24+25;xU[2]=24+25;xU[3]=0+25;
+        yU[0] = 0;yU[1] = 0;yU[2]=24;yU[3]=24;
+        QCPCurve *newCurveU = new QCPCurve(customplot->xAxis, customplot->yAxis);
+        newCurveU->setBrush(QColor(255, 0, 0,100));
+        newCurveU->setData(xU, yU);
+
+        QCPGraph *graphL = customplot->addGraph();
+        graphL->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, QPen(Qt::black, 3), QBrush(Qt::black), 3));
+        graphL->setPen(QPen(QColor(120, 120, 120), 2));
+        graphL->setLineStyle(QCPGraph::lsNone);
+
+        QVector<double> xL(2), yL(2);
+        xL[0] = 0+25;xL[1] = 24+25;
+        yL[0] = 24;yL[1] = 0;
+        QCPCurve *newCurveL = new QCPCurve(customplot->xAxis, customplot->yAxis);
+        newCurveL->setBrush(QColor(255, 0, 0,100));
+        newCurveL->setData(xL, yL);
+
+        int nnzL = Lstore->nnz;
+        //asub = Lstore->rowind;
+
+        qDebug()<<"L"<<nnzL;
+        qDebug()<<"nsuper"<<Lstore->nsuper;
+
+        QVector<double> xnL(Lstore->nzval_colend[m-1]), ynL(Lstore->nzval_colend[m-1]);
+
+        int nnzU = Ustore->nnz;
+        //asubU = Ustore->rowind;
+
+        QVector<double> xnU(nnzU), ynU(nnzU);
+
+        int fsupc,istart,nsupr,nsupc,nrow;
+        int count = 0;
+        double value;
+        for (int ksupno = 0; ksupno <= Lstore->nsuper; ++ksupno) {
+            fsupc = Lstore->sup_to_colbeg[ksupno];
+            istart = Lstore->rowind_colbeg[fsupc];
+            nsupr = Lstore->rowind_colend[fsupc] - istart;
+            nsupc = Lstore->sup_to_colend[ksupno] - fsupc;
+            nrow = nsupr - nsupc;
+
+            if ( nsupc == 1 ) {
+                for (int j = 0; j < nrhs; j++) {
+                    int luptr = Lstore->nzval_colbeg[fsupc];
+                    for (int iptr=istart; iptr < Lstore->rowind_colend[fsupc]; iptr++){
+                        int irow = Lstore->rowind[iptr];
+                        value = ((double*)Lstore->nzval)[luptr];
+                        if(fabs(value)>1e-9){
+                            xnL[count] = fsupc+m;
+                            ynL[count] = 24 - irow;
+
+                            count++;
+                        }
+
+                        ++luptr;
+                        //rhs_work[irow] -= rhs_work[fsupc] * Lval[luptr];
+                    }
+                }
+            } else {
+                for(int j = 0; j < nrhs;j++){
+                    for(int i = 0; i < nsupc;i++){
+                        int luptr = Lstore->nzval_colbeg[fsupc+i];
+                        for(int iptr = istart; iptr < Lstore->rowind_colend[fsupc];iptr++){
+                            int irow = Lstore->rowind[iptr];
+                            value = ((double*)Lstore->nzval)[luptr];
+                            if(fabs(value)>1e-9){
+                                xnL[count] = fsupc+i+m;
+                                ynL[count] = 24 - irow;
+
+                                count++;
+                            }
+
+                            ++luptr;
+                        }
+                    }
+                }
+
+            } /* if-else: nsupc == 1 ... */
+        } /* for L-solve */
+        graphU->setData(xnU, ynU);
+        graphL->setData(xnL, ynL);
+        qDebug()<<"count "<<count;
+
+        //-----------------------------------------
         qDebug()<<"#NZ in factor L = "<<Lstore->nnz;
         qDebug()<<"#NZ in factor U = "<<Ustore->nnz;
         qDebug()<<"#NZ in L+U = "<<Lstore->nnz + Ustore->nnz - L.ncol;
@@ -316,6 +412,7 @@ void MainWindow::cal(){
         qDebug()<<"L\\U MB "<<superlu_memusage.for_lu / 1024 / 1024<<"\ttotal MB needed "<<superlu_memusage.total_needed / 1024 / 1024<<"\texpansions "<<superlu_memusage.expansions ;
 
     }
+    customplot->replot();
 
     SUPERLU_FREE(rhs);
     SUPERLU_FREE(xact);
