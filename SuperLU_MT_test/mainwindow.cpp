@@ -275,11 +275,17 @@ void MainWindow::cal(){
     customplot->xAxis->setAutoTickStep(false);
     customplot->xAxis->setAutoTickLabels(false);
     customplot->xAxis->setTickStep(1);
+    customplot->xAxis->setTickLabels(false);
+    customplot->xAxis->grid()->setVisible(false);
+    customplot->xAxis->setTicks(false);
     customplot->yAxis->setLabel("y");
     customplot->yAxis->setRange(0,26);
     customplot->yAxis->setAutoTickStep(false);
     customplot->yAxis->setAutoTickLabels(false);
     customplot->yAxis->setTickStep(1);
+    customplot->yAxis->setTickLabels(false);
+    customplot->yAxis->setTicks(false);
+    customplot->yAxis->grid()->setVisible(false);
     customplot->yAxis->setScaleRatio(customplot->xAxis, 1);
 
     QVector<double> x1(4), y1(4);
@@ -341,14 +347,14 @@ void MainWindow::cal(){
         graphU->setLineStyle(QCPGraph::lsNone);
 
         QVector<double> xU(4), yU(4);
-        xU[0] = 0+m;xU[1] = m-1+m;xU[2]=m-1+m;xU[3]=0+m;
+        xU[0] = 0+m;xU[1] = m-1;xU[2]=m-1;xU[3]=0;
         yU[0] = 0;yU[1] = 0;yU[2]=m-1;yU[3]=m-1;
         QCPCurve *newCurveU = new QCPCurve(customplot->xAxis, customplot->yAxis);
         newCurveU->setBrush(QColor(255, 0, 0,100));
-        newCurveU->setData(xU, yU);
+
 
         QCPGraph *graphL = customplot->addGraph();
-        graphL->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, QPen(Qt::black, 3), QBrush(Qt::black), 3));
+        graphL->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, QPen(Qt::black, 1), QBrush(Qt::black), 1));
         graphL->setPen(QPen(QColor(120, 120, 120), 2));
         graphL->setLineStyle(QCPGraph::lsNone);
 
@@ -357,7 +363,7 @@ void MainWindow::cal(){
         yL[0] = m-1;yL[1] = 0;
         QCPCurve *newCurveL = new QCPCurve(customplot->xAxis, customplot->yAxis);
         newCurveL->setBrush(QColor(255, 0, 0,100));
-        newCurveL->setData(xL, yL);
+        //newCurveL->setData(xL, yL);
 
         int nnzL = Lstore->nnz;
         //asub = Lstore->rowind;
@@ -406,7 +412,6 @@ void MainWindow::cal(){
                                 }
                             }
                         }
-
                         ++luptr;
                     }
                 }
@@ -466,6 +471,7 @@ void MainWindow::cal(){
             xxnL[i] = sortlevel[xnL[i]];
             yynL[i] = m-1-sortlevel[ynL[i]];
         }
+        double lastline = 0;
         for(int i = 0;i < m-1;i++){
             if(level[slevel[i].index] != level[slevel[i+1].index]){
                 QCPCurve *newCurve = new QCPCurve(customplot->xAxis, customplot->yAxis);
@@ -475,10 +481,23 @@ void MainWindow::cal(){
                 newCurve->setData(xline, yline);
                 newCurve->setPen(QPen(QColor(0, 120, 0)));
                 newCurve->setBrush(QColor(0, 120, 0));
+                //--绘制并行区域
+                QCPCurve *rec1 = new QCPCurve(customplot->xAxis, customplot->yAxis);
+                QCPCurve *rec2 = new QCPCurve(customplot->xAxis, customplot->yAxis);
+                QVector <double> recdatax(5),recdatay(5);
+                recdatax[0] = 0; recdatax[1] = i;
+                recdatax[2] = i; recdatax[3] = 0; recdatax[4] = 0;
+                recdatay[0] = m-i; recdatay[1] = m-i;
+                recdatay[2] = m-1-lastline; recdatay[3] = m-1-lastline;recdatay[4] = m-i;
+                rec1->setData(recdatax, recdatay);
+                rec1->setPen(QPen(QColor(255, 0, 0)));
+                //rec1->setBrush(QColor(255, 0, 0));
+                lastline = i+1;
             }
         }
         //graphU->setData(xnU, ynU);
         graphL->setData(xxnL, yynL);
+        newCurveU->setData(xU, yU);
 
         //-----------------------------------------
         qDebug()<<"#NZ in factor L = "<<Lstore->nnz;
