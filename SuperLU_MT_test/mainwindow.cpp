@@ -347,7 +347,7 @@ void MainWindow::cal(){
         graphU->setLineStyle(QCPGraph::lsNone);
 
         QVector<double> xU(4), yU(4);
-        xU[0] = 0+m;xU[1] = m-1;xU[2]=m-1;xU[3]=0;
+        xU[0] = 0;xU[1] = m-1;xU[2]=m-1;xU[3]=0;
         yU[0] = 0;yU[1] = 0;yU[2]=m-1;yU[3]=m-1;
         QCPCurve *newCurveU = new QCPCurve(customplot->xAxis, customplot->yAxis);
         newCurveU->setBrush(QColor(255, 0, 0,100));
@@ -490,14 +490,14 @@ void MainWindow::cal(){
                 recdatay[0] = m-i; recdatay[1] = m-i;
                 recdatay[2] = m-1-lastline; recdatay[3] = m-1-lastline;recdatay[4] = m-i;
                 rec1->setData(recdatax, recdatay);
-                rec1->setPen(QPen(QColor(255, 0, 0)));
+                rec1->setPen(QPen(QColor(255, 0, 0),2));
 
                 recdatax[0] = lastline; recdatax[1] = i;
                 recdatax[2] = i; recdatax[3] = lastline; recdatax[4] = lastline;
                 recdatay[0] = 0; recdatay[1] = 0;
                 recdatay[2] = m-1-i; recdatay[3] = m-1-i;recdatay[4] = 0;
                 rec2->setData(recdatax, recdatay);
-                rec2->setPen(QPen(QColor(255, 0, 0)));
+                rec2->setPen(QPen(QColor(255, 0, 0),2));
                 //rec1->setBrush(QColor(255, 0, 0));
                 lastline = i+1;
             }
