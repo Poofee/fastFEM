@@ -341,11 +341,13 @@ void MainWindow::cal(){
         Lstore = (SCPformat *)L.Store;
         Ustore = (NCPformat *)U.Store;
         //-----------------------------------------
+        //绘制U矩阵
         QCPGraph *graphU = customplot->addGraph();
         graphU->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, QPen(Qt::red, 3), QBrush(Qt::red), 3));
         graphU->setPen(QPen(QColor(120, 120, 120), 2));
         graphU->setLineStyle(QCPGraph::lsNone);
 
+        //绘制边框
         QVector<double> xU(4), yU(4);
         xU[0] = 0;xU[1] = m-1;xU[2]=m-1;xU[3]=0;
         yU[0] = 0;yU[1] = 0;yU[2]=m-1;yU[3]=m-1;
@@ -353,6 +355,7 @@ void MainWindow::cal(){
         newCurveU->setBrush(QColor(255, 0, 0,100));
 
 
+        //绘制L矩阵
         QCPGraph *graphL = customplot->addGraph();
         graphL->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, QPen(Qt::black, 1), QBrush(Qt::black), 1));
         graphL->setPen(QPen(QColor(120, 120, 120), 2));
@@ -378,7 +381,7 @@ void MainWindow::cal(){
 
         QVector<double> xnU(nnzU), ynU(nnzU);
 
-        int fsupc,istart,nsupr,nsupc,nrow;
+        int fsupc,istart,nsupr,nsupc,nrow;//
         int count = 0;
         double value;
         QVector<int> level(m),sortlevel(m);
@@ -386,28 +389,30 @@ void MainWindow::cal(){
             level[i] = 0;
         }
         for (int ksupno = 0; ksupno <= Lstore->nsuper; ++ksupno) {
-            fsupc = Lstore->sup_to_colbeg[ksupno];
-            istart = Lstore->rowind_colbeg[fsupc];
-            nsupr = Lstore->rowind_colend[fsupc] - istart;
-            nsupc = Lstore->sup_to_colend[ksupno] - fsupc;
-            nrow = nsupr - nsupc;
+            fsupc = Lstore->sup_to_colbeg[ksupno];//第ksupno个超级节点长方形区域的起始列号
+            istart = Lstore->rowind_colbeg[fsupc];//第fsupc列的起始行号，这个列必须是超级节点第一列，
+            //超级节点是长方形结构，行号一样,但是某些位置是被零填充的
+            nsupr = Lstore->rowind_colend[fsupc] - istart;//第fsupc列的结束行号，算出来是超级节点的列宽
+            nsupc = Lstore->sup_to_colend[ksupno] - fsupc;//算出来是超级节点的行高度
+            nrow = nsupr - nsupc;//算出来是超级节点不在对角区域的行高度
 
-            if ( nsupc == 1 ) {
-                for (int j = 0; j < nrhs; j++) {
-                    int luptr = Lstore->nzval_colbeg[fsupc];
+            if ( nsupc == 1 ) {//超级节点只有一列
+                for (int j = 0; j < nrhs; j++) {//对B是多列的情况
+                    int luptr = Lstore->nzval_colbeg[fsupc];//非零元素的序号
                     for (int iptr=istart; iptr < Lstore->rowind_colend[fsupc]; iptr++){
-                        int irow = Lstore->rowind[iptr];
-                        value = ((double*)Lstore->nzval)[luptr];
+                        int irow = Lstore->rowind[iptr];//行号
+                        value = ((double*)Lstore->nzval)[luptr];//值
 
-                        if(fabs(value)>1e-9){
-                            if(irow >= fsupc){
+                        if(fabs(value)>1e-9){//非零元素,如果不考虑这个，那个level就没法算了
+                            if(irow >= fsupc){//下三角
                                 xnL[count] = fsupc;
                                 ynL[count] = irow;
 
                                 count++;
-                                if(irow == fsupc){
-                                    level[irow] += 1;
-                                }else if(irow > fsupc){
+                                if(irow == fsupc){//对角线上元素
+                                    level[irow] += 1;//计算level=max(level)+1;
+                                }else if(irow > fsupc){//非对角线元素
+                                    //计算level，取该行的最大值
                                     level[irow] = std::max(level[fsupc],level[irow]);
                                 }
                             }
@@ -432,7 +437,6 @@ void MainWindow::cal(){
                                     if(irow == fsupc+i){
                                         level[irow] += 1;
                                     }else if(irow > fsupc+i){
-
                                         level[irow] = std::max(level[fsupc+i],level[irow]);
                                     }
                                 }
@@ -449,6 +453,7 @@ void MainWindow::cal(){
         QVector <ele> slevel(m);
         for(int i = 0;i < m;i++){
             //qDebug()<<i<<" "<<level[i];
+            //计算最大的level
             maxLevel = maxLevel > level[i] ? maxLevel : level[i];
             slevel[i].index = i;
             slevel[i].level = level[i];
@@ -457,9 +462,10 @@ void MainWindow::cal(){
 
         QVector <double> xxnL(count),yynL(count);
 
+        //对level进行排序
         qSort(slevel.begin(), slevel.end(), compareele);//ascend
         for(int i = 0;i < m;i++){
-                                                 qDebug()<<slevel[i].index<<"  "<<slevel[i].level;
+            //qDebug()<<slevel[i].index<<"  "<<slevel[i].level;
             sortlevel[slevel[i].index] = i;
         }
 
@@ -467,6 +473,7 @@ void MainWindow::cal(){
             xxnL[i] = xnL[i];
             yynL[i] = ynL[i];
         }
+        //转换坐标
         for(int i = 0; i < count;i++){
             xxnL[i] = sortlevel[xnL[i]];
             yynL[i] = m-1-sortlevel[ynL[i]];
@@ -515,8 +522,6 @@ void MainWindow::cal(){
         qDebug()<<"L\\U MB "<<superlu_memusage.for_lu / 1024 / 1024<<"\ttotal MB needed "<<superlu_memusage.total_needed / 1024 / 1024<<"\texpansions "<<superlu_memusage.expansions ;
 
     }
-
-
     customplot->replot();
 
     SUPERLU_FREE(rhs);
