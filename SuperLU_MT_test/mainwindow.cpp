@@ -485,8 +485,8 @@ void MainWindow::cal(){
                 QCPCurve *rec1 = new QCPCurve(customplot->xAxis, customplot->yAxis);
                 QCPCurve *rec2 = new QCPCurve(customplot->xAxis, customplot->yAxis);
                 QVector <double> recdatax(5),recdatay(5);
-                recdatax[0] = 0; recdatax[1] = i;
-                recdatax[2] = i; recdatax[3] = 0; recdatax[4] = 0;
+                recdatax[0] = lastline; recdatax[1] = i;
+                recdatax[2] = i; recdatax[3] = lastline; recdatax[4] = lastline;
                 recdatay[0] = m-i; recdatay[1] = m-i;
                 recdatay[2] = m-1-lastline; recdatay[3] = m-1-lastline;recdatay[4] = m-i;
                 rec1->setData(recdatax, recdatay);
