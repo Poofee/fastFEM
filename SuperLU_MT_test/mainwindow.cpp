@@ -2,6 +2,7 @@
 #include <QVector>
 #include <QAction>
 #include <QMenuBar>
+#include <QtAlgorithms>
 #include <stdio.h>
 #include  <math.h>
 #include "mainwindow.h"
@@ -25,6 +26,24 @@ at the top-level directory.
 *
 */
 #include "slu_mt_ddefs.h"
+
+typedef struct{
+    int level;
+    int index;
+} ele;
+bool compareele(const ele ele1, const ele ele2) {
+    if (ele1.level < ele2.level) {
+        return true;
+    } else {
+        return false;
+    }
+}
+double mymax(double a, double b) {
+    return ((a > b) ? a : b);
+}
+double mymin(double a, double b) {
+    return ((a < b) ? a : b);
+}
 
 /* Eat up the rest of the current line */
 int_t dDumpLine(FILE *fp) {
@@ -356,7 +375,7 @@ void MainWindow::cal(){
         int fsupc,istart,nsupr,nsupc,nrow;
         int count = 0;
         double value;
-        QVector<int> level(m);
+        QVector<int> level(m),sortlevel(m);
         for(int i = 0;i < m;i++){
             level[i] = 0;
         }
@@ -374,14 +393,12 @@ void MainWindow::cal(){
                         int irow = Lstore->rowind[iptr];
                         value = ((double*)Lstore->nzval)[luptr];
 
-
                         if(fabs(value)>1e-9){
-                            xnL[count] = fsupc+m;
-                            ynL[count] = m-1 - irow;
-
-                            count++;
-
                             if(irow >= fsupc){
+                                xnL[count] = fsupc;
+                                ynL[count] = irow;
+
+                                count++;
                                 if(irow == fsupc){
                                     level[irow] += 1;
                                 }else if(irow > fsupc){
@@ -402,34 +419,66 @@ void MainWindow::cal(){
                             value = ((double*)Lstore->nzval)[luptr];
 
                             if(fabs(value)>1e-9){
-                                xnL[count] = fsupc+i+m;
-                                ynL[count] = m-1 - irow;
+                                if(irow >= fsupc+i){
+                                    xnL[count] = fsupc+i;
+                                    ynL[count] = irow;
 
-                                count++;
+                                    count++;
+                                    if(irow == fsupc+i){
+                                        level[irow] += 1;
+                                    }else if(irow > fsupc+i){
 
-                                if(irow == fsupc+i){
-                                    level[irow] += 1;
-                                }else if(irow > fsupc+i){
-                                    level[irow] = std::max(level[fsupc+i],level[irow]);
+                                        level[irow] = std::max(level[fsupc+i],level[irow]);
+                                    }
                                 }
                             }
                             ++luptr;
                         }
                     }
                 }
-
             } /* if-else: nsupc == 1 ... */
         } /* for L-solve */
-        //graphU->setData(xnU, ynU);
-        graphL->setData(xnL, ynL);
+
         qDebug()<<"count "<<count;
         int maxLevel = 0;
+        QVector <ele> slevel(m);
         for(int i = 0;i < m;i++){
             //qDebug()<<i<<" "<<level[i];
             maxLevel = maxLevel > level[i] ? maxLevel : level[i];
+            slevel[i].index = i;
+            slevel[i].level = level[i];
         }
         qDebug()<<maxLevel;
 
+        QVector <double> xxnL(count),yynL(count);
+
+        qSort(slevel.begin(), slevel.end(), compareele);//ascend
+        for(int i = 0;i < m;i++){
+                                                 qDebug()<<slevel[i].index<<"  "<<slevel[i].level;
+            sortlevel[slevel[i].index] = i;
+        }
+
+        for(int i = 0; i < count;i++){
+            xxnL[i] = xnL[i];
+            yynL[i] = ynL[i];
+        }
+        for(int i = 0; i < count;i++){
+            xxnL[i] = sortlevel[xnL[i]];
+            yynL[i] = m-1-sortlevel[ynL[i]];
+        }
+        for(int i = 0;i < m-1;i++){
+            if(level[slevel[i].index] != level[slevel[i+1].index]){
+                QCPCurve *newCurve = new QCPCurve(customplot->xAxis, customplot->yAxis);
+                QVector <double> xline(2),yline(2);
+                xline[0] = 0; xline[1] = i+0.5;
+                yline[0] = m-1-(i+0.5); yline[1] = m-1-(i+0.5);
+                newCurve->setData(xline, yline);
+                newCurve->setPen(QPen(QColor(0, 120, 0)));
+                newCurve->setBrush(QColor(0, 120, 0));
+            }
+        }
+        //graphU->setData(xnU, ynU);
+        graphL->setData(xxnL, yynL);
 
         //-----------------------------------------
         qDebug()<<"#NZ in factor L = "<<Lstore->nnz;
@@ -440,6 +489,8 @@ void MainWindow::cal(){
         qDebug()<<"L\\U MB "<<superlu_memusage.for_lu / 1024 / 1024<<"\ttotal MB needed "<<superlu_memusage.total_needed / 1024 / 1024<<"\texpansions "<<superlu_memusage.expansions ;
 
     }
+
+
     customplot->replot();
 
     SUPERLU_FREE(rhs);
