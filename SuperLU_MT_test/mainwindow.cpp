@@ -343,7 +343,7 @@ void MainWindow::cal(){
         //-----------------------------------------
         //绘制U矩阵
         QCPGraph *graphU = customplot->addGraph();
-        graphU->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, QPen(Qt::red, 3), QBrush(Qt::red), 3));
+        graphU->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, QPen(Qt::red, 1), QBrush(Qt::red), 1));
         graphU->setPen(QPen(QColor(120, 120, 120), 2));
         graphU->setLineStyle(QCPGraph::lsNone);
 
@@ -385,7 +385,7 @@ void MainWindow::cal(){
         int fsupc,istart,nsupr,nsupc,nrow;//
         int count = 0;int countU = 0;
         double value;
-        QVector<int> level(m),sortlevel(m);
+        QVector<int> level(m),sortlevel(m),sortlevelU(m);
         for(int i = 0;i < m;i++){
             level[i] = 0;
         }
@@ -498,7 +498,7 @@ void MainWindow::cal(){
 
                                 if(irow == fsupc){//对角线上元素
                                     levelU[irow] += 1;//计算level=max(level)+1;
-                                }else if(irow > fsupc){//非对角线元素
+                                }else if(irow < fsupc){//非对角线元素
                                     //计算level，取该行的最大值
                                     levelU[irow] = std::max(levelU[fsupc],levelU[irow]);
                                 }
@@ -537,7 +537,7 @@ void MainWindow::cal(){
 
                                     if(irow == fsupc+i){
                                         levelU[irow] += 1;
-                                    }else if(irow > fsupc+i){
+                                    }else if(irow < fsupc+i){
                                         levelU[irow] = std::max(levelU[fsupc+i],levelU[irow]);
                                     }
                                     countU++;
@@ -567,24 +567,34 @@ void MainWindow::cal(){
         qDebug()<<"countL "<<count;
         qDebug()<<"countU "<<countU;
         int maxLevel = 0;
+        int maxLevelU = 0;
         QVector <ele> slevel(m);
+        QVector <ele> slevelU(m);
         for(int i = 0;i < m;i++){
             //qDebug()<<i<<" "<<level[i];
             //计算最大的level
             maxLevel = maxLevel > level[i] ? maxLevel : level[i];
+            maxLevelU = maxLevelU > levelU[i] ? maxLevelU : levelU[i];
             slevel[i].index = i;
             slevel[i].level = level[i];
+            slevelU[i].index = i;
+            slevelU[i].level = levelU[i];
         }
         qDebug()<<"maxLevel"<<maxLevel;
+        qDebug()<<"maxLevelU"<<maxLevelU;
+
 
         QVector <double> xxnL(count),yynL(count);
         QVector <double> xxnU(countU),yynU(countU);
         //对level进行排序
         qSort(slevel.begin(), slevel.end(), compareele);//ascend
+        qSort(slevelU.begin(), slevelU.end(), compareele);//ascend
         for(int i = 0;i < m;i++){
             //qDebug()<<slevel[i].index<<"  "<<slevel[i].level;
             sortlevel[slevel[i].index] = i;
+            sortlevelU[slevelU[i].index] = i;
             //qDebug()<<perm_c[i];
+            //qDebug()<<i<<"\t"<<levelU[i];
         }
 
         for(int i = 0; i < count;i++){
@@ -598,8 +608,8 @@ void MainWindow::cal(){
             yynL[i] = m-1-sortlevel[ynL[i]];
         }
         for(int i = 0;i < countU;i++){
-            xxnU[i] = xnU[i];
-            yynU[i] = m-1-ynU[i];
+            xxnU[i] = m-1-sortlevelU[xnU[i]];
+            yynU[i] = sortlevelU[ynU[i]];
             //qDebug()<<xnU[i]<<"\t"<<ynU[i]<<"\t"<<valueU[i];
         }
         //绘制level分割线等
@@ -619,8 +629,8 @@ void MainWindow::cal(){
                 QVector <double> recdatax(5),recdatay(5);
                 recdatax[0] = lastline; recdatax[1] = i;
                 recdatax[2] = i; recdatax[3] = lastline; recdatax[4] = lastline;
-                recdatay[0] = m-i; recdatay[1] = m-i;
-                recdatay[2] = m-1-lastline; recdatay[3] = m-1-lastline;recdatay[4] = m-i;
+                recdatay[0] = m-1-i; recdatay[1] = m-1-i;
+                recdatay[2] = m-1-lastline; recdatay[3] = m-1-lastline;recdatay[4] = m-1-i;
                 rec1->setData(recdatax, recdatay);
                 rec1->setPen(QPen(QColor(255, 0, 0),2));
 
@@ -630,6 +640,38 @@ void MainWindow::cal(){
                 recdatay[2] = m-1-i; recdatay[3] = m-1-i;recdatay[4] = 0;
                 rec2->setData(recdatax, recdatay);
                 rec2->setPen(QPen(QColor(255, 0, 0),2));
+                //rec1->setBrush(QColor(255, 0, 0));
+                lastline = i+1;
+            }
+        }
+        //绘制U矩阵的分割线
+        lastline = 0;
+        for(int i = 0;i < m-1;i++){
+            if(levelU[slevelU[i].index] != levelU[slevelU[i+1].index]){
+                QCPCurve *newCurve = new QCPCurve(customplot->xAxis, customplot->yAxis);
+                QVector <double> xline(2),yline(2);
+                xline[0] = m-1; xline[1] = m-1-i-0.5;
+                yline[0] = (i+0.5); yline[1] = (i+0.5);
+                newCurve->setData(xline, yline);
+                newCurve->setPen(QPen(QColor(0, 120, 255),1));
+                newCurve->setBrush(QColor(0, 120, 255));
+                //--绘制并行区域
+                QCPCurve *rec1 = new QCPCurve(customplot->xAxis, customplot->yAxis);
+                QCPCurve *rec2 = new QCPCurve(customplot->xAxis, customplot->yAxis);
+                QVector <double> recdatax(5),recdatay(5);
+                recdatax[0] = m-1-lastline; recdatax[1] = m-1-i;
+                recdatax[2] = m-1-i; recdatax[3] = m-1-lastline; recdatax[4] = m-1-lastline;
+                recdatay[0] = lastline; recdatay[1] = lastline;
+                recdatay[2] = i; recdatay[3] = i;recdatay[4] = lastline;
+                rec1->setData(recdatax, recdatay);
+                rec1->setPen(QPen(QColor(65, 36, 230),2));
+
+                recdatax[0] = m-1-lastline; recdatax[1] = m-1-i;
+                recdatax[2] = m-1-i; recdatax[3] = m-1-lastline; recdatax[4] = m-1-lastline;
+                recdatay[0] = i; recdatay[1] = i;
+                recdatay[2] = m-1; recdatay[3] = m-1;recdatay[4] = i;
+                rec2->setData(recdatax, recdatay);
+                rec2->setPen(QPen(QColor(65, 36, 230),2));
                 //rec1->setBrush(QColor(255, 0, 0));
                 lastline = i+1;
             }
