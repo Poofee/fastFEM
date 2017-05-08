@@ -374,20 +374,22 @@ void MainWindow::cal(){
         qDebug()<<"L"<<nnzL;
         qDebug()<<"nsuper"<<Lstore->nsuper;
 
-        QVector<double> xnL(Lstore->nzval_colend[m-1]), ynL(Lstore->nzval_colend[m-1]);
+        QVector<double> xnL(nnzL), ynL(nnzL);
+        QVector<double> valueL(nnzL);
 
         int nnzU = Ustore->nnz;
         //asubU = Ustore->rowind;
 
-        QVector<double> xnU(nnzU), ynU(nnzU);
+        QVector<double> xnU(nnzU), ynU(nnzU),valueU(nnzU);
 
         int fsupc,istart,nsupr,nsupc,nrow;//
-        int count = 0;
+        int count = 0;int countU = 0;
         double value;
         QVector<int> level(m),sortlevel(m);
         for(int i = 0;i < m;i++){
             level[i] = 0;
         }
+        //对Lstore进行读取
         for (int ksupno = 0; ksupno <= Lstore->nsuper; ++ksupno) {
             fsupc = Lstore->sup_to_colbeg[ksupno];//第ksupno个超级节点长方形区域的起始列号
             istart = Lstore->rowind_colbeg[fsupc];//第fsupc列的起始行号，这个列必须是超级节点第一列，
@@ -408,13 +410,24 @@ void MainWindow::cal(){
                                 xnL[count] = fsupc;
                                 ynL[count] = irow;
 
-                                count++;
                                 if(irow == fsupc){//对角线上元素
                                     level[irow] += 1;//计算level=max(level)+1;
+                                    valueL[count] = 1;
+                                    xnU[countU] = fsupc;
+                                    ynU[countU] = irow;
+                                    valueU[countU] = value;
+                                    countU++;
                                 }else if(irow > fsupc){//非对角线元素
                                     //计算level，取该行的最大值
                                     level[irow] = std::max(level[fsupc],level[irow]);
+                                    valueL[count] = value;
                                 }
+                                count++;
+                            }else {
+                                xnU[countU] = fsupc;
+                                ynU[countU] = irow;
+                                valueU[countU] = value;
+                                countU++;
                             }
                         }
                         ++luptr;
@@ -433,12 +446,23 @@ void MainWindow::cal(){
                                     xnL[count] = fsupc+i;
                                     ynL[count] = irow;
 
-                                    count++;
                                     if(irow == fsupc+i){
                                         level[irow] += 1;
+                                        valueL[count] = 1;
+                                        xnU[countU] = fsupc+i;
+                                        ynU[countU] = irow;
+                                        valueU[countU] = value;
+                                        countU++;
                                     }else if(irow > fsupc+i){
                                         level[irow] = std::max(level[fsupc+i],level[irow]);
+                                        valueL[count] = value;
                                     }
+                                    count++;
+                                }else{
+                                    xnU[countU] = fsupc+i;
+                                    ynU[countU] = irow;
+                                    valueU[countU] = value;
+                                    countU++;
                                 }
                             }
                             ++luptr;
@@ -448,7 +472,22 @@ void MainWindow::cal(){
             } /* if-else: nsupc == 1 ... */
         } /* for L-solve */
 
-        qDebug()<<"count "<<count;
+        //对Ustore进行读取
+        for(int i = 0;i < m;i++){//colmun
+            for(int j = Ustore->colbeg[i];j < Ustore->colend[i];j++){//row
+                double value1 = ((double*)Ustore->nzval)[j];
+                if(fabs(value1) > 1e-9){
+                    xnU[countU] = i;//col
+                    ynU[countU] = Ustore->rowind[j];//row
+                    valueU[countU] = value1;
+
+                    countU++;
+                }
+            }
+        }
+
+        qDebug()<<"countL "<<count;
+        qDebug()<<"countU "<<countU;
         int maxLevel = 0;
         QVector <ele> slevel(m);
         for(int i = 0;i < m;i++){
@@ -461,7 +500,7 @@ void MainWindow::cal(){
         qDebug()<<maxLevel;
 
         QVector <double> xxnL(count),yynL(count);
-
+        QVector <double> xxnU(countU),yynU(countU);
         //对level进行排序
         qSort(slevel.begin(), slevel.end(), compareele);//ascend
         for(int i = 0;i < m;i++){
@@ -472,12 +511,18 @@ void MainWindow::cal(){
         for(int i = 0; i < count;i++){
             xxnL[i] = xnL[i];
             yynL[i] = ynL[i];
+            qDebug()<<xnL[i]<<"\t"<<ynL[i]<<"\t"<<valueL[i];
         }
         //转换坐标
         for(int i = 0; i < count;i++){
             xxnL[i] = sortlevel[xnL[i]];
             yynL[i] = m-1-sortlevel[ynL[i]];
         }
+        for(int i = 0;i < countU;i++){
+            xxnU[i] = xnU[i];
+            yynU[i] = m-1-ynU[i];
+        }
+        //绘制level分割线等
         double lastline = 0;
         for(int i = 0;i < m-1;i++){
             if(level[slevel[i].index] != level[slevel[i+1].index]){
@@ -509,7 +554,7 @@ void MainWindow::cal(){
                 lastline = i+1;
             }
         }
-        //graphU->setData(xnU, ynU);
+        graphU->setData(xxnU, yynU);
         graphL->setData(xxnL, yynL);
         newCurveU->setData(xU, yU);
 
