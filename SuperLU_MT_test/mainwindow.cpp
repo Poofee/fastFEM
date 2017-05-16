@@ -352,12 +352,12 @@ void MainWindow::cal(){
         xU[0] = 0;xU[1] = m-1;xU[2]=m-1;xU[3]=0;
         yU[0] = 0;yU[1] = 0;yU[2]=m-1;yU[3]=m-1;
         QCPCurve *newCurveU = new QCPCurve(customplot->xAxis, customplot->yAxis);
-        newCurveU->setBrush(QColor(255, 0, 0,100));
+        //newCurveU->setBrush(QColor(255, 0, 0,100));
 
 
         //绘制L矩阵
         QCPGraph *graphL = customplot->addGraph();
-        graphL->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, QPen(Qt::black, 1), QBrush(Qt::black), 1));
+        graphL->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, QPen(Qt::black, 1.5), QBrush(Qt::black), 1));
         graphL->setPen(QPen(QColor(120, 120, 120), 2));
         graphL->setLineStyle(QCPGraph::lsNone);
 
@@ -365,7 +365,7 @@ void MainWindow::cal(){
         xL[0] = 0+m;xL[1] = m-1+m;
         yL[0] = m-1;yL[1] = 0;
         QCPCurve *newCurveL = new QCPCurve(customplot->xAxis, customplot->yAxis);
-        newCurveL->setBrush(QColor(255, 0, 0,100));
+        //newCurveL->setBrush(QColor(255, 0, 0,100));
         //newCurveL->setData(xL, yL);
 
         int nnzL = Lstore->nnz;
@@ -600,7 +600,7 @@ void MainWindow::cal(){
         for(int i = 0; i < count;i++){
             xxnL[i] = xnL[i];
             yynL[i] = ynL[i];
-            //qDebug()<<xnL[i]<<"\t"<<ynL[i]<<"\t"<<valueL[i];
+            //qDebug()<<"L"<<xnL[i]<<"\t"<<ynL[i]<<"\t"<<valueL[i];
         }
         //转换坐标
         for(int i = 0; i < count;i++){
@@ -610,19 +610,27 @@ void MainWindow::cal(){
         for(int i = 0;i < countU;i++){
             xxnU[i] = m-1-sortlevelU[xnU[i]];
             yynU[i] = sortlevelU[ynU[i]];
-            //qDebug()<<xnU[i]<<"\t"<<ynU[i]<<"\t"<<valueU[i];
+            //qDebug()<<"U"<<xnU[i]<<"\t"<<ynU[i]<<"\t"<<valueU[i];
         }
         //绘制level分割线等
         double lastline = 0;
+        QPen pen;
+        pen.setStyle(Qt::DashLine);
+        pen.setWidth(2);
+        pen.setColor(QColor(0,0,0));
+        QVector <int> levelLrow(maxLevel+1);levelLrow[0] = 0;
         for(int i = 0;i < m-1;i++){
-            if(level[slevel[i].index] != level[slevel[i+1].index]){
+            if(slevel[i].level != slevel[i+1].level){
+                levelLrow[slevel[i+1].level] = i+1;
+                qDebug()<<i+1;
                 QCPCurve *newCurve = new QCPCurve(customplot->xAxis, customplot->yAxis);
                 QVector <double> xline(2),yline(2);
                 xline[0] = 0; xline[1] = i+0.5;
                 yline[0] = m-1-(i+0.5); yline[1] = m-1-(i+0.5);
                 newCurve->setData(xline, yline);
-                newCurve->setPen(QPen(QColor(0, 120, 0)));
-                newCurve->setBrush(QColor(0, 120, 0));
+                newCurve->setPen(pen);
+                //newCurve->pen().setStyle(Qt::DotLine);
+                //newCurve->setBrush(QColor(0, 120, 0));
                 //--绘制并行区域
                 QCPCurve *rec1 = new QCPCurve(customplot->xAxis, customplot->yAxis);
                 QCPCurve *rec2 = new QCPCurve(customplot->xAxis, customplot->yAxis);
@@ -632,29 +640,33 @@ void MainWindow::cal(){
                 recdatay[0] = m-1-i; recdatay[1] = m-1-i;
                 recdatay[2] = m-1-lastline; recdatay[3] = m-1-lastline;recdatay[4] = m-1-i;
                 rec1->setData(recdatax, recdatay);
-                rec1->setPen(QPen(QColor(255, 0, 0),2));
+                rec1->setPen(Qt::NoPen);
+                rec1->setBrush(QColor(255, 0, 0,100));
 
                 recdatax[0] = lastline; recdatax[1] = i;
                 recdatax[2] = i; recdatax[3] = lastline; recdatax[4] = lastline;
                 recdatay[0] = 0; recdatay[1] = 0;
                 recdatay[2] = m-1-i; recdatay[3] = m-1-i;recdatay[4] = 0;
-                rec2->setData(recdatax, recdatay);
-                rec2->setPen(QPen(QColor(255, 0, 0),2));
-                //rec1->setBrush(QColor(255, 0, 0));
+                if(slevel[i].level%2==1){
+                    rec2->setData(recdatax, recdatay);
+                    rec2->setPen(Qt::NoPen);
+                    rec2->setBrush(QColor(0, 255, 0,100));
+                }
+
                 lastline = i+1;
             }
         }
         //绘制U矩阵的分割线
         lastline = 0;
         for(int i = 0;i < m-1;i++){
-            if(levelU[slevelU[i].index] != levelU[slevelU[i+1].index]){
+            if(slevelU[i].level != slevelU[i+1].level){
                 QCPCurve *newCurve = new QCPCurve(customplot->xAxis, customplot->yAxis);
                 QVector <double> xline(2),yline(2);
                 xline[0] = m-1; xline[1] = m-1-i-0.5;
                 yline[0] = (i+0.5); yline[1] = (i+0.5);
-                newCurve->setData(xline, yline);
-                newCurve->setPen(QPen(QColor(0, 120, 255),1));
-                newCurve->setBrush(QColor(0, 120, 255));
+                //newCurve->setData(xline, yline);
+                //newCurve->setPen(QPen(QColor(0, 120, 255),1));
+                //newCurve->setBrush(QColor(0, 120, 255));
                 //--绘制并行区域
                 QCPCurve *rec1 = new QCPCurve(customplot->xAxis, customplot->yAxis);
                 QCPCurve *rec2 = new QCPCurve(customplot->xAxis, customplot->yAxis);
@@ -663,22 +675,22 @@ void MainWindow::cal(){
                 recdatax[2] = m-1-i; recdatax[3] = m-1-lastline; recdatax[4] = m-1-lastline;
                 recdatay[0] = lastline; recdatay[1] = lastline;
                 recdatay[2] = i; recdatay[3] = i;recdatay[4] = lastline;
-                rec1->setData(recdatax, recdatay);
-                rec1->setPen(QPen(QColor(65, 36, 230),2));
+                //rec1->setData(recdatax, recdatay);
+                //rec1->setPen(QPen(QColor(65, 36, 230),2));
 
                 recdatax[0] = m-1-lastline; recdatax[1] = m-1-i;
                 recdatax[2] = m-1-i; recdatax[3] = m-1-lastline; recdatax[4] = m-1-lastline;
                 recdatay[0] = i; recdatay[1] = i;
                 recdatay[2] = m-1; recdatay[3] = m-1;recdatay[4] = i;
-                rec2->setData(recdatax, recdatay);
-                rec2->setPen(QPen(QColor(65, 36, 230),2));
+                //rec2->setData(recdatax, recdatay);
+                //rec2->setPen(QPen(QColor(65, 36, 230),2));
                 //rec1->setBrush(QColor(255, 0, 0));
                 lastline = i+1;
             }
         }
-        graphU->setData(xxnU, yynU);
+        //graphU->setData(xxnU, yynU);
         graphL->setData(xxnL, yynL);
-        newCurveU->setData(xU, yU);
+        //newCurveU->setData(xU, yU);
 
         //-----------------------------------------
         qDebug()<<"#NZ in factor L = "<<Lstore->nnz;
