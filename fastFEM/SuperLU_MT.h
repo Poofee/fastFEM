@@ -41,6 +41,7 @@ public:
 	CSuperLU_MT(int mm, arma::sp_mat& X,double *b);
 	int solve();
 	int LUsolve();
+    int triSolve();//using level schedule to solve triangular system
 	double * getResult();
 	~CSuperLU_MT();
 };
