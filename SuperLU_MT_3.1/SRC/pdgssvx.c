@@ -644,8 +644,8 @@ pdgssvx(int_t nprocs, superlumt_options_t *superlumt_options, SuperMatrix *A,
 	   compute error bounds and backward error estimates for it.
 	   ------------------------------------------------------------*/
 	t0 = SuperLU_timer_();
-	dgsrfs(trant, AA, L, U, perm_r, perm_c, *equed,
-	       R, C, B, X, ferr, berr, &Gstat, info);
+	//dgsrfs(trant, AA, L, U, perm_r, perm_c, *equed,
+	//       R, C, B, X, ferr, berr, &Gstat, info);
 	utime[REFINE] = SuperLU_timer_() - t0;
 
 	/* ------------------------------------------------------------
@@ -694,6 +694,6 @@ pdgssvx(int_t nprocs, superlumt_options_t *superlumt_options, SuperMatrix *A,
 	ParallelProfile(n, Lstore->nsuper+1, Gstat.num_panels, nprocs, &Gstat);
     }
 #endif
-    PrintStat(&Gstat);
+    //PrintStat(&Gstat);
     StatFree(&Gstat);
 }
