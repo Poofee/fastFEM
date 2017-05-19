@@ -76,8 +76,8 @@
                     <B>1.85</B>
                     <B>1.851</B>
                     <B>1.8511</B>
-                    <B>5</B>
-                    <B>5</B>
+                    <B>2</B>
+                    <B>2.1</B>
                 </Bdata>
                 <Hdata>
                     <H>0</H>
@@ -98,12 +98,12 @@
         </Domain>
         <Domain>
             <domainName>PM</domainName>
-            <miu>1</miu>
+            <miu>1.109</miu>
             <BH>
                 <BHpoints>0</BHpoints>
             </BH>
             <Jr>0</Jr>
-            <H_c>88331</H_c>
+            <H_c>583310</H_c>
         </Domain>
         <Domain>
             <domainName>DOWNCOIL</domainName>
@@ -111,7 +111,7 @@
             <BH>
                 <BHpoints>0</BHpoints>
             </BH>
-            <Jr>5e+04</Jr>
+            <Jr>0</Jr>
             <H_c>0</H_c>
         </Domain>
         <Domain>
@@ -120,7 +120,7 @@
             <BH>
                 <BHpoints>0</BHpoints>
             </BH>
-            <Jr>5e+04</Jr>
+            <Jr>0</Jr>
             <H_c>0</H_c>
         </Domain>
     </Domains>

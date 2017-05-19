@@ -459,7 +459,7 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
                 by += pmeshele[i].P[j] * A(pmeshele[i].n[j]);
             }
             pmeshele[i].B = sqrt(bx*bx + by*by) / 2. / pmeshele[i].AREA / ydot[i];
-            if(pmeshele[i].B > 2){
+            if(pmeshele[i].B > 0){
                 QCPCurve *newCurve = new QCPCurve(customplot->xAxis, customplot->yAxis);
                 QVector <double> x11(4);
                 QVector <double> y11(4);
@@ -472,14 +472,14 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
                 x11[3] = pmeshnode[pmeshele[i].n[0]].x;
                 y11[3] = pmeshnode[pmeshele[i].n[0]].y;
                 newCurve->setData(x11, y11);
-                newCurve->setPen(QPen(Qt::black, 1));
-                newCurve->setBrush(QColor(255, 0, 0,100));
+                //newCurve->setPen(QPen(Qt::black, 1));
+                newCurve->setBrush(QColor(255/pmeshele[i].B, 0, 0,100));
                 //customplot->rescaleAxes(true);
                 //customplot->replot();
             }
             pmeshele[i].miut = materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B);
 
-            y[i] = (A(pmeshele[i].n[0]) + A(pmeshele[i].n[1]) + A(pmeshele[i].n[2]))/3;
+            //y[i] = (A(pmeshele[i].n[0]) + A(pmeshele[i].n[1]) + A(pmeshele[i].n[2]))/3;
             y[i] = pmeshele[i].B;
         }
         //#pragma omp parallel for
@@ -548,6 +548,7 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
         customplot->yAxis->setRange(-0.04, 0.04);
         customplot->yAxis->setScaleRatio(customplot->xAxis, 1.0);
         customplot->replot();
+        customplot->currentLayer();
 
         if (error < Precision) {
             break;
