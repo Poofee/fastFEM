@@ -346,7 +346,7 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
         for (int j = 0; j < 3; j++) {
             bbJz(pmeshele[i].n[j]) += jr;
             // 计算永磁部分
-            bbJz(pmeshele[i].n[j]) += materialList[pmeshele[i].domain - 1].H_c / 2.*pmeshele[i].Q[j];
+            bbJz(pmeshele[i].n[j]) -= materialList[pmeshele[i].domain - 1].H_c / 2.*pmeshele[i].Q[j];
         }
     }//end for
     time[tt++] = clock();
@@ -434,16 +434,16 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
     graph1->setLineStyle(QCPGraph::lsNone);
     customplot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
     customplot->xAxis->setLabel("x");
-    customplot->xAxis->setRange(0, 0.05);
+    customplot->xAxis->setRange(0, num_ele);
     //customplot->xAxis->setAutoTickStep(false);
     //customplot->xAxis->setTicks(false);
     customplot->yAxis->setLabel("y");
-    customplot->yAxis->setRange(-0.04, 0.04);
+    customplot->yAxis->setRange(0, 4);
     //customplot->yAxis->setTicks(false);
     //customplot->xAxis2->setTicks(false);
-    customplot->yAxis->setScaleRatio(customplot->xAxis, 1.0);
+    //customplot->yAxis->setScaleRatio(customplot->xAxis, 1.0);
     //---------the main loop---------------------------------
-    int steps = 10;
+    int steps = 200;
     int count;
     double alpha = 1;
     Voltage *Vr = (Voltage*)calloc(D34.size(), sizeof(Voltage));
@@ -459,24 +459,24 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
                 by += pmeshele[i].P[j] * A(pmeshele[i].n[j]);
             }
             pmeshele[i].B = sqrt(bx*bx + by*by) / 2. / pmeshele[i].AREA / ydot[i];
-            if(pmeshele[i].B > 0){
-                QCPCurve *newCurve = new QCPCurve(customplot->xAxis, customplot->yAxis);
-                QVector <double> x11(4);
-                QVector <double> y11(4);
-                x11[0] = pmeshnode[pmeshele[i].n[0]].x;
-                y11[0] = pmeshnode[pmeshele[i].n[0]].y;
-                x11[1] = pmeshnode[pmeshele[i].n[1]].x;
-                y11[1] = pmeshnode[pmeshele[i].n[1]].y;
-                x11[2] = pmeshnode[pmeshele[i].n[2]].x;
-                y11[2] = pmeshnode[pmeshele[i].n[2]].y;
-                x11[3] = pmeshnode[pmeshele[i].n[0]].x;
-                y11[3] = pmeshnode[pmeshele[i].n[0]].y;
-                newCurve->setData(x11, y11);
-                //newCurve->setPen(QPen(Qt::black, 1));
-                newCurve->setBrush(QColor(255/pmeshele[i].B, 0, 0,100));
-                //customplot->rescaleAxes(true);
-                //customplot->replot();
-            }
+//            if(pmeshele[i].domain == 4 || pmeshele[i].domain == 3){
+//                QCPCurve *newCurve = new QCPCurve(customplot->xAxis, customplot->yAxis);
+//                QVector <double> x11(4);
+//                QVector <double> y11(4);
+//                x11[0] = pmeshnode[pmeshele[i].n[0]].x;
+//                y11[0] = pmeshnode[pmeshele[i].n[0]].y;
+//                x11[1] = pmeshnode[pmeshele[i].n[1]].x;
+//                y11[1] = pmeshnode[pmeshele[i].n[1]].y;
+//                x11[2] = pmeshnode[pmeshele[i].n[2]].x;
+//                y11[2] = pmeshnode[pmeshele[i].n[2]].y;
+//                x11[3] = pmeshnode[pmeshele[i].n[0]].x;
+//                y11[3] = pmeshnode[pmeshele[i].n[0]].y;
+//                newCurve->setData(x11, y11);
+//                newCurve->setPen(Qt::NoPen);
+//                newCurve->setBrush(QColor(255*pmeshele[i].B/5, 0, 0,100));
+//                //customplot->rescaleAxes(true);
+//                //customplot->replot();
+//            }
             pmeshele[i].miut = materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B);
 
             //y[i] = (A(pmeshele[i].n[0]) + A(pmeshele[i].n[1]) + A(pmeshele[i].n[2]))/3;
@@ -544,11 +544,11 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 
         graph1->setData(x, y);
         //customplot->rescaleAxes(true);
-        customplot->xAxis->setRange(0, 0.09);
-        customplot->yAxis->setRange(-0.04, 0.04);
-        customplot->yAxis->setScaleRatio(customplot->xAxis, 1.0);
+        //customplot->xAxis->setRange(0, 0.09);
+        //customplot->yAxis->setRange(-0.04, 0.04);
+        //customplot->yAxis->setScaleRatio(customplot->xAxis, 1.0);
         customplot->replot();
-        customplot->currentLayer();
+        //customplot->currentLayer()->destroyed();
 
         if (error < Precision) {
             break;
@@ -1171,7 +1171,7 @@ int CFastFEMcore::StaticAxisymmetricNR() {
                 for (int j = 0; j < 3; j++) {
                     bbJz(pmeshele[i].n[j]) += jr;
                     // 计算永磁部分
-                    bbJz(pmeshele[i].n[j]) += materialList[pmeshele[i].domain - 1].H_c / 2.*pmeshele[i].Q[j];
+                    bbJz(pmeshele[i].n[j]) -= materialList[pmeshele[i].domain - 1].H_c / 2.*pmeshele[i].Q[j];
                 }
             }//end of iter=0
             //miut对于线性就等于真值，对于非线性等于上一次的值
@@ -1299,9 +1299,9 @@ int CFastFEMcore::StaticAxisymmetricNR() {
         bn.zeros();
         pos = 0;
 
-        //graph1->setData(x, y);
+        graph1->setData(x, y);
         //customplot->rescaleAxes(true);
-        //customplot->replot();
+        customplot->replot();
     }
     time[tt++] = clock();
     for(int i = 1;i <tt;i++){
