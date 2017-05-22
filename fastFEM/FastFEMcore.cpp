@@ -474,8 +474,6 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 //                newCurve->setData(x11, y11);
 //                newCurve->setPen(Qt::NoPen);
 //                newCurve->setBrush(QColor(255*pmeshele[i].B/5, 0, 0,100));
-//                //customplot->rescaleAxes(true);
-//                //customplot->replot();
 //            }
             pmeshele[i].miut = materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B);
 
@@ -548,7 +546,6 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
         //customplot->yAxis->setRange(-0.04, 0.04);
         //customplot->yAxis->setScaleRatio(customplot->xAxis, 1.0);
         customplot->replot();
-        //customplot->currentLayer()->destroyed();
 
         if (error < Precision) {
             break;
@@ -566,6 +563,9 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
         }
         pmeshele[i].B = sqrt(bx*bx + by*by) / 2. / pmeshele[i].AREA / ydot[i];        
         pmeshele[i].miut = materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B);
+    }
+    for (int i = 0; i < num_pts - node_bdr; i++) {
+        pmeshnode[node_reorder(i)].A /= pmeshnode[node_reorder(i)].x;// / pmeshnode[i].x;//the A is r*A_real
     }
     //output the time
     for(int i = 1;i < tt;i++){
@@ -805,7 +805,7 @@ double CFastFEMcore::CalcForce() {
             double beta3;
             double Ac = 0;
             double A1, A2, A3;
-            double tmp = PI / 2 * PI * pmeshele[i].rc * pmeshele[i].AREA / (4 * PI*1e-7);
+            double tmp = PI*PI/2* pmeshele[i].rc * pmeshele[i].AREA / (4 * PI*1e-7);
             A1 = pmeshnode[pmeshele[i].n[0]].A;
             A2 = pmeshnode[pmeshele[i].n[1]].A;
             A3 = pmeshnode[pmeshele[i].n[2]].A;
@@ -840,10 +840,10 @@ double CFastFEMcore::CalcForce() {
             }
         }
 
-        //if (pmeshele[i].domain != AIR && pmeshele[i].domain != INF) {
+        //if (pmeshele[i].domain != 2 && pmeshele[i].domain != 1) {
             newCurve->setData(x1, y1);
-            newCurve->setPen(QPen(cc[pmeshele[i].domain - 1]));
-            newCurve->setBrush(cc[pmeshele[i].domain - 1]);
+           // newCurve->setPen(QPen(cc[pmeshele[i].domain - 1]));
+            //newCurve->setBrush(cc[pmeshele[i].domain - 1]);
         //}
         //if (ind != 10) {
         //	fprintf(fp, "%d\n", ind);
@@ -1205,8 +1205,11 @@ int CFastFEMcore::StaticAxisymmetricNR() {
                     tmp = 0;
                 } else {
                     tmp = materialList[pmeshele[i].domain - 1].getdvdB(pmeshele[i].B);
-                    tmp /= pmeshele[i].B * pmeshele[i].AREA;//B==0?
-                    tmp /= ydot[i] * ydot[i] * ydot[i];
+                    if(pmeshele[i].B > 1e-9){
+                        tmp /= pmeshele[i].B * pmeshele[i].AREA;//B==0?
+                        tmp /= ydot[i] * ydot[i] * ydot[i];
+                    }
+
                 }
                 cn[0][0] = v[0] * v[0] * tmp;
                 cn[1][1] = v[1] * v[1] * tmp;
@@ -1293,7 +1296,7 @@ int CFastFEMcore::StaticAxisymmetricNR() {
         iter++;
         //qDebug() << "iter: " << iter;
         //qDebug() << "error: " << error;
-        if (error < Precision || iter > 200) {
+        if (error < Precision || iter > 20) {
             break;
         }
         bn.zeros();
