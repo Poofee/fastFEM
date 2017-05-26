@@ -15,22 +15,22 @@ int main(int argc, char *argv[])
 
     fem.openProject("..\\..\\model\\project1.mag");
 
-    if (fem.Load2DMeshCOMSOL("..\\..\\model\\mesh000.mphtxt") == 0) {
+    if (fem.Load2DMeshCOMSOL("..\\..\\model\\mesh24.mphtxt") == 0) {
 		fem.preCalculation();
 		t1 = SuperLU_timer_();
 		fem.StaticAxisymmetricNR();
 		t1 = SuperLU_timer_() - t1;
 		qDebug() << "NR:" << t1;
-//		for (int i = 0; i < fem.num_ele; i++) {
-//			if (!fem.pmeshele[i].LinearFlag) {
-//                fem.pmeshele[i].miu = 0.7*fem.pmeshele[i].miut;
-//			}
-//		}
+        for (int i = 0; i < fem.num_ele; i++) {
+            if (!fem.pmeshele[i].LinearFlag) {
+                fem.pmeshele[i].miu = 0.5*fem.pmeshele[i].miut;
+            }
+        }
 		t1 = SuperLU_timer_();
 		fem.StaticAxisymmetricTLM();
 		t1 = SuperLU_timer_() - t1;
 		qDebug() << "TLM:" << t1;
-        fem.CalcForce();
+        //fem.CalcForce();
 	}	
     return a.exec();
 }

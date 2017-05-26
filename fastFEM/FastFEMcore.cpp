@@ -17,6 +17,7 @@
 #include "FastFEMcore.h"
 #include "SuperLU_MT.h"
 #include "qcustomplot.h"
+#include "slu_mt_ddefs.h"
 
 using namespace std;
 using namespace arma;
@@ -24,7 +25,7 @@ using namespace arma;
 #define PI 3.14159265358979323846
 #define r 2
 
-const double ste = 1;
+const double ste = 24;
 const double miu0 = PI*4e-7;
 
 CFastFEMcore::CFastFEMcore() {
@@ -362,50 +363,8 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
     time[tt++] = clock();
     //---------------------superLU_MT---------------------------------------
     CSuperLU_MT superlumt(num_pts - node_bdr, X, unknown_b);
-//        //-----------qt plot
-//        QCustomPlot * customplot1;
-//        customplot1 = thePlot->getQcustomPlot();
-//        QCPGraph *graph3 = customplot1->addGraph();
-//        graph3->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, QPen(Qt::black, 3), QBrush(Qt::black), 3));
-//        graph3->setPen(QPen(QColor(120, 120, 120), 2));
-//        graph3->setLineStyle(QCPGraph::lsNone);
-//        customplot1->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
-//        customplot1->xAxis->setLabel("x");
-//        //customplot1->xAxis->setRange(0,26);
-//        customplot1->xAxis->setAutoTickStep(false);
-//        customplot1->xAxis->setAutoTickLabels(false);
-//        customplot1->xAxis->setTickStep(1);
-//        customplot1->xAxis->setTickLabels(false);
-//        customplot1->xAxis->setTicks(false);
-//        customplot1->yAxis->setLabel("y");
-//        //customplot1->yAxis->setRange(0,26);
-//        customplot1->yAxis->setAutoTickStep(false);
-//        customplot1->yAxis->setAutoTickLabels(false);
-//        customplot1->yAxis->setTickStep(1);
-//        customplot1->yAxis->setTickLabels(false);
-//        customplot1->yAxis->setTicks(false);
-//        customplot1->yAxis->setScaleRatio(customplot1->xAxis, 1);
 
-//        QVector<double> xn(4), yn(4);
-//        xn[0] = 0;xn[1] = num_pts - node_bdr;xn[2]=num_pts - node_bdr;xn[3]=0;
-//        yn[0] = 0;yn[1] = 0;yn[2]=num_pts - node_bdr;yn[3]=num_pts - node_bdr;
-//        QCPCurve *newCurve = new QCPCurve(customplot1->xAxis, customplot1->yAxis);
-//        newCurve->setBrush(QColor(255, 0, 0,100));
-//        newCurve->setData(xn, yn);
 
-//        int *asub = (int*)const_cast<unsigned int*>(X.row_indices);
-//        int *xa = (int*)const_cast<unsigned int*>(X.col_ptrs);
-//        QVector<double> xnn(X.n_nonzero), ynn(X.n_nonzero);
-//        for(int i=0;i < num_pts - node_bdr;i++){
-//            for(int j = xa[i];j < xa[i+1];j++){
-//                ynn[j] = num_pts - node_bdr - i;
-//                xnn[j] = asub[j];
-//            }
-//        }
-        //graph3->setData(xnn, ynn);
-        //customplot1->rescaleAxes(true);
-        //customplot1->replot();
-    //---------------------------------
     if (superlumt.solve() == 1) {
         qDebug() << "Error: superlumt.slove";
         qDebug() << "info: " << superlumt.info;
@@ -438,7 +397,7 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
     //customplot->xAxis->setAutoTickStep(false);
     //customplot->xAxis->setTicks(false);
     customplot->yAxis->setLabel("y");
-    customplot->yAxis->setRange(0, 4);
+    //customplot->yAxis->setRange(0, 4);
     //customplot->yAxis->setTicks(false);
     //customplot->xAxis2->setTicks(false);
     //customplot->yAxis->setScaleRatio(customplot->xAxis, 1.0);
@@ -459,7 +418,8 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
                 by += pmeshele[i].P[j] * A(pmeshele[i].n[j]);
             }
             pmeshele[i].B = sqrt(bx*bx + by*by) / 2. / pmeshele[i].AREA / ydot[i];
-//            if(pmeshele[i].domain == 4 || pmeshele[i].domain == 3){
+//            if(fabs(y[i]-pmeshele[i].B) > 0.05){
+//            //if(pmeshele[i].domain == 4 || pmeshele[i].domain == 3){
 //                QCPCurve *newCurve = new QCPCurve(customplot->xAxis, customplot->yAxis);
 //                QVector <double> x11(4);
 //                QVector <double> y11(4);
@@ -473,12 +433,12 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 //                y11[3] = pmeshnode[pmeshele[i].n[0]].y;
 //                newCurve->setData(x11, y11);
 //                newCurve->setPen(Qt::NoPen);
-//                newCurve->setBrush(QColor(255*pmeshele[i].B/5, 0, 0,100));
+//                newCurve->setBrush(QColor(255, 0, 0,100));
 //            }
             pmeshele[i].miut = materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B);
 
             //y[i] = (A(pmeshele[i].n[0]) + A(pmeshele[i].n[1]) + A(pmeshele[i].n[2]))/3;
-            y[i] = pmeshele[i].B;
+            y[i] = pmeshele[i].miut;
         }
         //#pragma omp parallel for
         for (int j = 0; j < D34.size(); j++) {
@@ -490,6 +450,7 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
             n = m_e->n[2];
             double rtmp;//do this to mark it as private
             rtmp = (m_e->miut - m_e->miu) / (m_e->miu + m_e->miut);
+            //qDebug()<<m_e->miut<<"\t"<<m_e->miu<<"\t"<<rtmp;
 
             Vr[j].V12 = (pmeshnode[k].A - pmeshnode[m].A) - Vi[j].V12;
             Vr[j].V23 = (pmeshnode[m].A - pmeshnode[n].A) - Vi[j].V23;
@@ -541,7 +502,7 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
         //qDebug() << "error: " << error;
 
         graph1->setData(x, y);
-        //customplot->rescaleAxes(true);
+        customplot->rescaleAxes(true);
         //customplot->xAxis->setRange(0, 0.09);
         //customplot->yAxis->setRange(-0.04, 0.04);
         //customplot->yAxis->setScaleRatio(customplot->xAxis, 1.0);
@@ -805,7 +766,7 @@ double CFastFEMcore::CalcForce() {
             double beta3;
             double Ac = 0;
             double A1, A2, A3;
-            double tmp = PI*PI/2* pmeshele[i].rc * pmeshele[i].AREA / (4 * PI*1e-7);
+            double tmp = pmeshele[i].rc * pmeshele[i].AREA / (4 * PI*1e-7);
             A1 = pmeshnode[pmeshele[i].n[0]].A;
             A2 = pmeshnode[pmeshele[i].n[1]].A;
             A3 = pmeshnode[pmeshele[i].n[2]].A;
@@ -1290,7 +1251,7 @@ int CFastFEMcore::StaticAxisymmetricNR() {
             pmeshele[i].B = sqrt(bx*bx + by*by) / 2. / pmeshele[i].AREA / ydot[i];
             pmeshele[i].miut = materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B);
 
-            y[i] = pmeshele[i].B;
+            y[i] = pmeshele[i].miut;
         }
         double error = norm((A_old - A), 2) / norm(A, 2);
         iter++;
