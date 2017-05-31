@@ -362,16 +362,77 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
     }
     time[tt++] = clock();
     //---------------------superLU_MT---------------------------------------
-    CSuperLU_MT superlumt(num_pts - node_bdr, X, unknown_b);
+    //CSuperLU_MT superlumt(num_pts - node_bdr, X, unknown_b);
+    SuperMatrix   sluA;SuperMatrix sluB, sluX;
+    //NCformat *Astore;
+    double   *a;
+    int_t      *asub, *xa;
+    int_t      *perm_r; /* row permutations from partial pivoting */
+    int_t      *perm_c; /* column permutation vector */
+    SuperMatrix   L;       /* factor L */
+    SCPformat *Lstore;
+    SuperMatrix   U;       /* factor U */
+    NCPformat *Ustore;
+    int_t      nrhs,  info, m, n, nnz;
+    int_t      nprocs; /* maximum number of processors to use. */
+    int_t      panel_size, relax, maxsup;
+    int_t      permc_spec;
+    trans_t  trans;
+    //double   *rhs;
+    superlu_memusage_t   superlu_memusage;
+    DNformat	   *Bstore;
+    double      *rhsb, *rhsx;
+    Gstat_t  Gstat1;
 
 
-    if (superlumt.solve() == 1) {
+    panel_size = sp_ienv(1);
+    relax = sp_ienv(2);
+    maxsup = sp_ienv(3);
+
+    nprocs = 1;
+    nrhs = 1;
+    trans = NOTRANS;
+    /* create matrix A in Harwell-Boeing format.*/
+    m = num_pts - node_bdr; n = num_pts - node_bdr; nnz = X.n_nonzero;
+    a = const_cast<double *>(X.values);
+
+    StatAlloc(n, nprocs, panel_size, relax, &Gstat1);
+    StatInit(n, nprocs, &Gstat1);
+
+    asub = (int*)const_cast<unsigned int*>(X.row_indices);
+    xa = (int*)const_cast<unsigned int*>(X.col_ptrs);
+    dCreate_CompCol_Matrix(&sluA, m, n, nnz, a, asub, xa, SLU_NC, SLU_D, SLU_GE);
+
+    //------create B and X-------------------
+    if (!(rhsx = doubleMalloc(m * nrhs))) SUPERLU_ABORT("Malloc fails for rhsx[].");
+    dCreate_Dense_Matrix(&sluX, m, nrhs, rhsx, m, SLU_DN, SLU_D, SLU_GE);
+
+    rhsb = unknown_b;
+    dCreate_Dense_Matrix(&sluB, m, nrhs, rhsb, m, SLU_DN, SLU_D, SLU_GE);
+    Bstore = (DNformat*)sluB.Store;
+
+    if (!(perm_r = intMalloc(m))) SUPERLU_ABORT("Malloc fails for perm_r[].");
+    if (!(perm_c = intMalloc(n))) SUPERLU_ABORT("Malloc fails for perm_c[].");
+
+    /*
+    * Get column permutation vector perm_c[], according to permc_spec:
+    *   permc_spec = 0: natural ordering
+    *   permc_spec = 1: minimum degree ordering on structure of A'*A
+    *   permc_spec = 2: minimum degree ordering on structure of A'+A
+    *   permc_spec = 3: approximate minimum degree for unsymmetric matrices
+    */
+    permc_spec = 1;
+    get_perm_c(permc_spec, &sluA, perm_c);
+
+    pdgssv(nprocs, &sluA, perm_c, perm_r, &L, &U, &sluB, &info);
+
+    if (info != 0) {
         qDebug() << "Error: superlumt.slove";
-        qDebug() << "info: " << superlumt.info;
+        //qDebug() << "info: " << superlumt.info;
     } else {
         double *sol = NULL;
         A_old = A;
-        sol = superlumt.getResult();
+        sol = (double*)((DNformat*)sluB.Store)->nzval;
         //取得结果
         for (int i = 0; i < num_pts - node_bdr; i++) {
             pmeshnode[node_reorder(i)].A = sol[i];// / pmeshnode[i].x;//the A is r*A_real
@@ -418,7 +479,8 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
                 by += pmeshele[i].P[j] * A(pmeshele[i].n[j]);
             }
             pmeshele[i].B = sqrt(bx*bx + by*by) / 2. / pmeshele[i].AREA / ydot[i];
-//            if(fabs(y[i]-pmeshele[i].B) > 0.05){
+            pmeshele[i].miut = pmeshele[i].miu*2;//materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B);
+//            if(fabs(y[i]-pmeshele[i].miut)/y[i] > 0.2 && count > 180){
 //            //if(pmeshele[i].domain == 4 || pmeshele[i].domain == 3){
 //                QCPCurve *newCurve = new QCPCurve(customplot->xAxis, customplot->yAxis);
 //                QVector <double> x11(4);
@@ -432,10 +494,28 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 //                x11[3] = pmeshnode[pmeshele[i].n[0]].x;
 //                y11[3] = pmeshnode[pmeshele[i].n[0]].y;
 //                newCurve->setData(x11, y11);
-//                newCurve->setPen(Qt::NoPen);
+//                newCurve->setPen(QPen(Qt::black, 1));
 //                newCurve->setBrush(QColor(255, 0, 0,100));
+//                qDebug()<<pmeshele[i].B;
 //            }
-            pmeshele[i].miut = materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B);
+//            if(count == 1){
+//            //if(pmeshele[i].domain == 4 || pmeshele[i].domain == 3){
+//                QCPCurve *newCurve = new QCPCurve(customplot->xAxis, customplot->yAxis);
+//                QVector <double> x11(4);
+//                QVector <double> y11(4);
+//                x11[0] = pmeshnode[pmeshele[i].n[0]].x;
+//                y11[0] = pmeshnode[pmeshele[i].n[0]].y;
+//                x11[1] = pmeshnode[pmeshele[i].n[1]].x;
+//                y11[1] = pmeshnode[pmeshele[i].n[1]].y;
+//                x11[2] = pmeshnode[pmeshele[i].n[2]].x;
+//                y11[2] = pmeshnode[pmeshele[i].n[2]].y;
+//                x11[3] = pmeshnode[pmeshele[i].n[0]].x;
+//                y11[3] = pmeshnode[pmeshele[i].n[0]].y;
+//                newCurve->setData(x11, y11);
+//                newCurve->setPen(QPen(Qt::black, 1));
+//                newCurve->setBrush(QColor(255, 255, 0,100));
+//            }
+
 
             //y[i] = (A(pmeshele[i].n[0]) + A(pmeshele[i].n[1]) + A(pmeshele[i].n[2]))/3;
             y[i] = pmeshele[i].miut;
@@ -450,6 +530,7 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
             n = m_e->n[2];
             double rtmp;//do this to mark it as private
             rtmp = (m_e->miut - m_e->miu) / (m_e->miu + m_e->miut);
+            double hehe = -(m_e->miu - m_e->miut) / m_e->miut;
             //qDebug()<<m_e->miut<<"\t"<<m_e->miu<<"\t"<<rtmp;
 
             Vr[j].V12 = (pmeshnode[k].A - pmeshnode[m].A) - Vi[j].V12;
@@ -459,21 +540,21 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
             if (rm[i].Y12 < 0) {
                 Vi[j].V12 = Vr[j].V12 * rtmp;
             } else {
-                Vi[j].V12 = (1 - alpha)*Vi[j].V12 + alpha*0.5*(pmeshnode[k].A - pmeshnode[m].A);
+                Vi[j].V12 = 0;//-0.5*(pmeshnode[k].A - pmeshnode[m].A)*hehe;
             }
             INL(k) += -2. *Vi[j].V12*rm[i].Y12;
             INL(m) += 2. * Vi[j].V12 *rm[i].Y12;
             if (rm[i].Y23 < 0) {
                 Vi[j].V23 = Vr[j].V23*rtmp;
             } else {
-                Vi[j].V23 = (1 - alpha)*Vi[j].V23 + alpha*0.5*(pmeshnode[m].A - pmeshnode[n].A);
+                Vi[j].V23 = 0;//-0.5*(pmeshnode[m].A - pmeshnode[n].A)*hehe;
             }
             INL(m) += -2. * Vi[j].V23*rm[i].Y23;
             INL(n) += 2. *Vi[j].V23*rm[i].Y23;
             if (rm[i].Y13 < 0) {
                 Vi[j].V13 = Vr[j].V13 * rtmp;
             } else {
-                Vi[j].V13 = (1 - alpha)*Vi[j].V13 + alpha*0.5*(pmeshnode[n].A - pmeshnode[k].A);
+                Vi[j].V13 = 0;//-0.5*(pmeshnode[n].A - pmeshnode[k].A)*hehe;
             }
             INL(n) += -2. * Vi[j].V13*rm[i].Y13;
             INL(k) += 2.0 *Vi[j].V13*rm[i].Y13;
@@ -482,15 +563,17 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
         for (int i = 0; i < num_pts - node_bdr; i++) {
             unknown_b[i] = INL(node_reorder(i));
         }
+        dgstrs(trans, &L, &U, perm_r, perm_c, &sluB, &Gstat1, &info);
+        //pdgssv(nprocs, &sluA, perm_c, perm_r, &L, &U, &sluB, &info);
         //NOW WE SOLVE THE LINEAR SYSTEM USING THE FACTORED FORM OF sluA.
-        if (superlumt.LUsolve() == 1) {
+        if (info != 0) {
             qDebug() << "Error: superlumt.slove";
-            qDebug() << "info: " << superlumt.info;
+            //qDebug() << "info: " << superlumt.info;
             break;
         } else {
             double *sol = NULL;
             A_old = A;
-            sol = superlumt.getResult();
+            sol = (double*)((DNformat*)sluB.Store)->nzval;
 
             for (int i = 0; i < num_pts - node_bdr; i++) {
                 pmeshnode[node_reorder(i)].A = sol[i];// / pmeshnode[i].x;//the A is r*A_real
@@ -498,8 +581,8 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
             }
         }
         double error = norm((A_old - A), 2) / norm(A, 2);
-        //qDebug() << "iter: " << count;
-        //qDebug() << "error: " << error;
+        qDebug() << "iter: " << count;
+        qDebug() << "error: " << error;
 
         graph1->setData(x, y);
         customplot->rescaleAxes(true);
@@ -507,6 +590,7 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
         //customplot->yAxis->setRange(-0.04, 0.04);
         //customplot->yAxis->setScaleRatio(customplot->xAxis, 1.0);
         customplot->replot();
+
 
         if (error < Precision) {
             break;
@@ -539,6 +623,16 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
     if (Vi != NULL) free(Vi);
     if (Vr != NULL) free(Vr);
     if (unknown_b != NULL) free(unknown_b);
+
+    //SUPERLU_FREE(rhs);
+    //SUPERLU_FREE(xact);
+    //SUPERLU_FREE(perm_r);
+    //SUPERLU_FREE(perm_c);
+    //Destroy_CompCol_Matrix(&sluA);
+    //Destroy_SuperMatrix_Store(&sluB);
+    //Destroy_SuperNode_SCP(&L);
+    //Destroy_CompCol_NCP(&U);
+    //StatFree(&Gstat1);
     return true;
 }
 
@@ -574,8 +668,6 @@ double CFastFEMcore::CalcForce() {
     customPlot->yAxis->grid()->setZeroLinePen(Qt::NoPen);
     customPlot->yAxis2->setTicks(false);
     customPlot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
-
-    QCPCurve *newCurve = new QCPCurve(customPlot->xAxis, customPlot->yAxis);
 
     QCPGraph *graph1 = customPlot->addGraph();
     graph1->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, QPen(Qt::black, 5), QBrush(Qt::black), 5));

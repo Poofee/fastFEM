@@ -21,11 +21,11 @@ int main(int argc, char *argv[])
 		fem.StaticAxisymmetricNR();
 		t1 = SuperLU_timer_() - t1;
 		qDebug() << "NR:" << t1;
-        for (int i = 0; i < fem.num_ele; i++) {
-            if (!fem.pmeshele[i].LinearFlag) {
-                fem.pmeshele[i].miu = 0.5*fem.pmeshele[i].miut;
-            }
-        }
+//        for (int i = 0; i < fem.num_ele; i++) {
+//            if (!fem.pmeshele[i].LinearFlag) {
+//                fem.pmeshele[i].miu = 0.05*fem.pmeshele[i].miut;
+//            }
+//        }
 		t1 = SuperLU_timer_();
 		fem.StaticAxisymmetricTLM();
 		t1 = SuperLU_timer_() - t1;
