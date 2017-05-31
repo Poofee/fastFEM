@@ -518,7 +518,7 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 
 
             //y[i] = (A(pmeshele[i].n[0]) + A(pmeshele[i].n[1]) + A(pmeshele[i].n[2]))/3;
-            y[i] = pmeshele[i].miut;
+            y[i] = pmeshele[i].B;
         }
         //#pragma omp parallel for
         for (int j = 0; j < D34.size(); j++) {
@@ -540,21 +540,21 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
             if (rm[i].Y12 < 0) {
                 Vi[j].V12 = Vr[j].V12 * rtmp;
             } else {
-                Vi[j].V12 = 0;//-0.5*(pmeshnode[k].A - pmeshnode[m].A)*hehe;
+                Vi[j].V12 = -0.5*(pmeshnode[k].A - pmeshnode[m].A)*hehe;
             }
             INL(k) += -2. *Vi[j].V12*rm[i].Y12;
             INL(m) += 2. * Vi[j].V12 *rm[i].Y12;
             if (rm[i].Y23 < 0) {
                 Vi[j].V23 = Vr[j].V23*rtmp;
             } else {
-                Vi[j].V23 = 0;//-0.5*(pmeshnode[m].A - pmeshnode[n].A)*hehe;
+                Vi[j].V23 = -0.5*(pmeshnode[m].A - pmeshnode[n].A)*hehe;
             }
             INL(m) += -2. * Vi[j].V23*rm[i].Y23;
             INL(n) += 2. *Vi[j].V23*rm[i].Y23;
             if (rm[i].Y13 < 0) {
                 Vi[j].V13 = Vr[j].V13 * rtmp;
             } else {
-                Vi[j].V13 = 0;//-0.5*(pmeshnode[n].A - pmeshnode[k].A)*hehe;
+                Vi[j].V13 = -0.5*(pmeshnode[n].A - pmeshnode[k].A)*hehe;
             }
             INL(n) += -2. * Vi[j].V13*rm[i].Y13;
             INL(k) += 2.0 *Vi[j].V13*rm[i].Y13;
@@ -1343,7 +1343,7 @@ int CFastFEMcore::StaticAxisymmetricNR() {
             pmeshele[i].B = sqrt(bx*bx + by*by) / 2. / pmeshele[i].AREA / ydot[i];
             pmeshele[i].miut = materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B);
 
-            y[i] = pmeshele[i].miut;
+            y[i] = pmeshele[i].B;
         }
         double error = norm((A_old - A), 2) / norm(A, 2);
         iter++;
