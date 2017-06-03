@@ -103,7 +103,7 @@
                 <BHpoints>0</BHpoints>
             </BH>
             <Jr>0</Jr>
-            <H_c>0</H_c>
+            <H_c>883310</H_c>
         </Domain>
         <Domain>
             <domainName>DOWNCOIL</domainName>
@@ -120,7 +120,7 @@
             <BH>
                 <BHpoints>0</BHpoints>
             </BH>
-            <Jr>-8.5074e+06</Jr>
+            <Jr>0</Jr>
             <H_c>0</H_c>
         </Domain>
     </Domains>
