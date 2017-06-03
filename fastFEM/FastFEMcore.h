@@ -1,6 +1,7 @@
 #pragma once
 #include "datatype.h"
 #include "plot.h"
+#include "slu_mt_ddefs.h"
 
 class CFastFEMcore
 {
@@ -31,5 +32,7 @@ public:
 	void readDomainElement(QXmlStreamReader &reader, int i);//读取Domain节点
 	void readBHElement(QXmlStreamReader &reader,int i);//读取BH节点
 	int StaticAxisymmetricNR();//使用NR静态轴对称磁场的计算函数
+    void myTriSolve(int ncore, SuperMatrix *L, SuperMatrix *U,
+                    int_t *perm_r, int_t *perm_c, SuperMatrix *B, int_t *info);
 };
 

@@ -190,8 +190,8 @@ void MainWindow::cal(){
     char buf[100], type[4], key[10];
     FILE *fp;
     //fp = stdin;
-    //fp = fopen("..\\..\\SuperLU_MT_test\\g5.rua", "r");
-    fp = fopen("..\\..\\SuperLU_MT_test\\big.rua", "r");
+    fp = fopen("..\\..\\SuperLU_MT_test\\g5.rua", "r");
+    //fp = fopen("..\\..\\SuperLU_MT_test\\big.rua", "r");
     qDebug()<<fp;
     /* Line 1 */
     fscanf(fp, "%72c", buf); buf[72] = 0;

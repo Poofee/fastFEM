@@ -25,9 +25,26 @@ using namespace arma;
 #define PI 3.14159265358979323846
 #define r 2
 
-const double ste = 24;
+const double ste = 0;
 const double miu0 = PI*4e-7;
+typedef struct{
+    int level;
+    int index;
+} ele;
 
+bool compareele(const ele ele1, const ele ele2) {
+    if (ele1.level < ele2.level) {
+        return true;
+    } else {
+        return false;
+    }
+}
+double mymax(double a, double b) {
+    return ((a > b) ? a : b);
+}
+double mymin(double a, double b) {
+    return ((a < b) ? a : b);
+}
 CFastFEMcore::CFastFEMcore() {
     Precision = 1e-6;;
     LengthUnits = 0;
@@ -214,12 +231,423 @@ int CFastFEMcore::Load2DMeshCOMSOL(const char fn[]) {
     return 0;
 }
 
+void CFastFEMcore::myTriSolve(int ncore, SuperMatrix *L, SuperMatrix *U,
+                              int_t *perm_r, int_t *perm_c, SuperMatrix *B, int_t *info){
+    //--------------Plot start-------------------
+    QCustomPlot * customplot;
+    customplot = thePlot->getQcustomPlot();
+    customplot->yAxis->setScaleRatio(customplot->xAxis, 1);
+
+    SCPformat *Lstore = (SCPformat *)L->Store;
+    NCPformat *Ustore = (NCPformat *)U->Store;
+    //-----------------------------------------
+    //绘制U矩阵
+    QCPGraph *graphU = customplot->addGraph();
+    graphU->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, QPen(Qt::red, 1), QBrush(Qt::red), 1));
+    graphU->setPen(QPen(QColor(120, 120, 120), 2));
+    graphU->setLineStyle(QCPGraph::lsNone);
+
+    //绘制边框
+    int m = L->ncol;
+    int nrhs = 1;
+    QVector<double> xU(4), yU(4);
+    xU[0] = 0;xU[1] = m-1;xU[2]=m-1;xU[3]=0;
+    yU[0] = 0;yU[1] = 0;yU[2]=m-1;yU[3]=m-1;
+    QCPCurve *newCurveU = new QCPCurve(customplot->xAxis, customplot->yAxis);
+    newCurveU->setBrush(QColor(255, 0, 0,100));
+
+
+    //绘制L矩阵
+    QCPGraph *graphL = customplot->addGraph();
+    graphL->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, QPen(Qt::black, 1.5), QBrush(Qt::black), 1));
+    graphL->setPen(QPen(QColor(120, 120, 120), 2));
+    graphL->setLineStyle(QCPGraph::lsNone);
+
+    QVector<double> xL(2), yL(2);
+    xL[0] = 0+m;xL[1] = m-1+m;
+    yL[0] = m-1;yL[1] = 0;
+    QCPCurve *newCurveL = new QCPCurve(customplot->xAxis, customplot->yAxis);
+    newCurveL->setBrush(QColor(255, 0, 0,100));
+    newCurveL->setData(xL, yL);
+
+    int nnzL = Lstore->nnz;
+    //asub = Lstore->rowind;
+
+    //qDebug()<<"L:"<<nnzL;
+    //qDebug()<<"nsuper:"<<Lstore->nsuper;//start from zero
+    double t1 = SuperLU_timer_();
+    QVector<int> xnL(nnzL), ynL(nnzL);
+    QVector<double> valueL(nnzL);
+    //    int *xnL = (int*)malloc(nnzL*sizeof(int));
+    //    int *ynL = (int*)malloc(nnzL*sizeof(int));
+    //    double *valueL = (double*)malloc(nnzL*sizeof(double));
+    t1 = SuperLU_timer_() - t1;qDebug()<<t1;
+    int nnzU = Ustore->nnz;
+    //qDebug()<<"U:"<<nnzU;
+    //asubU = Ustore->rowind;
+    t1 = SuperLU_timer_();
+    QVector<int> xnU(nnzU), ynU(nnzU);
+    QVector<double> valueU(nnzU);
+    //    int *xnU = (int*)malloc(nnzU*sizeof(int));
+    //    int *ynU = (int*)malloc(nnzU*sizeof(int));
+    //    double *valueU = (double*)malloc(nnzU*sizeof(double));
+    t1 = SuperLU_timer_() - t1;qDebug()<<t1;
+    int fsupc,istart,nsupr,nsupc,nrow;//
+    int count = 0;int countU = 0;
+    double value;
+    t1 = SuperLU_timer_();
+    QVector<int> level(m),sortlevel(m),sortlevelU(m);
+    t1 = SuperLU_timer_() - t1;qDebug()<<t1;
+    for(int i = 0;i < m;i++){
+        level[i] = 0;
+    }
+    QVector<double> Udiag(m);
+    //对Lstore进行读取,nsuper,超级节点个数，从0开始
+    for (int ksupno = 0; ksupno <= Lstore->nsuper; ++ksupno) {
+        fsupc = Lstore->sup_to_colbeg[ksupno];//第ksupno个超级节点长方形区域的起始列号
+        istart = Lstore->rowind_colbeg[fsupc];//第fsupc列的起始行号，这个列必须是超级节点第一列，
+        //超级节点是长方形结构，行号一样,但是某些位置是被零填充的
+        nsupr = Lstore->rowind_colend[fsupc] - istart;//第fsupc列的结束行号，算出来是超级节点的列宽
+        nsupc = Lstore->sup_to_colend[ksupno] - fsupc;//算出来是超级节点的行高度
+        nrow = nsupr - nsupc;//算出来是超级节点不在对角区域的行高度
+
+        if ( nsupc == 1 ) {//超级节点只有一列
+            for (int j = 0; j < nrhs; j++) {//对B是多列的情况
+                int luptr = Lstore->nzval_colbeg[fsupc];//非零元素的序号
+                for (int iptr=istart; iptr < Lstore->rowind_colend[fsupc]; iptr++){
+                    int irow = Lstore->rowind[iptr];//行号
+                    value = ((double*)Lstore->nzval)[luptr];//值
+
+                    if(fabs(value)>1e-9){//非零元素,如果不考虑这个，那个level就没法算了
+                        if(irow >= fsupc){//下三角
+                            xnL[count] = fsupc;
+                            ynL[count] = irow;
+
+                            if(irow == fsupc){//对角线上元素
+                                level[irow] += 1;//计算level=max(level)+1;
+                                valueL[count] = 1;
+                            }else if(irow > fsupc){//非对角线元素
+                                //计算level，取该行的最大值
+                                level[irow] = std::max(level[fsupc],level[irow]);
+                                valueL[count] = value;
+                            }
+                            count++;
+                        }
+                    }
+                    ++luptr;
+                }
+            }
+        } else {
+            for(int j = 0; j < nrhs;j++){
+                for(int i = 0; i < nsupc;i++){
+                    int luptr = Lstore->nzval_colbeg[fsupc+i];
+                    for(int iptr = istart; iptr < Lstore->rowind_colend[fsupc];iptr++){
+                        int irow = Lstore->rowind[iptr];
+                        value = ((double*)Lstore->nzval)[luptr];
+
+                        if(fabs(value)>1e-9){
+                            if(irow >= fsupc+i){
+                                xnL[count] = fsupc+i;
+                                ynL[count] = irow;
+
+                                if(irow == fsupc+i){
+                                    level[irow] += 1;
+                                    valueL[count] = 1;
+                                }else if(irow > fsupc+i){
+                                    level[irow] = std::max(level[fsupc+i],level[irow]);
+                                    valueL[count] = value;
+                                }
+                                count++;
+                            }
+                        }
+                        ++luptr;
+                    }
+                }
+            }
+        } /* if-else: nsupc == 1 ... */
+    } /* for L-solve */
+
+    //对Ustore进行读取
+    QVector <int> levelU(m);levelU.fill(0);
+    for (int ksupno = Lstore->nsuper; ksupno >= 0; --ksupno) {
+        fsupc = Lstore->sup_to_colbeg[ksupno];//第ksupno个超级节点长方形区域的起始列号
+        istart = Lstore->rowind_colbeg[fsupc];//第fsupc列的起始行号，这个列必须是超级节点第一列，
+        //超级节点是长方形结构，行号一样,但是某些位置是被零填充的
+        nsupr = Lstore->rowind_colend[fsupc] - istart;//第fsupc列的结束行号，算出来是超级节点的列宽
+        nsupc = Lstore->sup_to_colend[ksupno] - fsupc;//算出来是超级节点的行高度
+        nrow = nsupr - nsupc;//算出来是超级节点不在对角区域的行高度
+        int iend = Lstore->rowind_colend[fsupc]-1;
+
+        if ( nsupc == 1 ) {//超级节点只有一列
+            for (int j = 0; j < nrhs; j++) {//对B是多列的情况
+                int luptr = Lstore->nzval_colend[fsupc]-1;//非零元素的序号
+                for (int iptr=iend; iptr >= Lstore->rowind_colbeg[fsupc]; iptr--){
+                    int irow = Lstore->rowind[iptr];//行号
+                    value = ((double*)Lstore->nzval)[luptr];//值
+
+                    if(fabs(value)>1e-9){//非零元素,如果不考虑这个，那个level就没法算了
+                        if(irow < fsupc){//上三角
+                            xnU[countU] = fsupc;
+                            ynU[countU] = irow;
+                            valueU[countU] = value;
+                            levelU[irow] = std::max(levelU[fsupc],levelU[irow]);
+
+                            countU++;
+                        }else if(irow == fsupc){
+                            Udiag[irow] = value;
+                            levelU[irow] += 1;//计算level=max(level)+1;
+                        }
+                    }
+                    --luptr;
+                }
+            }
+            //读取Ustore中数据
+            for(int u = Ustore->colend[fsupc]-1;u >= Ustore->colbeg[fsupc];u--){
+                double value1 = ((double*)Ustore->nzval)[u];
+                int irow = Ustore->rowind[u];//row
+                if(fabs(value1) > 1e-9){
+                    xnU[countU] = fsupc;//col
+                    ynU[countU] = irow;
+                    valueU[countU] = value1;
+                    levelU[irow] = std::max(levelU[fsupc],levelU[irow]);
+
+                    countU++;
+                }
+            }
+        } else {
+            for(int j = 0; j < nrhs;j++){
+                for(int i = nsupc-1; i >= 0;i--){
+                    int luptr = Lstore->nzval_colend[fsupc+i]-1;
+                    for(int iptr = iend; iptr >= Lstore->rowind_colbeg[fsupc];iptr--){
+                        int irow = Lstore->rowind[iptr];
+                        value = ((double*)Lstore->nzval)[luptr];
+
+                        if(fabs(value)>1e-9){
+                            if(irow < fsupc+i){
+                                xnU[countU] = fsupc+i;
+                                ynU[countU] = irow;
+                                valueU[countU] = value;
+                                levelU[irow] = std::max(levelU[fsupc+i],levelU[irow]);
+
+                                countU++;
+                            }else if(irow == fsupc+i){
+                                Udiag[irow] = value;
+                                levelU[irow] += 1;
+                            }
+                        }
+                        --luptr;
+                    }
+                    //读取该列的Ustore数据
+                    for(int u = Ustore->colend[fsupc+i]-1;u >= Ustore->colbeg[fsupc+i];u--){
+                        double value1 = ((double*)Ustore->nzval)[u];
+                        int irow = Ustore->rowind[u];//row
+                        if(fabs(value1) > 1e-9){
+                            xnU[countU] = fsupc+i;//col
+                            ynU[countU] = irow;
+                            valueU[countU] = value1;
+                            levelU[irow] = std::max(levelU[fsupc+i],levelU[irow]);
+
+                            countU++;
+                        }
+                    }
+                }
+            }
+        } /* if-else: nsupc == 1 ... */
+    } /* for U-solve */
+
+
+    qDebug()<<"countL :"<<count;
+    qDebug()<<"countU :"<<countU;
+    int maxLevel = 0;
+    int maxLevelU = 0;
+    QVector <ele> slevel(m);
+    QVector <ele> slevelU(m);
+    for(int i = 0;i < m;i++){
+        //计算最大的level
+        maxLevel = maxLevel > level[i] ? maxLevel : level[i];
+        maxLevelU = maxLevelU > levelU[i] ? maxLevelU : levelU[i];
+        slevel[i].index = i;
+        slevel[i].level = level[i];
+        slevelU[i].index = i;
+        slevelU[i].level = levelU[i];
+    }
+    qDebug()<<"maxLevel:"<<maxLevel;
+    qDebug()<<"maxLevelU:"<<maxLevelU;
+
+    qSort(slevel.begin(), slevel.end(), compareele);//ascend
+    qSort(slevelU.begin(), slevelU.end(), compareele);//ascend
+    QVector <int> Lcol(maxLevel);
+    QVector <int> Ucol(maxLevelU);
+    Lcol[0] = 0;
+    int lcount = 0;
+    int ucount = 0;
+    for(int i = 1; i < m;i++){
+        if(slevel[i].level != slevel[i-1].level){
+            Lcol[++lcount] = i;
+        }
+        if(slevelU[i].level != slevelU[i-1].level){
+            Ucol[++ucount] = i;
+        }
+    }
+    qDebug()<<"lcount:"<<lcount;
+    qDebug()<<"ucount:"<<ucount;
+
+    for(int i = 0;i < m;i++){
+        sortlevel[slevel[i].index] = i;
+        sortlevelU[slevelU[i].index] = i;
+    }
+
+    QVector <int> xxnL(count),yynL(count);
+    QVector <int> xxnU(countU),yynU(countU);
+
+    for(int i = 0; i < count;i++){
+        xxnL[i] = xnL[i];
+        yynL[i] = ynL[i];
+    }
+    QVector <ele> Lloc(count),Uloc(countU);
+    //转换坐标
+    for(int i = 0; i < count;i++){
+        xxnL[i] = sortlevel[xnL[i]];
+        yynL[i] = sortlevel[ynL[i]];
+        Lloc[i].level = yynL[i];//row
+        Lloc[i].index = xxnL[i];//col
+    }
+    for(int i = 0;i < countU;i++){
+        xxnU[i] = sortlevelU[xnU[i]];
+        yynU[i] = sortlevelU[ynU[i]];
+        Uloc[i].level = yynL[i];//row
+        Uloc[i].index = xxnL[i];//col
+    }
+    qSort(Lloc.begin(), Lloc.end(), compareele);//ascend
+    qSort(Uloc.begin(), Uloc.end(), compareele);//ascend
+
+    QVector <int> Lrowindex(m), Urowindex(m);
+    Lrowindex[0] = 0;
+    for(int i = 1; i < count;i++){
+        if(Lloc[i].level != Lloc[i-1].level){
+            Lrowindex[Lloc[i].level] = i;
+        }
+    }
+    for(int i = 1; i < countU;i++){
+        if(Uloc[i].level != Uloc[i-1].level){
+            Urowindex[Uloc[i].level] = i;
+        }
+    }
+
+    qDebug()<<m;
+    t1 = SuperLU_timer_();
+
+    DNformat *Bstore = (DNformat*)B->Store;
+    double *Bmat = (double*)Bstore->nzval;
+    //L solve
+    int cc = 0;
+    omp_set_num_threads(8);
+    qDebug()<<omp_get_num_procs();
+    for(int i=0; i < maxLevel-1;i++){
+        #pragma omp parallel for
+        for(int j = Lcol[i+1];j < m;j++){//row
+            for(int k = Lrowindex[j];k < Lrowindex[j+1];k++){
+                //(Lloc[k].index >=Lcol[i] && Lloc[k].index <= Lcol[i+1])
+                Bmat[j] -= Bmat[Lloc[k].index]*valueL[k];
+                //cc++;//because of this
+            }
+        }
+    }
+
+    //U solve
+    for(int i=0; i < maxLevelU;i++){
+
+    }
+    t1 = SuperLU_timer_() - t1;qDebug()<<t1<<"\t"<<cc;
+    //绘制level分割线等
+    double lastline = 0                                       ;
+    QPen pen;
+    pen.setStyle(Qt::DashLine);
+    pen.setWidth(1);
+    pen.setColor(QColor(0,0,0));
+    QVector <int> levelLrow(maxLevel+1);levelLrow[0] = 0;
+    for(int i = 0;i < m-1;i++){
+        if(slevel[i].level != slevel[i+1].level){
+            levelLrow[slevel[i+1].level] = i+1;
+            //qDebug()<<i+1;
+            QCPCurve *newCurve = new QCPCurve(customplot->xAxis, customplot->yAxis);
+            QVector <double> xline(2),yline(2);
+            xline[0] = 0; xline[1] = i+0.5;
+            yline[0] = m-1-(i+0.5); yline[1] = m-1-(i+0.5);
+            //newCurve->setData(xline, yline);
+            //newCurve->setPen(pen);
+            //newCurve->pen().setStyle(Qt::DotLine);
+            //newCurve->setBrush(QColor(0, 120, 0));
+            //--绘制并行区域
+            QCPCurve *rec1 = new QCPCurve(customplot->xAxis, customplot->yAxis);
+            QCPCurve *rec2 = new QCPCurve(customplot->xAxis, customplot->yAxis);
+            QVector <double> recdatax(5),recdatay(5);
+            recdatax[0] = lastline; recdatax[1] = i;
+            recdatax[2] = i; recdatax[3] = lastline; recdatax[4] = lastline;
+            recdatay[0] = m-1-i; recdatay[1] = m-1-i;
+            recdatay[2] = m-1-lastline; recdatay[3] = m-1-lastline;recdatay[4] = m-1-i;
+            rec1->setData(recdatax, recdatay);
+            rec1->setPen(Qt::NoPen);
+            rec1->setBrush(QColor(255, 0, 0,100));
+
+            recdatax[0] = lastline; recdatax[1] = i;
+            recdatax[2] = i; recdatax[3] = lastline; recdatax[4] = lastline;
+            recdatay[0] = 0; recdatay[1] = 0;
+            recdatay[2] = m-1-i; recdatay[3] = m-1-i;recdatay[4] = 0;
+            if(slevel[i].level%2==1){
+                rec2->setData(recdatax, recdatay);
+                rec2->setPen(Qt::NoPen);
+                rec2->setBrush(QColor(0, 255, 0,100));
+            }
+
+            lastline = i+1;
+        }
+    }
+    //绘制U矩阵的分割线
+    lastline = 0;
+    for(int i = 0;i < m-1;i++){
+        if(slevelU[i].level != slevelU[i+1].level){
+            QCPCurve *newCurve = new QCPCurve(customplot->xAxis, customplot->yAxis);
+            QVector <double> xline(2),yline(2);
+            xline[0] = m-1; xline[1] = m-1-i-0.5;
+            yline[0] = (i+0.5); yline[1] = (i+0.5);
+            //newCurve->setData(xline, yline);
+            //newCurve->setPen(QPen(QColor(0, 120, 255),1));
+            //newCurve->setBrush(QColor(0, 120, 255));
+            //--绘制并行区域
+            QCPCurve *rec1 = new QCPCurve(customplot->xAxis, customplot->yAxis);
+            QCPCurve *rec2 = new QCPCurve(customplot->xAxis, customplot->yAxis);
+            QVector <double> recdatax(5),recdatay(5);
+            recdatax[0] = m-1-lastline; recdatax[1] = m-1-i;
+            recdatax[2] = m-1-i; recdatax[3] = m-1-lastline; recdatax[4] = m-1-lastline;
+            recdatay[0] = lastline; recdatay[1] = lastline;
+            recdatay[2] = i; recdatay[3] = i;recdatay[4] = lastline;
+            rec1->setData(recdatax, recdatay);
+            rec1->setPen(Qt::NoPen);
+            rec1->setBrush(QColor(255, 0, 20,100));
+
+            recdatax[0] = m-1-lastline; recdatax[1] = m-1-i;
+            recdatax[2] = m-1-i; recdatax[3] = m-1-lastline; recdatax[4] = m-1-lastline;
+            recdatay[0] = i; recdatay[1] = i;
+            recdatay[2] = m-1; recdatay[3] = m-1;recdatay[4] = i;
+            if(slevelU[i].level%2==1){
+                rec2->setData(recdatax, recdatay);
+                rec2->setPen(Qt::NoPen);
+                rec2->setBrush(QColor(0, 255, 0,100));
+            }
+            lastline = i+1;
+        }
+    }
+    //graphU->setData(xxnU, yynU);
+    //graphL->setData(xxnL, yynL);
+    //--------------Plot End---------------------
+}
 
 // 这部分使用TLM进行求解
 bool CFastFEMcore::StaticAxisymmetricTLM() {
-    clock_t time[10];
+    double time[10];
     int tt = 0;
-    time[tt++] = clock();
+    time[tt++] = SuperLU_timer_();
     std::vector <int> D34;
     D34.empty();
     for (int i = 0; i < num_ele; i++) {
@@ -350,7 +778,7 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
             bbJz(pmeshele[i].n[j]) -= materialList[pmeshele[i].domain - 1].H_c / 2.*pmeshele[i].Q[j];
         }
     }//end for
-    time[tt++] = clock();
+    time[tt++] = SuperLU_timer_();
     locs.reshape(2, pos);//重新调整大小
     vals.reshape(1, pos);
     //----using armadillo constructor function-----
@@ -360,7 +788,7 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
     for (int i = 0; i < num_pts - node_bdr; i++) {
         unknown_b[i] = INL(node_reorder(i));
     }
-    time[tt++] = clock();
+    time[tt++] = SuperLU_timer_();
     //---------------------superLU_MT---------------------------------------
     //CSuperLU_MT superlumt(num_pts - node_bdr, X, unknown_b);
     SuperMatrix   sluA;SuperMatrix sluB, sluX;
@@ -439,7 +867,7 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
             A(node_reorder(i)) = sol[i];
         }
     }
-    time[tt++] = clock();
+    time[tt++] = SuperLU_timer_();
     //---------------------superLU--end----------------------------------
     //-----------绘图----------------------------------------
     QVector<double> x(num_ele), y(num_ele);
@@ -463,12 +891,12 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
     //customplot->xAxis2->setTicks(false);
     //customplot->yAxis->setScaleRatio(customplot->xAxis, 1.0);
     //---------the main loop---------------------------------
-    int steps = 200;
+    int steps = 1;
     int count;
     double alpha = 1;
     Voltage *Vr = (Voltage*)calloc(D34.size(), sizeof(Voltage));
     Voltage *Vi = (Voltage*)calloc(D34.size(), sizeof(Voltage));
-    time[tt++] = clock();
+    time[tt++] = SuperLU_timer_();
     for (count = 0; count < steps; count++) {
         //------update miu----------------
         for (int i = 0; i < num_ele; i++) {
@@ -479,46 +907,47 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
                 by += pmeshele[i].P[j] * A(pmeshele[i].n[j]);
             }
             pmeshele[i].B = sqrt(bx*bx + by*by) / 2. / pmeshele[i].AREA / ydot[i];
-            pmeshele[i].miut = pmeshele[i].miu*2;//materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B);
-//            if(fabs(y[i]-pmeshele[i].miut)/y[i] > 0.2 && count > 180){
-//            //if(pmeshele[i].domain == 4 || pmeshele[i].domain == 3){
-//                QCPCurve *newCurve = new QCPCurve(customplot->xAxis, customplot->yAxis);
-//                QVector <double> x11(4);
-//                QVector <double> y11(4);
-//                x11[0] = pmeshnode[pmeshele[i].n[0]].x;
-//                y11[0] = pmeshnode[pmeshele[i].n[0]].y;
-//                x11[1] = pmeshnode[pmeshele[i].n[1]].x;
-//                y11[1] = pmeshnode[pmeshele[i].n[1]].y;
-//                x11[2] = pmeshnode[pmeshele[i].n[2]].x;
-//                y11[2] = pmeshnode[pmeshele[i].n[2]].y;
-//                x11[3] = pmeshnode[pmeshele[i].n[0]].x;
-//                y11[3] = pmeshnode[pmeshele[i].n[0]].y;
-//                newCurve->setData(x11, y11);
-//                newCurve->setPen(QPen(Qt::black, 1));
-//                newCurve->setBrush(QColor(255, 0, 0,100));
-//                qDebug()<<pmeshele[i].B;
-//            }
-//            if(count == 1){
-//            //if(pmeshele[i].domain == 4 || pmeshele[i].domain == 3){
-//                QCPCurve *newCurve = new QCPCurve(customplot->xAxis, customplot->yAxis);
-//                QVector <double> x11(4);
-//                QVector <double> y11(4);
-//                x11[0] = pmeshnode[pmeshele[i].n[0]].x;
-//                y11[0] = pmeshnode[pmeshele[i].n[0]].y;
-//                x11[1] = pmeshnode[pmeshele[i].n[1]].x;
-//                y11[1] = pmeshnode[pmeshele[i].n[1]].y;
-//                x11[2] = pmeshnode[pmeshele[i].n[2]].x;
-//                y11[2] = pmeshnode[pmeshele[i].n[2]].y;
-//                x11[3] = pmeshnode[pmeshele[i].n[0]].x;
-//                y11[3] = pmeshnode[pmeshele[i].n[0]].y;
-//                newCurve->setData(x11, y11);
-//                newCurve->setPen(QPen(Qt::black, 1));
-//                newCurve->setBrush(QColor(255, 255, 0,100));
-//            }
+            pmeshele[i].miut = materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B);
+            pmeshele[i].miut = y[i] + (count>30 ? 0.02 : (0.9-count*0.03))*(pmeshele[i].miut - y[i]);
+            //            if(fabs(y[i]-pmeshele[i].B)/y[i] > 0.2 && count > 180){
+            //            //if(pmeshele[i].domain == 4 || pmeshele[i].domain == 3){
+            //                QCPCurve *newCurve = new QCPCurve(customplot->xAxis, customplot->yAxis);
+            //                QVector <double> x11(4);
+            //                QVector <double> y11(4);
+            //                x11[0] = pmeshnode[pmeshele[i].n[0]].x;
+            //                y11[0] = pmeshnode[pmeshele[i].n[0]].y;
+            //                x11[1] = pmeshnode[pmeshele[i].n[1]].x;
+            //                y11[1] = pmeshnode[pmeshele[i].n[1]].y;
+            //                x11[2] = pmeshnode[pmeshele[i].n[2]].x;
+            //                y11[2] = pmeshnode[pmeshele[i].n[2]].y;
+            //                x11[3] = pmeshnode[pmeshele[i].n[0]].x;
+            //                y11[3] = pmeshnode[pmeshele[i].n[0]].y;
+            //                newCurve->setData(x11, y11);
+            //                newCurve->setPen(QPen(Qt::black, 1));
+            //                newCurve->setBrush(QColor(255, 0, 0,100));
+            //                qDebug()<<pmeshele[i].B;
+            //            }
+            //            if(count == 1){
+            //            //if(pmeshele[i].domain == 4 || pmeshele[i].domain == 3){
+            //                QCPCurve *newCurve = new QCPCurve(customplot->xAxis, customplot->yAxis);
+            //                QVector <double> x11(4);
+            //                QVector <double> y11(4);
+            //                x11[0] = pmeshnode[pmeshele[i].n[0]].x;
+            //                y11[0] = pmeshnode[pmeshele[i].n[0]].y;
+            //                x11[1] = pmeshnode[pmeshele[i].n[1]].x;
+            //                y11[1] = pmeshnode[pmeshele[i].n[1]].y;
+            //                x11[2] = pmeshnode[pmeshele[i].n[2]].x;
+            //                y11[2] = pmeshnode[pmeshele[i].n[2]].y;
+            //                x11[3] = pmeshnode[pmeshele[i].n[0]].x;
+            //                y11[3] = pmeshnode[pmeshele[i].n[0]].y;
+            //                newCurve->setData(x11, y11);
+            //                newCurve->setPen(QPen(Qt::black, 1));
+            //                newCurve->setBrush(QColor(255, 255, 0,100));
+            //            }
 
 
             //y[i] = (A(pmeshele[i].n[0]) + A(pmeshele[i].n[1]) + A(pmeshele[i].n[2]))/3;
-            y[i] = pmeshele[i].B;
+            y[i] = pmeshele[i].miut;
         }
         //#pragma omp parallel for
         for (int j = 0; j < D34.size(); j++) {
@@ -563,7 +992,10 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
         for (int i = 0; i < num_pts - node_bdr; i++) {
             unknown_b[i] = INL(node_reorder(i));
         }
-        dgstrs(trans, &L, &U, perm_r, perm_c, &sluB, &Gstat1, &info);
+        time[tt++] = SuperLU_timer_();
+        //dgstrs(trans, &L, &U, perm_r, perm_c, &sluB, &Gstat1, &info);
+        myTriSolve(1, &L, &U, perm_r, perm_c, &sluB, &info);
+        time[tt++] = SuperLU_timer_();
         //pdgssv(nprocs, &sluA, perm_c, perm_r, &L, &U, &sluB, &info);
         //NOW WE SOLVE THE LINEAR SYSTEM USING THE FACTORED FORM OF sluA.
         if (info != 0) {
@@ -581,15 +1013,15 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
             }
         }
         double error = norm((A_old - A), 2) / norm(A, 2);
-        qDebug() << "iter: " << count;
-        qDebug() << "error: " << error;
+        //qDebug() << "iter: " << count;
+        //qDebug() << "error: " << error;
 
-        graph1->setData(x, y);
-        customplot->rescaleAxes(true);
+        //graph1->setData(x, y);
+        //customplot->rescaleAxes(true);
         //customplot->xAxis->setRange(0, 0.09);
         //customplot->yAxis->setRange(-0.04, 0.04);
         //customplot->yAxis->setScaleRatio(customplot->xAxis, 1.0);
-        customplot->replot();
+        //customplot->replot();
 
 
         if (error < Precision) {
@@ -597,7 +1029,7 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
         }
         INL.zeros();
     }
-    time[tt++] = clock();
+    time[tt++] = SuperLU_timer_();
     // 求解结束，更新B
     for (int i = 0; i < num_ele; i++) {
         double bx = 0;
@@ -606,7 +1038,7 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
             bx += pmeshele[i].Q[j] * A(pmeshele[i].n[j]);
             by += pmeshele[i].P[j] * A(pmeshele[i].n[j]);
         }
-        pmeshele[i].B = sqrt(bx*bx + by*by) / 2. / pmeshele[i].AREA / ydot[i];        
+        pmeshele[i].B = sqrt(bx*bx + by*by) / 2. / pmeshele[i].AREA / ydot[i];
         pmeshele[i].miut = materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B);
     }
     for (int i = 0; i < num_pts - node_bdr; i++) {
@@ -616,6 +1048,7 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
     for(int i = 1;i < tt;i++){
         qDebug()<<i<<"\t"<<time[i] - time[i-1];
     }
+
     qDebug()<<"TLM steps:"<<count;
     // 回收空间
     if (rm != NULL) free(rm);
@@ -894,9 +1327,9 @@ double CFastFEMcore::CalcForce() {
         }
 
         //if (pmeshele[i].domain != 2 && pmeshele[i].domain != 1) {
-            newCurve->setData(x1, y1);
-           // newCurve->setPen(QPen(cc[pmeshele[i].domain - 1]));
-            //newCurve->setBrush(cc[pmeshele[i].domain - 1]);
+        newCurve->setData(x1, y1);
+        // newCurve->setPen(QPen(cc[pmeshele[i].domain - 1]));
+        //newCurve->setBrush(cc[pmeshele[i].domain - 1]);
         //}
         //if (ind != 10) {
         //	fprintf(fp, "%d\n", ind);
@@ -1343,21 +1776,22 @@ int CFastFEMcore::StaticAxisymmetricNR() {
             pmeshele[i].B = sqrt(bx*bx + by*by) / 2. / pmeshele[i].AREA / ydot[i];
             pmeshele[i].miut = materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B);
 
-            y[i] = pmeshele[i].B;
+            y[i] = pmeshele[i].miut;
         }
         double error = norm((A_old - A), 2) / norm(A, 2);
         iter++;
         //qDebug() << "iter: " << iter;
         //qDebug() << "error: " << error;
         if (error < Precision || iter > 20) {
+            A.save("NRA.txt",arma::arma_ascii,false);
             break;
         }
         bn.zeros();
         pos = 0;
 
-        graph1->setData(x, y);
-        //customplot->rescaleAxes(true);
-        customplot->replot();
+//        graph1->setData(x, y);
+//        customplot->rescaleAxes(true);
+//        customplot->replot();
     }
     time[tt++] = clock();
     for(int i = 1;i <tt;i++){

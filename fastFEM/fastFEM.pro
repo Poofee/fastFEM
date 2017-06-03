@@ -14,6 +14,8 @@ TARGET = fastFEM
 #project type:app lib vcapp vclib
 TEMPLATE = app
 
+QMAKE_CXXFLAGS += /openmp
+
 CONFIG += debug_and_release
 
 #source file lists
