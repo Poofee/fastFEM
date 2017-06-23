@@ -891,7 +891,7 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
     //customplot->xAxis2->setTicks(false);
     //customplot->yAxis->setScaleRatio(customplot->xAxis, 1.0);
     //---------the main loop---------------------------------
-    int steps = 1;
+    int steps = 200;
     int count;
     double alpha = 1;
     Voltage *Vr = (Voltage*)calloc(D34.size(), sizeof(Voltage));
@@ -908,7 +908,8 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
             }
             pmeshele[i].B = sqrt(bx*bx + by*by) / 2. / pmeshele[i].AREA / ydot[i];
             pmeshele[i].miut = materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B);
-            pmeshele[i].miut = y[i] + (count>30 ? 0.02 : (0.9-count*0.03))*(pmeshele[i].miut - y[i]);
+            pmeshele[i].miut = y[i] + (count>90 ? 0.02 : (0.9-count*0.001))*(pmeshele[i].miut - y[i]);
+            //pmeshele[i].miut = y[i] + (count>30 ? 0.02 : (0.9-count*0.03))*(pmeshele[i].miut - y[i]);
             //            if(fabs(y[i]-pmeshele[i].B)/y[i] > 0.2 && count > 180){
             //            //if(pmeshele[i].domain == 4 || pmeshele[i].domain == 3){
             //                QCPCurve *newCurve = new QCPCurve(customplot->xAxis, customplot->yAxis);
@@ -992,10 +993,10 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
         for (int i = 0; i < num_pts - node_bdr; i++) {
             unknown_b[i] = INL(node_reorder(i));
         }
-        time[tt++] = SuperLU_timer_();
-        //dgstrs(trans, &L, &U, perm_r, perm_c, &sluB, &Gstat1, &info);
-        myTriSolve(1, &L, &U, perm_r, perm_c, &sluB, &info);
-        time[tt++] = SuperLU_timer_();
+        //time[tt++] = SuperLU_timer_();
+        dgstrs(trans, &L, &U, perm_r, perm_c, &sluB, &Gstat1, &info);
+        //myTriSolve(1, &L, &U, perm_r, perm_c, &sluB, &info);
+        //time[tt++] = SuperLU_timer_();
         //pdgssv(nprocs, &sluA, perm_c, perm_r, &L, &U, &sluB, &info);
         //NOW WE SOLVE THE LINEAR SYSTEM USING THE FACTORED FORM OF sluA.
         if (info != 0) {
@@ -1016,12 +1017,12 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
         //qDebug() << "iter: " << count;
         //qDebug() << "error: " << error;
 
-        //graph1->setData(x, y);
-        //customplot->rescaleAxes(true);
+        graph1->setData(x, y);
+        customplot->rescaleAxes(true);
         //customplot->xAxis->setRange(0, 0.09);
         //customplot->yAxis->setRange(-0.04, 0.04);
         //customplot->yAxis->setScaleRatio(customplot->xAxis, 1.0);
-        //customplot->replot();
+        customplot->replot();
 
 
         if (error < Precision) {
@@ -1789,9 +1790,9 @@ int CFastFEMcore::StaticAxisymmetricNR() {
         bn.zeros();
         pos = 0;
 
-//        graph1->setData(x, y);
-//        customplot->rescaleAxes(true);
-//        customplot->replot();
+        graph1->setData(x, y);
+        customplot->rescaleAxes(true);
+        customplot->replot();
     }
     time[tt++] = clock();
     for(int i = 1;i <tt;i++){
