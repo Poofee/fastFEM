@@ -10,7 +10,8 @@ public:
 	int num_ele;//单元数目
 	int numDomain;//域数目
 	CNode * pmeshnode;
-	CElement * pmeshele;
+    CElement * pmeshele;
+    CElement4 * pmeshele4;
 	char filename[256];//
 
 	double  Precision;//计算精度
@@ -23,6 +24,7 @@ public:
 	~CFastFEMcore();	
 	// load mesh
 	int Load2DMeshCOMSOL(const char fn[]);//载入分网信息函数
+    int LoadQ4MeshCOMSOL(const char fn[]);//读入四节点单元
 	bool StaticAxisymmetricTLM();//使用TLM静态轴对称磁场的计算函数
 	double CalcForce();//电磁力计算函数
 	int openProject(QString proFile);//打开工程文件函数

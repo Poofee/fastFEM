@@ -1805,4 +1805,165 @@ int CFastFEMcore::StaticAxisymmetricNR() {
     return 0;
 }
 
+int CFastFEMcore::LoadQ4MeshCOMSOL(const char fn[]){
+    char ch[256];
+    //------------open file----------------------------------
+    FILE * fp = NULL;
+    fp = fopen(fn, "r");
+    if (fp == NULL) {
+        qDebug() << "Error: openning file!";
+        return 1;
+    }
+    //--------------Read the head-----------------------------
+    for (int i = 0; i < 18; i++) {
+        fgets(ch, 256, fp);
+    }
+    //-----------------mesh point-----------------------------
+    //读取节点数目
+    if (fscanf(fp, "%d # number of mesh points\n", &num_pts)) {
+        pmeshnode = (CNode*)calloc(num_pts, sizeof(CNode));
 
+        for (int i = 0; i < num_pts; i++) {
+            pmeshnode[i].I = 0;
+            pmeshnode[i].pm = 0;
+        }
+    } else {
+        qDebug() << "Error: reading num_pts!";
+        return 1;
+    }
+    int pts_ind;//the beginning of the points index
+    //读取节点索引，默认从0开始
+    if (fscanf(fp, "%d # lowest mesh point index\n", &pts_ind) != 1) {
+        qDebug() << "Error: reading pts_ind!";
+        return 1;
+    }
+    fgets(ch, 256, fp);
+
+    for (int i = pts_ind; i < num_pts; i++) {
+        //读取x,y坐标
+        if (fscanf(fp, "%lf %lf \n", &(pmeshnode[i].x), &(pmeshnode[i].y)) != 2) {
+            qDebug() << "Error: reading mesh point!";
+            return 1;
+        }
+    }
+    //---------------vertex-------------------------------
+    for (int i = 0; i < 7; i++)
+        fgets(ch, 256, fp);
+    int num_vtx_ns, num_vtx_ele;
+    //
+    if (fscanf(fp, "%d # number of nodes per element\n", &num_vtx_ns) != 1) {
+        qDebug() << "Error: reading num_vtx_ns!";
+        return 1;
+    }
+
+    if (fscanf(fp, "%d # number of elements\n", &num_vtx_ele) != 1) {
+        qDebug() << "Error: reading num_vtx_ele!";
+        return 1;
+    }
+    fgets(ch, 256, fp);
+
+    int *vtx;
+    vtx = (int*)calloc(num_vtx_ele, sizeof(int));
+    for (int i = 0; i < num_vtx_ele; i++) {
+        //好象是每一个域的顶点编号
+        if (fscanf(fp, "%d \n", vtx + i) != 1) {
+            qDebug() << "Error: reading vertex condition!";
+            return 1;
+        }
+    }
+    if (vtx != NULL) free(vtx); vtx = NULL;
+    //---------------vertex-------------------------------
+    int num_vtx_ele2;
+    fscanf(fp, "%d # number of geometric entity indices\n", &num_vtx_ele2);
+    fgets(ch, 256, fp);
+    int *vtx2;
+    vtx2 = (int*)calloc(num_vtx_ele2, sizeof(int));
+    for (int i = 0; i < num_vtx_ele2; i++) {
+        if (fscanf(fp, "%d \n", vtx2 + i) != 1) {
+            qDebug() << "Error: reading vertex condition!";
+            return 1;
+        }
+    }
+    if (vtx2 != NULL) free(vtx2); vtx2 = NULL;
+    //--------------boundary--------------------------------
+    for (int i = 0; i < 5; i++)
+        fgets(ch, 256, fp);
+    int num_bdr_ns, num_bdr_ele;//number of nodes per element;number of elements
+    //读取一个边界单元中的数目，2D的话为2，表示线段
+    if (fscanf(fp, "%d # number of nodes per element\n", &num_bdr_ns) != 1) {
+        qDebug() << "Error: reading num_bdr_ns!";
+        return 1;
+    }
+    //读取线段边界数目
+    if (fscanf(fp, "%d # number of elements\n", &num_bdr_ele) != 1) {
+        qDebug() << "Error: reading num_bdr_ele!";
+        return 1;
+    }
+    fgets(ch, 256, fp);
+
+    int *p1, *p2;
+    p1 = (int*)calloc(num_bdr_ele, sizeof(int));
+    p2 = (int*)calloc(num_bdr_ele, sizeof(int));
+    for (int i = 0; i < num_bdr_ele; i++) {
+        //读取线段边界的起点和终点
+        if (fscanf(fp, "%d %d\n", p1 + i, p2 + i) == 2) {
+            pmeshnode[p1[i]].bdr = 1;
+        } else {
+            qDebug() << "Error: reading boundary condition!";
+            return 1;
+        }
+    }
+    if (p1 != NULL) free(p1); p1 = NULL;
+    if (p2 != NULL) free(p2); p2 = NULL;
+    //---------------entity----------------------------------
+    int num_entity;
+    fscanf(fp, "%d # number of geometric entity indices\n", &num_entity);
+    fgets(ch, 256, fp);
+    int * entity;
+    entity = (int*)calloc(num_entity, sizeof(int));
+    for (int i = 0; i < num_entity; i++) {
+        if (fscanf(fp, "%d \n", entity + i) != 1) {
+            qDebug() << "Error: reading boundary condition!";
+            return 1;
+        }
+    }
+    if (entity != NULL) free(entity); entity = NULL;
+    //----------------elements------------------------------
+    for (int i = 0; i < 5; i++)
+        fgets(ch, 256, fp);
+    int ns_per_ele;// num_ele;//number of nodes per element;number of elements
+    if (fscanf(fp, "%d # number of nodes per element\n", &ns_per_ele) != 1) {
+        qDebug() << "Error: reading ns_per_ele!";
+        return 1;
+    }
+    //读取分网单元数目
+    if (fscanf(fp, "%d # number of elements\n", &num_ele) == 1) {
+        pmeshele4 = (CElement4*)calloc(num_ele, sizeof(CElement4));
+    } else {
+        qDebug() << "Error: reading num_ele!";
+        return 1;
+    }
+    fgets(ch, 256, fp);
+    //读取分网四边形单元的四个节点索引
+    for (int i = 0; i < num_ele; i++) {
+        if (fscanf(fp, "%d %d %d %d\n", &pmeshele4[i].n[0], &pmeshele4[i].n[1], &pmeshele4[i].n[2],&pmeshele4[i].n[3]) != 4) {
+            qDebug() << "Error: reading elements points!";
+            return 1;
+        }
+    }
+    //---------------Domain----------------------------------
+    int num_domain;
+    //读取domain数目
+    fscanf(fp, "%d # number of geometric entity indices\n", &num_domain);
+    fgets(ch, 256, fp);
+
+    for (int i = 0; i < num_domain; i++) {
+        //读取每个单元所在的domain
+        if (fscanf(fp, "%d \n", &pmeshele4[i].domain) != 1) {
+            qDebug() << "Error: reading domain points!";
+            return 1;
+        }
+    }
+    fclose(fp);
+    return 0;
+}

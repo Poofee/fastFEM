@@ -1,22 +1,17 @@
 #pragma once
 
-class CNode
+typedef struct _CNode
 {
-public:
-
 	double x, y;//the co
 	double A;//the solution
 	double bdr;//boundary type 0:非边界;1:几何边界;2:物理边界3:既是物理边界，又是几何边界
 	double I;//current source
 	double pm;
-private:
+}CNode;
 
-};
-class CElement
+typedef struct _CElement
 {
-public:
-
-	int n[3];// ni, nj, nk;//
+    int n[3];// ni, nj, nk;//
 	double P[3];// Pi, Pj, Pk;
 	double Q[3];// Qi, Qj, Qk;
 	double AREA;//单元的面积变量
@@ -25,9 +20,18 @@ public:
 	int domain;//从工程文件会读取一个材料列表，这是当前单元的编号；
     double rc,zc;
 	bool LinearFlag;//定义逻辑变量LinearFlag，用来判断具体单元是否处于线性区域
+}CElement;
 
-private:
-};
+typedef struct _CElement4
+{
+    int n[4];// ni, nj, nk;//
+    double AREA;//单元的面积变量
+    double Bx,By,B;//单元的磁感应强度B及其水平和竖直方向上的分量
+    double miu,miut;//对于非线性单元，迭代时的miu和初始时的miu；
+    int domain;//从工程文件会读取一个材料列表，这是当前单元的编号；
+    double rc,zc;
+    bool LinearFlag;//定义逻辑变量LinearFlag，用来判断具体单元是否处于线性区域
+}CElement4;
 class CMaterial{
 public:
 	double miu;		// permeabilities, relative
