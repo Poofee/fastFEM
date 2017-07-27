@@ -25,6 +25,12 @@ using namespace arma;
 #define PI 3.14159265358979323846
 #define r 2
 
+double GaussPoint3 [] = { -0.774596669241483,0,0.774596669241483};
+double GaussWeight3 [] = {0.555555555555556,   0.888888888888889,   0.555555555555556};
+
+double GaussPoint5 [] = { -0.906179845938664,-0.538469310105683,0,0.538469310105683,0.906179845938664};
+double GaussWeight5 [] = { 0.236926885056189,0.478628670499366,0.568888888888889,0.478628670499366,0.236926885056189};
+
 const double ste = 0;
 const double miu0 = PI*4e-7;
 typedef struct{
@@ -544,7 +550,7 @@ void CFastFEMcore::myTriSolve(int ncore, SuperMatrix *L, SuperMatrix *U,
     omp_set_num_threads(8);
     qDebug()<<omp_get_num_procs();
     for(int i=0; i < maxLevel-1;i++){
-        #pragma omp parallel for
+#pragma omp parallel for
         for(int j = Lcol[i+1];j < m;j++){//row
             for(int k = Lrowindex[j];k < Lrowindex[j+1];k++){
                 //(Lloc[k].index >=Lcol[i] && Lloc[k].index <= Lcol[i+1])
@@ -1966,4 +1972,701 @@ int CFastFEMcore::LoadQ4MeshCOMSOL(const char fn[]){
     }
     fclose(fp);
     return 0;
+}
+double CFastFEMcore::getLocal4Matrix(int Ki, int Kj,int index){
+    int gaussPoints = 3;
+    double * gaussweight;
+    double * gausspoint;
+    double Kij = 0;
+    if(gaussPoints == 3){
+        gaussweight = GaussWeight3;
+        gausspoint = GaussPoint3;
+    }else if(gaussPoints == 5){
+        gaussweight = GaussWeight5;
+        gausspoint = GaussPoint5;
+    }
+    for(int i = 0; i < gaussPoints;i++){
+        for(int j = 0; j < gaussPoints;j++){
+            Kij += gaussweight[i]*gaussweight[j]*getP(Ki,Kj,gausspoint[i],gausspoint[j],index)*getJacobi(xi,eta,index);
+        }
+    }
+    return Kij;
+}
+double CFastFEMcore::getP(int Ki, int Kj, double xi, double eta, int index){
+    double p = 0;
+    p = getdNidx(Ki,xi,eta,index)*getdNidx(Kj,xi,eta,index);
+    p += getdNidy(Ki,xi,eta,index)*getdNidy(Kj,xi,eta,index);
+    return p;
+}
+
+double CFastFEMcore::getdNidx(int Ki, double xi, double eta,int index){
+    double result = 0;
+    result = getdydeta(xi,index)*getdNdxi(Ki,eta)-getdydxi(eta,index)*getdNdeta(Ki,xi);
+    result /= getJacobi(xi,eta,index);
+    return result;
+}
+double CFastFEMcore::getdNidy(int Ki, double xi, double eta,int index){
+    double result = 0;
+    result = -getdxdeta(xi,index)*getdNdxi(Ki,eta)+getdxdxi(eta,index)*getdNdeta(Ki,xi);
+    result /= getJacobi(xi,eta,index);
+    return result;
+}
+double CFastFEMcore::getJacobi(double xi, double eta,int index){
+    return getdxdxi(eta,index)*getdydeta(xi,index)-getdydxi(eta,index)*getdxdeta(xi,index);
+}
+
+double CFastFEMcore::getdxdeta(double xi, int index){
+    double sum = 0;
+    for(int i = 0;i < 4;i++){
+        sum += getdNdeta(i,xi)*pmeshnode[pmeshele4[index].n[i]].x;
+    }
+    return sum;
+}
+double CFastFEMcore::getdxdxi(double eta, int index){
+    double sum = 0;
+    for(int i=0;i < 4;i++){
+        sum += getdNdxi(i,eta)*pmeshnode[pmeshele4[index].n[i]].x;
+    }
+    return sum;
+}
+double CFastFEMcore::getdydeta(double xi, int index){
+    double sum = 0;
+    for(int i = 0;i < 4;i++){
+        sum += getdNdeta(i,xi)*pmeshnode[pmeshele4[index].n[i]].y;
+    }
+    return sum;
+}
+double CFastFEMcore::getdydxi(double eta, int index){
+    double sum = 0;
+    for(int i=0;i < 4;i++){
+        sum += getdNdxi(i,eta)*pmeshnode[pmeshele4[index].n[i]].y;
+    }
+    return sum;
+}
+double CFastFEMcore::getdNdeta(int i, double xi){
+    double xxi[]={-1,1,1,-1};
+    double yeta[]={-1,-1,1,1};
+    return yeta[i]*(1+xxi[i]*xi)/4;
+}
+double CFastFEMcore::getdNdxi(int i,double eta){
+    double xxi[]={-1,1,1,-1};
+    double yeta[]={-1,-1,1,1};
+    return xxi[i]*(1+yeta[i]*xi)/4;
+}
+
+bool CFastFEMcore::StaticAxisQ4Relaxtion(){
+    //计算边界信息
+    int k,l,m,n;
+    for(int i = 0;i < num_ele;i++){
+        k = pmeshele4[i].n[0];
+        l = pmeshele4[i].n[1];
+        m = pmeshele4[i].n[2];
+        n = pmeshele4[i].n[3];
+
+        pmeshele4[i].rc = pmeshnode[k].x + pmeshnode[l].x + pmeshnode[m].x + pmeshnode[n].x;
+        pmeshele4[i].rc /= 4;
+
+        if (materialList[pmeshele4[i].domain - 1].BHpoints == 0) {
+            pmeshele4[i].miu = materialList[pmeshele4[i].domain - 1].miu ;
+            pmeshele4[i].miut = materialList[pmeshele4[i].domain - 1].miu ;//must be 1
+            pmeshele4[i].LinearFlag = true;
+        } else {
+            pmeshele4[i].miu = 1 * miu0;
+            pmeshele4[i].miut = 100 * miu0;
+            pmeshele4[i].LinearFlag = false;
+        }
+        //查找物理边界
+        if (pmeshele4[i].domain == 1) {
+            pmeshnode[k].bdr = 3;
+
+            pmeshnode[l].bdr = 3;
+
+            pmeshnode[m].bdr = 3;
+
+            pmeshnode[n].bdr = 3;
+        } else {
+            //对称轴上的部分边界点
+            if (pmeshnode[k].bdr == 1 && pmeshnode[k].x < 1e-8) {
+                pmeshnode[k].bdr = 3;
+            }
+            if (pmeshnode[l].bdr == 1 && pmeshnode[l].x < 1e-8) {
+                pmeshnode[l].bdr = 3;
+            }
+            if (pmeshnode[m].bdr == 1 && pmeshnode[m].x < 1e-8) {
+                pmeshnode[m].bdr = 3;
+            }
+            if (pmeshnode[n].bdr == 1 && pmeshnode[n].x < 1e-8) {
+                pmeshnode[n].bdr = 3;
+            }
+        }
+    }
+    //定义一些变量
+    umat locs(2, 16 * num_ele);    locs.zeros();
+    mat vals(1, 16 * num_ele);  vals.zeros();
+    vec bbJz = zeros<vec>(num_pts);
+    uvec node_reorder = zeros<uvec>(num_pts);
+    uvec node_pos = zeros<uvec>(num_pts);
+    vec bn = zeros<vec>(num_pts);
+    vec A = zeros<vec>(num_pts);
+    vec A_old = A;
+    double ce [4][4] = {0};
+    double * ydot = (double*)malloc(num_ele*sizeof(double));
+    Resist4matrix * rm = (Resist4matrix*)malloc(numele * sizeof(Resist4Matrix));
+    //处理边界点
+    int node_bdr = 0;
+    for (int i = 0; i < num_pts; i++) {
+        if (pmeshnode[i].bdr == 3) {
+            node_bdr++;
+            node_reorder(num_pts - node_bdr) = i;
+            node_pos(i) = num_pts - node_bdr;
+            pmeshnode[i].A = 0;
+            A(i) = 0;
+        } else {
+            node_reorder(i - node_bdr) = i;
+            node_pos(i) = i - node_bdr;
+        }
+    }
+    double* unknown_b = (double*)calloc(num_pts - node_bdr, sizeof(double));
+    int iter = 0;//迭代步数
+    int pos = 0;
+
+    //主循环
+    while(1){
+        //生成全局矩阵
+        for(int i = 0;i < num_ele;i++){
+            //不变的部分只计算一次
+            if(iter == 0){
+                //对对称轴上的点进行特殊处理
+                ydot[i] = pmeshele4[i].rc;
+
+                //计算系数
+                rm[i].Y11 = getLocal4Matrix(1-1,1-1,i);
+                rm[i].Y12 = getLocal4Matrix(1-1,2-1,i);
+                rm[i].Y13 = getLocal4Matrix(1-1,3-1,i);
+                rm[i].Y14 = getLocal4Matrix(1-1,4-1,i);
+                rm[i].Y22 = getLocal4Matrix(2-1,2-1,i);
+                rm[i].Y23 = getLocal4Matrix(2-1,3-1,i);
+                rm[i].Y24 = getLocal4Matrix(2-1,4-1,i);
+                rm[i].Y33 = getLocal4Matrix(3-1,3-1,i);
+                rm[i].Y34 = getLocal4Matrix(3-1,4-1,i);
+                rm[i].Y44 = getLocal4Matrix(4-1,4-1,i);
+
+                //计算电流密度矩阵
+                //计算电流密度//要注意domain会不会越界
+                double jr = pmeshele[i].AREA*materialList[pmeshele[i].domain - 1].Jr / 3;
+                for (int j = 0; j < 4; j++) {
+                    bbJz(pmeshele4[i].n[j]) += jr;
+                    // 计算永磁部分
+                    //bbJz(pmeshele4[i].n[j]) -= materialList[pmeshele[i].domain - 1].H_c / 2.*pmeshele[i].Q[j];
+                }
+            }
+            ce[0][0] = rm[i].Y11/pmeshele4[i].miut/ydot[i];
+            ce[0][1] = rm[i].Y12/pmeshele4[i].miut/ydot[i];
+            ce[0][2] = rm[i].Y13/pmeshele4[i].miut/ydot[i];
+            ce[0][3] = rm[i].Y14/pmeshele4[i].miut/ydot[i];
+
+            ce[1][0] = ce[0][1];
+            ce[1][1] = rm[i].Y22/pmeshele4[i].miut/ydot[i];
+            ce[1][2] = rm[i].Y23/pmeshele4[i].miut/ydot[i];
+            ce[1][3] = rm[i].Y24/pmeshele4[i].miut/ydot[i];
+
+            ce[2][0] = ce[0][2];
+            ce[2][1] = ce[1][2];
+            ce[2][2] = rm[i].Y23/pmeshele4[i].miut/ydot[i];
+            ce[2][3] = rm[i].Y24/pmeshele4[i].miut/ydot[i];
+
+            ce[3][0] = ce[0][3];
+            ce[3][1] = ce[1][3];
+            ce[3][2] = ce[2][3];
+            ce[3][3] = rm[i].Y44/pmeshele4[i].miut/ydot[i];
+
+            for (int row = 0; row < 4; row++) {
+                for (int col = 0; col < 4; col++) {
+                    //判断节点是否在未知节点内
+                    //得到排序之后的编号
+                    int n_row = node_pos(pmeshele[i].n[row]);
+                    int n_col = node_pos(pmeshele[i].n[col]);
+                    if (n_row < num_pts - node_bdr && n_col < num_pts - node_bdr) {
+                        locs(0, pos) = n_row;
+                        locs(1, pos) = n_col;
+                        vals(0, pos) = ce[row][col];
+                        pos++;
+                    }
+                    //bn的顺序并没有改
+                    //bn(pmeshele[i].n[row]) += cn[row][col] * A(pmeshele[i].n[col]);
+                }
+            }
+        }
+        //生成稀疏矩阵
+        if (iter == 0) {
+            locs.reshape(2, pos);
+            vals.reshape(1, pos);
+        }
+        bn += bbJz;
+        //使用构造函数来生成稀疏矩阵
+        sp_mat X(true, locs, vals, num_pts - node_bdr, num_pts - node_bdr, true, true);
+
+        for (int i = 0; i < num_pts - node_bdr; i++) {
+            unknown_b[i] = bn(node_reorder(i));
+        }
+        //---------------------superLU_MT---------------------------------------
+        CSuperLU_MT superlumt(num_pts - node_bdr, X, unknown_b);
+        if (superlumt.solve() == 1) {
+            qDebug() << "Error: superlumt.slove";
+            qDebug() << "info: " << superlumt.info;
+            break;
+        } else {
+            double *sol = NULL;
+            A_old = A;
+            sol = superlumt.getResult();
+
+            for (int i = 0; i < num_pts - node_bdr; i++) {
+                pmeshnode[node_reorder(i)].A = sol[i];// / pmeshnode[i].x;//the A is r*A_real
+                A(node_reorder(i)) = sol[i];
+            }
+        }
+        //更新B
+
+        double error = norm((A_old - A), 2) / norm(A, 2);
+        iter++;
+        //qDebug() << "iter: " << iter;
+        //qDebug() << "error: " << error;
+        if (error < Precision || iter > 20) {
+            //A.save("NRA.txt",arma::arma_ascii,false);
+            break;
+        }
+
+    }
+    return true;
+}
+bool CFastFEMcore::StaticAxisQ4TLM(){
+    //计算边界信息
+    int k,l,m,n;
+    for(int i = 0;i < num_ele;i++){
+        k = pmeshele4[i].n[0];
+        l = pmeshele4[i].n[1];
+        m = pmeshele4[i].n[2];
+        n = pmeshele4[i].n[3];
+
+        pmeshele4[i].rc = pmeshnode[k].x + pmeshnode[l].x + pmeshnode[m].x + pmeshnode[n].x;
+        pmeshele4[i].rc /= 4;
+
+        if (materialList[pmeshele4[i].domain - 1].BHpoints == 0) {
+            pmeshele4[i].miu = materialList[pmeshele4[i].domain - 1].miu ;
+            pmeshele4[i].miut = materialList[pmeshele4[i].domain - 1].miu ;//must be 1
+            pmeshele4[i].LinearFlag = true;
+        } else {
+            pmeshele4[i].miu = 1 * miu0;
+            pmeshele4[i].miut = 100 * miu0;
+            pmeshele4[i].LinearFlag = false;
+        }
+        //查找物理边界
+        if (pmeshele4[i].domain == 1) {
+            pmeshnode[k].bdr = 3;
+
+            pmeshnode[l].bdr = 3;
+
+            pmeshnode[m].bdr = 3;
+
+            pmeshnode[n].bdr = 3;
+        } else {
+            //对称轴上的部分边界点
+            if (pmeshnode[k].bdr == 1 && pmeshnode[k].x < 1e-8) {
+                pmeshnode[k].bdr = 3;
+            }
+            if (pmeshnode[l].bdr == 1 && pmeshnode[l].x < 1e-8) {
+                pmeshnode[l].bdr = 3;
+            }
+            if (pmeshnode[m].bdr == 1 && pmeshnode[m].x < 1e-8) {
+                pmeshnode[m].bdr = 3;
+            }
+            if (pmeshnode[n].bdr == 1 && pmeshnode[n].x < 1e-8) {
+                pmeshnode[n].bdr = 3;
+            }
+        }
+    }
+    //-------------------------
+    double time[10];
+    int tt = 0;
+    time[tt++] = SuperLU_timer_();
+    std::vector <int> D34;
+    D34.empty();
+    for (int i = 0; i < num_ele; i++) {
+        if (!pmeshele[i].LinearFlag) {
+            D34.push_back(i);
+        }
+    }
+    uvec node_reorder = zeros<uvec>(num_pts);
+    uvec node_pos = zeros<uvec>(num_pts);
+    //------------build C Matrix-----------------------------
+    umat locs(2, 16 * num_ele);
+    locs.zeros();
+    mat vals(1,16 * num_ele);
+    double ce[4][4] = { 0 };
+    Resist4matrix *rm = (Resist4matrix*)malloc(num_ele * sizeof(Resist4matrix));
+    vec bbJz = zeros<vec>(num_pts);
+    vec A = zeros<vec>(num_pts);
+    vec A_old = A;
+    vec INL = zeros<vec>(num_pts);
+    double * ydot = (double*)malloc(num_ele*sizeof(double));
+    //重新对节点进行编号，将边界点分离
+    int node_bdr = 0;
+    for (int i = 0; i < num_pts; i++) {
+        if (pmeshnode[i].bdr == 3) {
+            node_bdr++;
+            node_reorder(num_pts - node_bdr) = i;
+            node_pos(i) = num_pts - node_bdr;
+            pmeshnode[i].A = 0;
+            A(i) = 0;
+        } else {
+            node_reorder(i - node_bdr) = i;
+            node_pos(i) = i - node_bdr;
+        }
+    }
+    double* unknown_b = (double*)calloc(num_pts - node_bdr,sizeof(double));
+    int pos = 0;
+    //轴对称：A'=rA,v'=v/r,
+    for (int i = 0; i < num_ele; i++) {
+        //确定单元的近似半径
+        ydot[i] = pmeshele4[i].rc;
+
+        //计算单元导纳
+        rm[i].Y11 = getLocal4Matrix(1-1,1-1,i);
+        rm[i].Y12 = getLocal4Matrix(1-1,2-1,i);
+        rm[i].Y13 = getLocal4Matrix(1-1,3-1,i);
+        rm[i].Y14 = getLocal4Matrix(1-1,4-1,i);
+        rm[i].Y22 = getLocal4Matrix(2-1,2-1,i);
+        rm[i].Y23 = getLocal4Matrix(2-1,3-1,i);
+        rm[i].Y24 = getLocal4Matrix(2-1,4-1,i);
+        rm[i].Y33 = getLocal4Matrix(3-1,3-1,i);
+        rm[i].Y34 = getLocal4Matrix(3-1,4-1,i);
+        rm[i].Y44 = getLocal4Matrix(4-1,4-1,i);
+
+        rm[i].Y11 *= 1/pmeshele4[i].miut/ydot[i];
+        rm[i].Y12 *= 1/pmeshele4[i].miut/ydot[i];
+        rm[i].Y13 *= 1/pmeshele4[i].miut/ydot[i];
+        rm[i].Y14 *= 1/pmeshele4[i].miut/ydot[i];
+        rm[i].Y22 *= 1/pmeshele4[i].miut/ydot[i];
+        rm[i].Y23 *= 1/pmeshele4[i].miut/ydot[i];
+        rm[i].Y24 *= 1/pmeshele4[i].miut/ydot[i];
+
+        rm[i].Y23 *= 1/pmeshele4[i].miut/ydot[i];
+        rm[i].Y24 *= 1/pmeshele4[i].miut/ydot[i];
+        rm[i].Y44 *= 1/pmeshele4[i].miut/ydot[i];
+
+        //生成单元矩阵，线性与非线性
+        // 因为线性与非线性的差不多，所以不再分开讨论了
+        ce[0][0] = rm[i].Y11;
+        ce[1][1] = rm[i].Y22;
+        ce[2][2] = rm[i].Y33;
+        ce[3][3] = rm[i].Y44;
+
+        if (pmeshele[i].LinearFlag) {//线性区，不用计算
+            ce[0][1] = rm[i].Y12;
+            ce[0][2] = rm[i].Y13;
+            ce[0][3] = rm[i].Y14;
+            ce[1][2] = rm[i].Y23;
+            ce[1][3] = rm[i].Y24;
+            ce[2][3] = rm[i].Y34;
+        } else {
+            if (rm[i].Y12 < 0){//电阻
+                ce[0][1] = rm[i].Y12;
+            }
+            else{
+                ce[0][0] += rm[i].Y12;//在对角项上减去受控源
+                ce[1][1] += rm[i].Y12;
+                ce[0][1] = 0;//受控源在右侧，所以为0
+            }
+            if (rm[i].Y13 < 0){
+                ce[0][2] = rm[i].Y13;
+            }
+            else{
+                ce[0][0] += rm[i].Y13;
+                ce[2][2] += rm[i].Y13;
+                ce[0][2] = 0;
+            }
+            if (rm[i].Y23 < 0){
+                ce[1][2] = rm[i].Y23;
+            }
+            else{
+                ce[1][1] += rm[i].Y23;
+                ce[2][2] += rm[i].Y23;
+                ce[1][2] = 0;
+            }
+        }
+        ce[1][0] = ce[0][1];
+        ce[2][0] = ce[0][2];
+        ce[2][1] = ce[1][2];
+
+        //将单元矩阵进行存储
+        for (int row = 0; row < 4; row++) {
+            for (int col = 0; col < 4; col++) {
+                //判断节点是否在未知节点内
+                //得到排序之后的编号
+                int n_row = node_pos(pmeshele[i].n[row]);
+                int n_col = node_pos(pmeshele[i].n[col]);
+                if (n_row < num_pts - node_bdr && n_col < num_pts - node_bdr) {
+                    locs(0, pos) = n_row;
+                    locs(1, pos) = n_col;
+                    vals(0, pos) = ce[row][col];
+                    pos++;
+                }
+            }
+        }
+        //计算电流密度//要注意domain会不会越界
+        double jr = pmeshele[i].AREA*materialList[pmeshele[i].domain - 1].Jr / 3;
+        for (int j = 0; j < 3; j++) {
+            bbJz(pmeshele[i].n[j]) += jr;
+            // 计算永磁部分
+            ///bbJz(pmeshele[i].n[j]) -= materialList[pmeshele[i].domain - 1].H_c / 2.*pmeshele[i].Q[j];
+        }
+    }//end for
+    time[tt++] = SuperLU_timer_();
+    locs.reshape(2, pos);//重新调整大小
+    vals.reshape(1, pos);
+    //----using armadillo constructor function-----
+    sp_mat X(true, locs, vals, num_pts - node_bdr, num_pts - node_bdr, true, true);
+
+    INL += bbJz;
+    for (int i = 0; i < num_pts - node_bdr; i++) {
+        unknown_b[i] = INL(node_reorder(i));
+    }
+    time[tt++] = SuperLU_timer_();
+    //---------------------superLU_MT---------------------------------------
+    //CSuperLU_MT superlumt(num_pts - node_bdr, X, unknown_b);
+    SuperMatrix   sluA;SuperMatrix sluB, sluX;
+    //NCformat *Astore;
+    double   *a;
+    int_t      *asub, *xa;
+    int_t      *perm_r; /* row permutations from partial pivoting */
+    int_t      *perm_c; /* column permutation vector */
+    SuperMatrix   L;       /* factor L */
+    SCPformat *Lstore;
+    SuperMatrix   U;       /* factor U */
+    NCPformat *Ustore;
+    int_t      nrhs,  info, m, n, nnz;
+    int_t      nprocs; /* maximum number of processors to use. */
+    int_t      panel_size, relax, maxsup;
+    int_t      permc_spec;
+    trans_t  trans;
+    //double   *rhs;
+    superlu_memusage_t   superlu_memusage;
+    DNformat	   *Bstore;
+    double      *rhsb, *rhsx;
+    Gstat_t  Gstat1;
+
+
+    panel_size = sp_ienv(1);
+    relax = sp_ienv(2);
+    maxsup = sp_ienv(3);
+
+    nprocs = 1;
+    nrhs = 1;
+    trans = NOTRANS;
+    /* create matrix A in Harwell-Boeing format.*/
+    m = num_pts - node_bdr; n = num_pts - node_bdr; nnz = X.n_nonzero;
+    a = const_cast<double *>(X.values);
+
+    StatAlloc(n, nprocs, panel_size, relax, &Gstat1);
+    StatInit(n, nprocs, &Gstat1);
+
+    asub = (int*)const_cast<unsigned int*>(X.row_indices);
+    xa = (int*)const_cast<unsigned int*>(X.col_ptrs);
+    dCreate_CompCol_Matrix(&sluA, m, n, nnz, a, asub, xa, SLU_NC, SLU_D, SLU_GE);
+
+    //------create B and X-------------------
+    if (!(rhsx = doubleMalloc(m * nrhs))) SUPERLU_ABORT("Malloc fails for rhsx[].");
+    dCreate_Dense_Matrix(&sluX, m, nrhs, rhsx, m, SLU_DN, SLU_D, SLU_GE);
+
+    rhsb = unknown_b;
+    dCreate_Dense_Matrix(&sluB, m, nrhs, rhsb, m, SLU_DN, SLU_D, SLU_GE);
+    Bstore = (DNformat*)sluB.Store;
+
+    if (!(perm_r = intMalloc(m))) SUPERLU_ABORT("Malloc fails for perm_r[].");
+    if (!(perm_c = intMalloc(n))) SUPERLU_ABORT("Malloc fails for perm_c[].");
+
+    /*
+    * Get column permutation vector perm_c[], according to permc_spec:
+    *   permc_spec = 0: natural ordering
+    *   permc_spec = 1: minimum degree ordering on structure of A'*A
+    *   permc_spec = 2: minimum degree ordering on structure of A'+A
+    *   permc_spec = 3: approximate minimum degree for unsymmetric matrices
+    */
+    permc_spec = 1;
+    get_perm_c(permc_spec, &sluA, perm_c);
+
+    pdgssv(nprocs, &sluA, perm_c, perm_r, &L, &U, &sluB, &info);
+
+    if (info != 0) {
+        qDebug() << "Error: superlumt.slove";
+        //qDebug() << "info: " << superlumt.info;
+    } else {
+        double *sol = NULL;
+        A_old = A;
+        sol = (double*)((DNformat*)sluB.Store)->nzval;
+        //取得结果
+        for (int i = 0; i < num_pts - node_bdr; i++) {
+            pmeshnode[node_reorder(i)].A = sol[i];// / pmeshnode[i].x;//the A is r*A_real
+            A(node_reorder(i)) = sol[i];
+        }
+    }
+    time[tt++] = SuperLU_timer_();
+    //---------------------superLU--end----------------------------------
+    //-----------绘图----------------------------------------
+    QVector<double> x(num_ele), y(num_ele);
+    for (int i = 0; i < num_ele; ++i) {
+        x[i] = i;
+    }
+    QCustomPlot * customplot;
+    customplot = thePlot->getQcustomPlot();
+    QCPGraph *graph1 = customplot->addGraph();
+    graph1->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, QPen(Qt::black, 1.5), QBrush(Qt::black), 3));
+    graph1->setPen(QPen(QColor(120, 120, 120), 2));
+    graph1->setLineStyle(QCPGraph::lsNone);
+    customplot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
+    customplot->xAxis->setLabel("x");
+    customplot->xAxis->setRange(0, num_ele);
+    //customplot->xAxis->setAutoTickStep(false);
+    //customplot->xAxis->setTicks(false);
+    customplot->yAxis->setLabel("y");
+    //---------the main loop---------------------------------
+    int steps = 200;
+    int count;
+    double alpha = 1;
+    Voltage *Vr = (Voltage*)calloc(D34.size(), sizeof(Voltage));
+    Voltage *Vi = (Voltage*)calloc(D34.size(), sizeof(Voltage));
+    time[tt++] = SuperLU_timer_();
+    for (count = 0; count < steps; count++) {
+        //------update miu----------------
+        for (int i = 0; i < num_ele; i++) {
+            double bx = 0;
+            double by = 0;
+            for (int j = 0; j < 3; j++) {
+                bx += pmeshele[i].Q[j] * A(pmeshele[i].n[j]);
+                by += pmeshele[i].P[j] * A(pmeshele[i].n[j]);
+            }
+            pmeshele[i].B = sqrt(bx*bx + by*by) / 2. / pmeshele[i].AREA / ydot[i];
+            pmeshele[i].miut = materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B);
+            pmeshele[i].miut = y[i] + (count>90 ? 0.02 : (0.9-count*0.001))*(pmeshele[i].miut - y[i]);
+            //y[i] = (A(pmeshele[i].n[0]) + A(pmeshele[i].n[1]) + A(pmeshele[i].n[2]))/3;
+            y[i] = pmeshele[i].miut;
+        }
+        //#pragma omp parallel for
+        for (int j = 0; j < D34.size(); j++) {
+            int i = D34[j];
+            CElement *m_e = pmeshele + i;
+            int k, m, n;
+            k = m_e->n[0];
+            m = m_e->n[1];
+            n = m_e->n[2];
+            double rtmp;//do this to mark it as private
+            rtmp = (m_e->miut - m_e->miu) / (m_e->miu + m_e->miut);
+            double hehe = -(m_e->miu - m_e->miut) / m_e->miut;
+            //qDebug()<<m_e->miut<<"\t"<<m_e->miu<<"\t"<<rtmp;
+
+            Vr[j].V12 = (pmeshnode[k].A - pmeshnode[m].A) - Vi[j].V12;
+            Vr[j].V23 = (pmeshnode[m].A - pmeshnode[n].A) - Vi[j].V23;
+            Vr[j].V13 = (pmeshnode[n].A - pmeshnode[k].A) - Vi[j].V13;
+
+            if (rm[i].Y12 < 0) {
+                Vi[j].V12 = Vr[j].V12 * rtmp;
+            } else {
+                Vi[j].V12 = -0.5*(pmeshnode[k].A - pmeshnode[m].A)*hehe;
+            }
+            INL(k) += -2. *Vi[j].V12*rm[i].Y12;
+            INL(m) += 2. * Vi[j].V12 *rm[i].Y12;
+            if (rm[i].Y23 < 0) {
+                Vi[j].V23 = Vr[j].V23*rtmp;
+            } else {
+                Vi[j].V23 = -0.5*(pmeshnode[m].A - pmeshnode[n].A)*hehe;
+            }
+            INL(m) += -2. * Vi[j].V23*rm[i].Y23;
+            INL(n) += 2. *Vi[j].V23*rm[i].Y23;
+            if (rm[i].Y13 < 0) {
+                Vi[j].V13 = Vr[j].V13 * rtmp;
+            } else {
+                Vi[j].V13 = -0.5*(pmeshnode[n].A - pmeshnode[k].A)*hehe;
+            }
+            INL(n) += -2. * Vi[j].V13*rm[i].Y13;
+            INL(k) += 2.0 *Vi[j].V13*rm[i].Y13;
+        }
+        INL += bbJz;
+        for (int i = 0; i < num_pts - node_bdr; i++) {
+            unknown_b[i] = INL(node_reorder(i));
+        }
+        //time[tt++] = SuperLU_timer_();
+        dgstrs(trans, &L, &U, perm_r, perm_c, &sluB, &Gstat1, &info);
+        //myTriSolve(1, &L, &U, perm_r, perm_c, &sluB, &info);
+        //time[tt++] = SuperLU_timer_();
+        //pdgssv(nprocs, &sluA, perm_c, perm_r, &L, &U, &sluB, &info);
+        //NOW WE SOLVE THE LINEAR SYSTEM USING THE FACTORED FORM OF sluA.
+        if (info != 0) {
+            qDebug() << "Error: superlumt.slove";
+            //qDebug() << "info: " << superlumt.info;
+            break;
+        } else {
+            double *sol = NULL;
+            A_old = A;
+            sol = (double*)((DNformat*)sluB.Store)->nzval;
+
+            for (int i = 0; i < num_pts - node_bdr; i++) {
+                pmeshnode[node_reorder(i)].A = sol[i];// / pmeshnode[i].x;//the A is r*A_real
+                A(node_reorder(i)) = sol[i];
+            }
+        }
+        double error = norm((A_old - A), 2) / norm(A, 2);
+        //qDebug() << "iter: " << count;
+        //qDebug() << "error: " << error;
+
+        graph1->setData(x, y);
+        customplot->rescaleAxes(true);
+        //customplot->xAxis->setRange(0, 0.09);
+        //customplot->yAxis->setRange(-0.04, 0.04);
+        //customplot->yAxis->setScaleRatio(customplot->xAxis, 1.0);
+        customplot->replot();
+
+
+        if (error < Precision) {
+            break;
+        }
+        INL.zeros();
+    }
+    time[tt++] = SuperLU_timer_();
+    // 求解结束，更新B
+    for (int i = 0; i < num_ele; i++) {
+        double bx = 0;
+        double by = 0;
+        for (int j = 0; j < 3; j++) {
+            bx += pmeshele[i].Q[j] * A(pmeshele[i].n[j]);
+            by += pmeshele[i].P[j] * A(pmeshele[i].n[j]);
+        }
+        pmeshele[i].B = sqrt(bx*bx + by*by) / 2. / pmeshele[i].AREA / ydot[i];
+        pmeshele[i].miut = materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B);
+    }
+    for (int i = 0; i < num_pts - node_bdr; i++) {
+        pmeshnode[node_reorder(i)].A /= pmeshnode[node_reorder(i)].x;// / pmeshnode[i].x;//the A is r*A_real
+    }
+    //output the time
+    for(int i = 1;i < tt;i++){
+        qDebug()<<i<<"\t"<<time[i] - time[i-1];
+    }
+
+    qDebug()<<"TLM steps:"<<count;
+    // 回收空间
+    if (rm != NULL) free(rm);
+    if (ydot != NULL) free(ydot);
+    if (Vi != NULL) free(Vi);
+    if (Vr != NULL) free(Vr);
+    if (unknown_b != NULL) free(unknown_b);
+
+    //SUPERLU_FREE(rhs);
+    //SUPERLU_FREE(xact);
+    //SUPERLU_FREE(perm_r);
+    //SUPERLU_FREE(perm_c);
+    //Destroy_CompCol_Matrix(&sluA);
+    //Destroy_SuperMatrix_Store(&sluB);
+    //Destroy_SuperNode_SCP(&L);
+    //Destroy_CompCol_NCP(&U);
+    //StatFree(&Gstat1);
+    return true;
 }

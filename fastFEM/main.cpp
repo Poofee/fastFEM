@@ -17,6 +17,9 @@ int main(int argc, char *argv[])
 }
 void quadtest(){
     CFastFEMcore fem;
+    //读取工程文件
+    fem.openProject("..\\..\\model\\project1.mag");
+    //读取分网
     if(fem.LoadQ4MeshCOMSOL("..\\..\\model\\reg1.mphtxt") == 0){
         qDebug()<<"OK";
         qDebug()<<"number of elements:"<<fem.num_ele;

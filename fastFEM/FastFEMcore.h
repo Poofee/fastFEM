@@ -26,6 +26,9 @@ public:
 	int Load2DMeshCOMSOL(const char fn[]);//载入分网信息函数
     int LoadQ4MeshCOMSOL(const char fn[]);//读入四节点单元
 	bool StaticAxisymmetricTLM();//使用TLM静态轴对称磁场的计算函数
+    bool StaticAxisQ4Relaxtion();//使用松弛迭代求解，四边形分网
+    bool StaticAxisQ4NR();//使用NR求解，四边形分网
+    bool StaticAxisQ4TLM();//使用TLM求解，四边形分网
 	double CalcForce();//电磁力计算函数
 	int openProject(QString proFile);//打开工程文件函数
 	int preCalculation();//预计算函数
@@ -36,5 +39,17 @@ public:
 	int StaticAxisymmetricNR();//使用NR静态轴对称磁场的计算函数
     void myTriSolve(int ncore, SuperMatrix *L, SuperMatrix *U,
                     int_t *perm_r, int_t *perm_c, SuperMatrix *B, int_t *info);
+    double getLocal4Matrix(int Ki, int Kj, int index);//返回单元矩阵的元素ij
+    double getP(int Ki, int Kj, double xi, double eta,int index);//被积分的那个函数
+    double getdNidx(int Ki, double xi, double eta, int index);//返回形函数的对x偏导数
+    double getdNidy(int Ki,double xi,double eta,int index);//返回形函数的对y的偏导数
+    double getdxdxi(double eta, int index);
+    double getdxdeta(double xi,int index);
+    double getdydxi(double eta, int index);
+    double getdydeta(double xi,int index);
+    double getdNdxi(int i,double eta);
+    double getdNdeta(int i,double xi);
+    double getJacobi(double xi, double eta, int index);
+
 };
 
