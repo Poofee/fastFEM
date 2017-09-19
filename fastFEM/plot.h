@@ -21,6 +21,10 @@ public slots:
 
 private:
 	Ui::MainWindow *ui;
+	QMenu *fileMenu;
+
+	QAction *openAct;               // File -> Open...
+	QAction *loadAct;               // File -> Load...
 
 };
 

@@ -11,16 +11,19 @@ void quadtest();
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
+	qDebug() << "current applicationDirPath: " << QCoreApplication::applicationDirPath();
+	qDebug() << "current currentPath: " << QDir::currentPath();
 
-    quadtest();
+	Plot myplot;
+	myplot.show();
     return a.exec();
 }
 void quadtest(){
     CFastFEMcore fem;
     //读取工程文件
-    fem.openProject("..\\..\\model\\project1.mag");
+    fem.openProject("G:\\Projects\\fastFEM\\model\\project1.mag");
     //读取分网
-    if(fem.LoadQ4MeshCOMSOL("..\\..\\model\\reg1.mphtxt") == 0){
+    if(fem.LoadQ4MeshCOMSOL("G:\\Projects\\fastFEM\\model\\reg1.mphtxt") == 0){
         qDebug()<<"OK";
         qDebug()<<"number of elements:"<<fem.num_ele;
         qDebug()<<"number of points:"<<fem.num_pts;

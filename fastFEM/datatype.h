@@ -62,7 +62,7 @@ public:
 	double Y23;
 	double Y33;
 };
-typedef struct _Resist4matrix{
+typedef struct _Resist4Matrix{
     double Y11;
     double Y12;
     double Y13;
@@ -73,7 +73,7 @@ typedef struct _Resist4matrix{
     double Y33;
     double Y34;
     double Y44;
-}Resist4matrix;
+}Resist4Matrix;
 
 class Voltage{
 public:

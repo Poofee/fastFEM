@@ -1973,6 +1973,7 @@ int CFastFEMcore::LoadQ4MeshCOMSOL(const char fn[]){
     fclose(fp);
     return 0;
 }
+//Ki,start from 0
 double CFastFEMcore::getLocal4Matrix(int Ki, int Kj,int index){
     int gaussPoints = 3;
     double * gaussweight;
@@ -1987,7 +1988,7 @@ double CFastFEMcore::getLocal4Matrix(int Ki, int Kj,int index){
     }
     for(int i = 0; i < gaussPoints;i++){
         for(int j = 0; j < gaussPoints;j++){
-            Kij += gaussweight[i]*gaussweight[j]*getP(Ki,Kj,gausspoint[i],gausspoint[j],index)*getJacobi(xi,eta,index);
+			Kij += gaussweight[i] * gaussweight[j] * getP(Ki, Kj, gausspoint[i], gausspoint[j], index);
         }
     }
     return Kij;
@@ -1996,6 +1997,7 @@ double CFastFEMcore::getP(int Ki, int Kj, double xi, double eta, int index){
     double p = 0;
     p = getdNidx(Ki,xi,eta,index)*getdNidx(Kj,xi,eta,index);
     p += getdNidy(Ki,xi,eta,index)*getdNidy(Kj,xi,eta,index);
+	p *= getJacobi(xi, eta, index);
     return p;
 }
 
@@ -2043,15 +2045,17 @@ double CFastFEMcore::getdydxi(double eta, int index){
     }
     return sum;
 }
+
 double CFastFEMcore::getdNdeta(int i, double xi){
     double xxi[]={-1,1,1,-1};
     double yeta[]={-1,-1,1,1};
     return yeta[i]*(1+xxi[i]*xi)/4;
 }
+
 double CFastFEMcore::getdNdxi(int i,double eta){
     double xxi[]={-1,1,1,-1};
     double yeta[]={-1,-1,1,1};
-    return xxi[i]*(1+yeta[i]*xi)/4;
+    return xxi[i]*(1+yeta[i]*eta)/4;
 }
 
 bool CFastFEMcore::StaticAxisQ4Relaxtion(){
@@ -2111,7 +2115,7 @@ bool CFastFEMcore::StaticAxisQ4Relaxtion(){
     vec A_old = A;
     double ce [4][4] = {0};
     double * ydot = (double*)malloc(num_ele*sizeof(double));
-    Resist4matrix * rm = (Resist4matrix*)malloc(numele * sizeof(Resist4Matrix));
+    Resist4Matrix * rm = (Resist4Matrix*)malloc(num_ele * sizeof(Resist4Matrix));
     //处理边界点
     int node_bdr = 0;
     for (int i = 0; i < num_pts; i++) {
@@ -2303,7 +2307,7 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
     locs.zeros();
     mat vals(1,16 * num_ele);
     double ce[4][4] = { 0 };
-    Resist4matrix *rm = (Resist4matrix*)malloc(num_ele * sizeof(Resist4matrix));
+    Resist4Matrix *rm = (Resist4Matrix*)malloc(num_ele * sizeof(Resist4Matrix));
     vec bbJz = zeros<vec>(num_pts);
     vec A = zeros<vec>(num_pts);
     vec A_old = A;
@@ -2444,7 +2448,7 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
     SCPformat *Lstore;
     SuperMatrix   U;       /* factor U */
     NCPformat *Ustore;
-    int_t      nrhs,  info, m, n, nnz;
+    int_t      nrhs,  info, mm, nn, nnz;
     int_t      nprocs; /* maximum number of processors to use. */
     int_t      panel_size, relax, maxsup;
     int_t      permc_spec;
@@ -2464,26 +2468,26 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
     nrhs = 1;
     trans = NOTRANS;
     /* create matrix A in Harwell-Boeing format.*/
-    m = num_pts - node_bdr; n = num_pts - node_bdr; nnz = X.n_nonzero;
+    mm = num_pts - node_bdr; nn = num_pts - node_bdr; nnz = X.n_nonzero;
     a = const_cast<double *>(X.values);
 
-    StatAlloc(n, nprocs, panel_size, relax, &Gstat1);
-    StatInit(n, nprocs, &Gstat1);
+    StatAlloc(nn, nprocs, panel_size, relax, &Gstat1);
+    StatInit(nn, nprocs, &Gstat1);
 
     asub = (int*)const_cast<unsigned int*>(X.row_indices);
     xa = (int*)const_cast<unsigned int*>(X.col_ptrs);
-    dCreate_CompCol_Matrix(&sluA, m, n, nnz, a, asub, xa, SLU_NC, SLU_D, SLU_GE);
+    dCreate_CompCol_Matrix(&sluA, mm, nn, nnz, a, asub, xa, SLU_NC, SLU_D, SLU_GE);
 
     //------create B and X-------------------
-    if (!(rhsx = doubleMalloc(m * nrhs))) SUPERLU_ABORT("Malloc fails for rhsx[].");
-    dCreate_Dense_Matrix(&sluX, m, nrhs, rhsx, m, SLU_DN, SLU_D, SLU_GE);
+    if (!(rhsx = doubleMalloc(mm * nrhs))) SUPERLU_ABORT("Malloc fails for rhsx[].");
+    dCreate_Dense_Matrix(&sluX, mm, nrhs, rhsx, mm, SLU_DN, SLU_D, SLU_GE);
 
     rhsb = unknown_b;
-    dCreate_Dense_Matrix(&sluB, m, nrhs, rhsb, m, SLU_DN, SLU_D, SLU_GE);
+    dCreate_Dense_Matrix(&sluB, mm, nrhs, rhsb, mm, SLU_DN, SLU_D, SLU_GE);
     Bstore = (DNformat*)sluB.Store;
 
-    if (!(perm_r = intMalloc(m))) SUPERLU_ABORT("Malloc fails for perm_r[].");
-    if (!(perm_c = intMalloc(n))) SUPERLU_ABORT("Malloc fails for perm_c[].");
+    if (!(perm_r = intMalloc(mm))) SUPERLU_ABORT("Malloc fails for perm_r[].");
+    if (!(perm_c = intMalloc(nn))) SUPERLU_ABORT("Malloc fails for perm_c[].");
 
     /*
     * Get column permutation vector perm_c[], according to permc_spec:
