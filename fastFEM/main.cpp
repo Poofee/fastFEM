@@ -14,6 +14,7 @@ int main(int argc, char *argv[])
 	qDebug() << "current applicationDirPath: " << QCoreApplication::applicationDirPath();
 	qDebug() << "current currentPath: " << QDir::currentPath();
 
+	quadtest();
 	Plot myplot;
 	myplot.show();
     return a.exec();
@@ -27,6 +28,8 @@ void quadtest(){
         qDebug()<<"OK";
         qDebug()<<"number of elements:"<<fem.num_ele;
         qDebug()<<"number of points:"<<fem.num_pts;
+
+		fem.StaticAxisQ4Relaxtion();
     }
 }
 

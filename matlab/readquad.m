@@ -70,15 +70,15 @@ NDPP = NDPP ;
 NP = length(NDPP);  % 确定边界上的节点个数，存入 NP
 % 进行边界条件的设定，要通过domain进行判断，然后赋值
 NDP = [];
-for i = 1:NP
-%     plot(X(NDPP(i)),Y(NDPP(i)),'b*');hold on
-    if  abs(sqrt(xy(NDPP(i),1)^2 + xy(NDPP(i),2)^2) - 0.05) < 5e-3 || abs(xy(NDPP(i),1)) < 0.5e-4
-        NDP(i) = NDPP(i);
-        plot(xy(NDPP(i),1),xy(NDPP(i),2),'ro');
-        hold on
-    end
-
-end
+% for i = 1:NP
+% %     plot(X(NDPP(i)),Y(NDPP(i)),'b*');hold on
+%     if  abs(sqrt(xy(NDPP(i),1)^2 + xy(NDPP(i),2)^2) - 0.05) < 5e-3 || abs(xy(NDPP(i),1)) < 0.5e-4
+%         NDP(i) = NDPP(i);
+%         plot(xy(NDPP(i),1),xy(NDPP(i),2),'ro');
+%         hold on
+%     end
+% 
+% end
 NDP(NDP == 0) = [];
 NDP = unique(NDP);
 NP = length(NDP);  % 确定边界上的节点个数，存入 NP
@@ -98,30 +98,22 @@ AREA = zeros(num_elements,1);
 P = zeros(num_elements,3);
 Q = zeros(num_elements,3);
 DD = zeros(num_elements,3);
-XL = zeros(num_elements,3);
-YL = zeros(num_elements,3);
+XL = zeros(num_elements,4);
+YL = zeros(num_elements,4);
 
 colors = ['b','g','r','c','m','y','w','k'];
 for i = 1:num_elements
-    for j = 1:3
+    for j = 1:4
         k = NL(i,j);
-        XL(i,j) = X(k);
-        YL(i,j) = Y(k);
+        XL(i,j) = xy(k,1);
+        YL(i,j) = xy(k,2);        
+        text(XL(i,j),YL(i,j),num2str(j));
+        hold on
     end
- 
-    
-
-end
-ia = vtx+1;
-for i = 1:length(ia)
-    plot(X(ia(i)),Y(ia(i)),'*r');
-    hold on
-    %text(sum(XL((ia(i)),1:3))/3,sum(YL((ia(i)),1:3))/3,int2str(ia(i)));
+    plot(XL(i,:),YL(i,:),'-*');        
+    hold off
+        pause(1)
 end
 
-for i=1:length(p)
-   plot(X(p((i),1:2)),Y(p((i),1:2)),'-*k') ;
-   hold on
-end
 
 axis equal

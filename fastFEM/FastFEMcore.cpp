@@ -1951,8 +1951,9 @@ int CFastFEMcore::LoadQ4MeshCOMSOL(const char fn[]){
     }
     fgets(ch, 256, fp);
     //读取分网四边形单元的四个节点索引
+	//注意这里有点问题，comsol文件似乎不是按照逆时针存储的，而是1->2->4->3
     for (int i = 0; i < num_ele; i++) {
-        if (fscanf(fp, "%d %d %d %d\n", &pmeshele4[i].n[0], &pmeshele4[i].n[1], &pmeshele4[i].n[2],&pmeshele4[i].n[3]) != 4) {
+        if (fscanf(fp, "%d %d %d %d\n", &pmeshele4[i].n[0], &pmeshele4[i].n[1], &pmeshele4[i].n[3],&pmeshele4[i].n[2]) != 4) {
             qDebug() << "Error: reading elements points!";
             return 1;
         }
@@ -2014,7 +2015,11 @@ double CFastFEMcore::getdNidy(int Ki, double xi, double eta,int index){
     return result;
 }
 double CFastFEMcore::getJacobi(double xi, double eta,int index){
-    return getdxdxi(eta,index)*getdydeta(xi,index)-getdydxi(eta,index)*getdxdeta(xi,index);
+	double tmp = getdxdxi(eta, index)*getdydeta(xi, index) - getdydxi(eta, index)*getdxdeta(xi, index);
+	//qDebug() << tmp;
+	if ((tmp) < 0)
+		qDebug() << tmp;
+    return fabs(tmp);
 }
 
 double CFastFEMcore::getdxdeta(double xi, int index){
@@ -2029,6 +2034,16 @@ double CFastFEMcore::getdxdxi(double eta, int index){
     for(int i=0;i < 4;i++){
         sum += getdNdxi(i,eta)*pmeshnode[pmeshele4[index].n[i]].x;
     }
+	if (sum==0){
+		qDebug() << pmeshnode[pmeshele4[index].n[0]].x;
+		qDebug() << pmeshnode[pmeshele4[index].n[1]].x;
+		qDebug() << pmeshnode[pmeshele4[index].n[2]].x;
+		qDebug() << pmeshnode[pmeshele4[index].n[3]].x;
+		qDebug() << getdNdxi(0, eta);
+		qDebug() << getdNdxi(1, eta);
+		qDebug() << getdNdxi(2, eta);
+		qDebug() << getdNdxi(3, eta);
+	}
     return sum;
 }
 double CFastFEMcore::getdydeta(double xi, int index){
@@ -2049,13 +2064,13 @@ double CFastFEMcore::getdydxi(double eta, int index){
 double CFastFEMcore::getdNdeta(int i, double xi){
     double xxi[]={-1,1,1,-1};
     double yeta[]={-1,-1,1,1};
-    return yeta[i]*(1+xxi[i]*xi)/4;
+    return yeta[i]*(1+xxi[i]*xi)*0.25;
 }
 
 double CFastFEMcore::getdNdxi(int i,double eta){
     double xxi[]={-1,1,1,-1};
     double yeta[]={-1,-1,1,1};
-    return xxi[i]*(1+yeta[i]*eta)/4;
+    return xxi[i]*(1+yeta[i]*eta)*0.25;
 }
 
 bool CFastFEMcore::StaticAxisQ4Relaxtion(){
@@ -2155,9 +2170,11 @@ bool CFastFEMcore::StaticAxisQ4Relaxtion(){
                 rm[i].Y34 = getLocal4Matrix(3-1,4-1,i);
                 rm[i].Y44 = getLocal4Matrix(4-1,4-1,i);
 
+				//qDebug() << rm[i].Y11;
+
                 //计算电流密度矩阵
                 //计算电流密度//要注意domain会不会越界
-                double jr = pmeshele[i].AREA*materialList[pmeshele[i].domain - 1].Jr / 3;
+                double jr = pmeshele4[i].AREA*materialList[pmeshele4[i].domain - 1].Jr / 3;
                 for (int j = 0; j < 4; j++) {
                     bbJz(pmeshele4[i].n[j]) += jr;
                     // 计算永磁部分
@@ -2188,8 +2205,8 @@ bool CFastFEMcore::StaticAxisQ4Relaxtion(){
                 for (int col = 0; col < 4; col++) {
                     //判断节点是否在未知节点内
                     //得到排序之后的编号
-                    int n_row = node_pos(pmeshele[i].n[row]);
-                    int n_col = node_pos(pmeshele[i].n[col]);
+                    int n_row = node_pos(pmeshele4[i].n[row]);
+                    int n_col = node_pos(pmeshele4[i].n[col]);
                     if (n_row < num_pts - node_bdr && n_col < num_pts - node_bdr) {
                         locs(0, pos) = n_row;
                         locs(1, pos) = n_col;
@@ -2233,12 +2250,14 @@ bool CFastFEMcore::StaticAxisQ4Relaxtion(){
 
         double error = norm((A_old - A), 2) / norm(A, 2);
         iter++;
-        //qDebug() << "iter: " << iter;
-        //qDebug() << "error: " << error;
+        qDebug() << "iter: " << iter;
+        qDebug() << "error: " << error;
         if (error < Precision || iter > 20) {
             //A.save("NRA.txt",arma::arma_ascii,false);
             break;
         }
+		pos = 0;
+		bn.zeros();
 
     }
     return true;
