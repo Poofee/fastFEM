@@ -50,6 +50,11 @@ public:
     double getdNdxi(int i,double eta);
     double getdNdeta(int i,double xi);
     double getJacobi(double xi, double eta, int index);
+	double getJi(int Ki, int index);
+	double Ne(double xi, double eta, int index);
+	double getx(double xi, double eta, int index);
+	double gety(double xi, double eta, int index);
+	double getA(double xi, double eta, int index);
 
 };
 

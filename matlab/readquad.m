@@ -62,45 +62,15 @@ Domain = fscanf(fp, '%d \n', [1,num_domain]);
 Domain = Domain';
 fclose(fp);
 
-
-
+%COMSOL的读取格式貌似不是按照1234的顺序，而是
+%按照1243的顺序，这里交换了一下。
+t34 = NL(:,3);
+NL(:,3) = NL(:,4);
+NL(:,4) = t34;
 NL(:,5) = Domain;
-NDD = (1:num_nodes)';             % NDD --- 从1到ND的节点号
-NDPP = NDPP ;
-NP = length(NDPP);  % 确定边界上的节点个数，存入 NP
-% 进行边界条件的设定，要通过domain进行判断，然后赋值
-NDP = [];
-% for i = 1:NP
-% %     plot(X(NDPP(i)),Y(NDPP(i)),'b*');hold on
-%     if  abs(sqrt(xy(NDPP(i),1)^2 + xy(NDPP(i),2)^2) - 0.05) < 5e-3 || abs(xy(NDPP(i),1)) < 0.5e-4
-%         NDP(i) = NDPP(i);
-%         plot(xy(NDPP(i),1),xy(NDPP(i),2),'ro');
-%         hold on
-%     end
-% 
-% end
-NDP(NDP == 0) = [];
-NDP = unique(NDP);
-NP = length(NDP);  % 确定边界上的节点个数，存入 NP
 
-
-num_node_free = num_nodes - NP;     % num_node_free --- 自由节点的个数
-
-Domain3 = find(Domain==3);
-Domain4 = find(Domain==4);
-D34 = [Domain3;Domain4];
-
-%%%% 设定存储的变量
-
-CE = zeros(3,3);      % CE --- 用来存储每个单元的系数矩阵
-
-AREA = zeros(num_elements,1);
-P = zeros(num_elements,3);
-Q = zeros(num_elements,3);
-DD = zeros(num_elements,3);
 XL = zeros(num_elements,4);
 YL = zeros(num_elements,4);
-
 colors = ['b','g','r','c','m','y','w','k'];
 for i = 1:num_elements
     for j = 1:4
@@ -112,7 +82,7 @@ for i = 1:num_elements
     end
     plot(XL(i,:),YL(i,:),'-*');        
     hold off
-        pause(1)
+        %pause(1)
 end
 
 

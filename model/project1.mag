@@ -120,7 +120,7 @@
             <BH>
                 <BHpoints>0</BHpoints>
             </BH>
-            <Jr>0</Jr>
+            <Jr>8.5e5</Jr>
             <H_c>0</H_c>
         </Domain>
     </Domains>

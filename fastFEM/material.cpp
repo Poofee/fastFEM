@@ -22,15 +22,17 @@ CMaterial::~CMaterial() {
 //这个求解出来的应该是相对磁导率
 double CMaterial::getMiu(double B) {
 	double slope, H;
-	
+	if (B < 1e-3){
+		B += 1e-3;
+	}
 	if (BHpoints == 0) {
 		return miu;
 	} else {
 		for (int i = 0; i < BHpoints - 2; i++) {
-			if (B >= Bdata[i] && B <= Bdata[i + 1]) {
+			if (B > Bdata[i] && B <= Bdata[i + 1]) {
 				slope = (Hdata[i + 1] - Hdata[i]) / (Bdata[i + 1] - Bdata[i]);
 				H = Hdata[i] + slope*(B - Bdata[i]);
-				return B / H ;
+				return B / H;
 			}
 		}
 	}
