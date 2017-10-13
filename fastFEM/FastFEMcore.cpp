@@ -2158,9 +2158,11 @@ double CFastFEMcore::getdNdxi(int i, double eta){
 //根据等参单元法求得xi,eta与A的对应关系
 double CFastFEMcore::getA(double xi, double eta, int index){
 	double A = 0;
+	//教材里插值针对的是A‘，而不是A
 	for (int i = 0; i < 4; i++){
-		A += pmeshnode[pmeshele4[index].n[i]].A*Ne(xi, eta, i);
+		A += pmeshnode[pmeshele4[index].n[i]].A*Ne(xi, eta, i)*pmeshnode[pmeshele4[index].n[i]].x;
 	}
+	A /= getx(xi, eta, index);
 	return A;
 }
 //根据等参单元法求得xi,eta与x的对应关系
@@ -2381,10 +2383,10 @@ bool CFastFEMcore::StaticAxisQ4Relaxtion(){
 			A.save("NRA.txt", arma::arma_ascii, false);
 			break;
 		}
-		for (int i = 0; i < num_pts - node_bdr; i++) {
-			pmeshnode[node_reorder(i)].A = A_old(node_reorder(i)) - 0.05*(A_old(node_reorder(i)) - pmeshnode[node_reorder(i)].A);//the A is r*A_real
-			A(node_reorder(i)) = A_old(node_reorder(i)) - 0.05*(A_old(node_reorder(i)) - A(node_reorder(i)));
-		}
+		//for (int i = 0; i < num_pts - node_bdr; i++) {
+		//	pmeshnode[node_reorder(i)].A = A_old(node_reorder(i)) - 0.05*(A_old(node_reorder(i)) - pmeshnode[node_reorder(i)].A);//the A is r*A_real
+		//	A(node_reorder(i)) = A_old(node_reorder(i)) - 0.05*(A_old(node_reorder(i)) - A(node_reorder(i)));
+		//}
 		pos = 0;
 		bn.zeros();
 
