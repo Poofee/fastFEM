@@ -2300,25 +2300,25 @@ bool CFastFEMcore::StaticAxisQ4Relaxtion(){
 					//bbJz(pmeshele4[i].n[j]) -= materialList[pmeshele[i].domain - 1].H_c / 2.*pmeshele[i].Q[j];
 				}
 			//}
-			ce[0][0] = rm[i].Y11; // pmeshele4[i].miut / ydot[i];
-			ce[0][1] = rm[i].Y12; // pmeshele4[i].miut / ydot[i];
-			ce[0][2] = rm[i].Y13; // pmeshele4[i].miut / ydot[i];
-			ce[0][3] = rm[i].Y14; // pmeshele4[i].miut / ydot[i];
+			ce[0][0] = rm[i].Y11; 
+			ce[0][1] = rm[i].Y12; 
+			ce[0][2] = rm[i].Y13; 
+			ce[0][3] = rm[i].Y14; 
 
 			ce[1][0] = ce[0][1];
-			ce[1][1] = rm[i].Y22; // pmeshele4[i].miut / ydot[i];
-			ce[1][2] = rm[i].Y23; // pmeshele4[i].miut / ydot[i];
-			ce[1][3] = rm[i].Y24; // pmeshele4[i].miut / ydot[i];
+			ce[1][1] = rm[i].Y22; 
+			ce[1][2] = rm[i].Y23; 
+			ce[1][3] = rm[i].Y24; 
 
 			ce[2][0] = ce[0][2];
 			ce[2][1] = ce[1][2];
-			ce[2][2] = rm[i].Y33; // pmeshele4[i].miut / ydot[i];
-			ce[2][3] = rm[i].Y34; // pmeshele4[i].miut / ydot[i];
+			ce[2][2] = rm[i].Y33; 
+			ce[2][3] = rm[i].Y34; 
 
 			ce[3][0] = ce[0][3];
 			ce[3][1] = ce[1][3];
 			ce[3][2] = ce[2][3];
-			ce[3][3] = rm[i].Y44; // pmeshele4[i].miut / ydot[i];
+			ce[3][3] = rm[i].Y44; 
 
 			for (int row = 0; row < 4; row++) {
 				for (int col = 0; col < 4; col++) {
@@ -2383,16 +2383,17 @@ bool CFastFEMcore::StaticAxisQ4Relaxtion(){
 			A.save("NRA.txt", arma::arma_ascii, false);
 			break;
 		}
-		//for (int i = 0; i < num_pts - node_bdr; i++) {
-		//	pmeshnode[node_reorder(i)].A = A_old(node_reorder(i)) - 0.05*(A_old(node_reorder(i)) - pmeshnode[node_reorder(i)].A);//the A is r*A_real
-		//	A(node_reorder(i)) = A_old(node_reorder(i)) - 0.05*(A_old(node_reorder(i)) - A(node_reorder(i)));
-		//}
+		for (int i = 0; i < num_pts - node_bdr; i++) {
+			pmeshnode[node_reorder(i)].A = A_old(node_reorder(i)) - 0.05*(A_old(node_reorder(i)) - pmeshnode[node_reorder(i)].A);//the A is r*A_real
+			A(node_reorder(i)) = A_old(node_reorder(i)) - 0.05*(A_old(node_reorder(i)) - A(node_reorder(i)));
+		}
 		pos = 0;
 		bn.zeros();
 
 	}
 	return true;
 }
+//采用传输线法求解轴对称静磁场，四边形分网
 bool CFastFEMcore::StaticAxisQ4TLM(){
 	//计算边界信息
 	int k, l, m, n;
@@ -2441,20 +2442,14 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 			}
 		}
 	}
-	//-------------------------
-	double time[10];
-	int tt = 0;
-	time[tt++] = SuperLU_timer_();
+	//寻找非线性单元
 	std::vector <int> D34;
 	D34.empty();
 	for (int i = 0; i < num_ele; i++) {
-		if (!pmeshele[i].LinearFlag) {
+		if (!pmeshele4[i].LinearFlag) {
 			D34.push_back(i);
 		}
 	}
-	uvec node_reorder = zeros<uvec>(num_pts);
-	uvec node_pos = zeros<uvec>(num_pts);
-	//------------build C Matrix-----------------------------
 	umat locs(2, 16 * num_ele);
 	locs.zeros();
 	mat vals(1, 16 * num_ele);
@@ -2464,8 +2459,9 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 	vec A = zeros<vec>(num_pts);
 	vec A_old = A;
 	vec INL = zeros<vec>(num_pts);
-	double * ydot = (double*)malloc(num_ele*sizeof(double));
-	//重新对节点进行编号，将边界点分离
+	//根据边界条件对节点重新进行编号
+	uvec node_reorder = zeros<uvec>(num_pts);
+	uvec node_pos = zeros<uvec>(num_pts);
 	int node_bdr = 0;
 	for (int i = 0; i < num_pts; i++) {
 		if (pmeshnode[i].bdr == 3) {
@@ -2482,49 +2478,29 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 	}
 	double* unknown_b = (double*)calloc(num_pts - node_bdr, sizeof(double));
 	int pos = 0;
-	//轴对称：A'=rA,v'=v/r,
+
+	//计算导纳矩阵
 	for (int i = 0; i < num_ele; i++) {
 		//确定单元的近似半径
-		ydot[i] = pmeshele4[i].rc;
+		int flag = 0;
+		for (int f = 0; f < 3; f++)
+			if (pmeshnode[pmeshele[i].n[f]].x < 1e-7)
+				flag++;
 
+		
 		//计算单元导纳
-		rm[i].Y11 = getLocal4Matrix(1 - 1, 1 - 1, i);
-		rm[i].Y12 = getLocal4Matrix(1 - 1, 2 - 1, i);
-		rm[i].Y13 = getLocal4Matrix(1 - 1, 3 - 1, i);
-		rm[i].Y14 = getLocal4Matrix(1 - 1, 4 - 1, i);
-		rm[i].Y22 = getLocal4Matrix(2 - 1, 2 - 1, i);
-		rm[i].Y23 = getLocal4Matrix(2 - 1, 3 - 1, i);
-		rm[i].Y24 = getLocal4Matrix(2 - 1, 4 - 1, i);
-		rm[i].Y33 = getLocal4Matrix(3 - 1, 3 - 1, i);
-		rm[i].Y34 = getLocal4Matrix(3 - 1, 4 - 1, i);
-		rm[i].Y44 = getLocal4Matrix(4 - 1, 4 - 1, i);
-
-		rm[i].Y11 *= 1 / pmeshele4[i].miut / ydot[i];
-		rm[i].Y12 *= 1 / pmeshele4[i].miut / ydot[i];
-		rm[i].Y13 *= 1 / pmeshele4[i].miut / ydot[i];
-		rm[i].Y14 *= 1 / pmeshele4[i].miut / ydot[i];
-		rm[i].Y22 *= 1 / pmeshele4[i].miut / ydot[i];
-		rm[i].Y23 *= 1 / pmeshele4[i].miut / ydot[i];
-		rm[i].Y24 *= 1 / pmeshele4[i].miut / ydot[i];
-
-		rm[i].Y23 *= 1 / pmeshele4[i].miut / ydot[i];
-		rm[i].Y24 *= 1 / pmeshele4[i].miut / ydot[i];
-		rm[i].Y44 *= 1 / pmeshele4[i].miut / ydot[i];
+		
 
 		//生成单元矩阵，线性与非线性
 		// 因为线性与非线性的差不多，所以不再分开讨论了
 		ce[0][0] = rm[i].Y11;
 		ce[1][1] = rm[i].Y22;
 		ce[2][2] = rm[i].Y33;
-		ce[3][3] = rm[i].Y44;
 
 		if (pmeshele[i].LinearFlag) {//线性区，不用计算
 			ce[0][1] = rm[i].Y12;
 			ce[0][2] = rm[i].Y13;
-			ce[0][3] = rm[i].Y14;
 			ce[1][2] = rm[i].Y23;
-			ce[1][3] = rm[i].Y24;
-			ce[2][3] = rm[i].Y34;
 		}
 		else {
 			if (rm[i].Y12 < 0){//电阻
@@ -2557,8 +2533,8 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 		ce[2][1] = ce[1][2];
 
 		//将单元矩阵进行存储
-		for (int row = 0; row < 4; row++) {
-			for (int col = 0; col < 4; col++) {
+		for (int row = 0; row < 3; row++) {
+			for (int col = 0; col < 3; col++) {
 				//判断节点是否在未知节点内
 				//得到排序之后的编号
 				int n_row = node_pos(pmeshele[i].n[row]);
@@ -2576,10 +2552,9 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 		for (int j = 0; j < 3; j++) {
 			bbJz(pmeshele[i].n[j]) += jr;
 			// 计算永磁部分
-			///bbJz(pmeshele[i].n[j]) -= materialList[pmeshele[i].domain - 1].H_c / 2.*pmeshele[i].Q[j];
+			bbJz(pmeshele[i].n[j]) -= materialList[pmeshele[i].domain - 1].H_c / 2.*pmeshele[i].Q[j];
 		}
 	}//end for
-	time[tt++] = SuperLU_timer_();
 	locs.reshape(2, pos);//重新调整大小
 	vals.reshape(1, pos);
 	//----using armadillo constructor function-----
@@ -2589,247 +2564,8 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 	for (int i = 0; i < num_pts - node_bdr; i++) {
 		unknown_b[i] = INL(node_reorder(i));
 	}
-	time[tt++] = SuperLU_timer_();
-	//---------------------superLU_MT---------------------------------------
-	//CSuperLU_MT superlumt(num_pts - node_bdr, X, unknown_b);
-	SuperMatrix   sluA; SuperMatrix sluB, sluX;
-	//NCformat *Astore;
-	double   *a;
-	int_t      *asub, *xa;
-	int_t      *perm_r; /* row permutations from partial pivoting */
-	int_t      *perm_c; /* column permutation vector */
-	SuperMatrix   L;       /* factor L */
-	SCPformat *Lstore;
-	SuperMatrix   U;       /* factor U */
-	NCPformat *Ustore;
-	int_t      nrhs, info, mm, nn, nnz;
-	int_t      nprocs; /* maximum number of processors to use. */
-	int_t      panel_size, relax, maxsup;
-	int_t      permc_spec;
-	trans_t  trans;
-	//double   *rhs;
-	superlu_memusage_t   superlu_memusage;
-	DNformat	   *Bstore;
-	double      *rhsb, *rhsx;
-	Gstat_t  Gstat1;
+	//迭代
 
 
-	panel_size = sp_ienv(1);
-	relax = sp_ienv(2);
-	maxsup = sp_ienv(3);
-
-	nprocs = 1;
-	nrhs = 1;
-	trans = NOTRANS;
-	/* create matrix A in Harwell-Boeing format.*/
-	mm = num_pts - node_bdr; nn = num_pts - node_bdr; nnz = X.n_nonzero;
-	a = const_cast<double *>(X.values);
-
-	StatAlloc(nn, nprocs, panel_size, relax, &Gstat1);
-	StatInit(nn, nprocs, &Gstat1);
-
-	asub = (int*)const_cast<unsigned int*>(X.row_indices);
-	xa = (int*)const_cast<unsigned int*>(X.col_ptrs);
-	dCreate_CompCol_Matrix(&sluA, mm, nn, nnz, a, asub, xa, SLU_NC, SLU_D, SLU_GE);
-
-	//------create B and X-------------------
-	if (!(rhsx = doubleMalloc(mm * nrhs))) SUPERLU_ABORT("Malloc fails for rhsx[].");
-	dCreate_Dense_Matrix(&sluX, mm, nrhs, rhsx, mm, SLU_DN, SLU_D, SLU_GE);
-
-	rhsb = unknown_b;
-	dCreate_Dense_Matrix(&sluB, mm, nrhs, rhsb, mm, SLU_DN, SLU_D, SLU_GE);
-	Bstore = (DNformat*)sluB.Store;
-
-	if (!(perm_r = intMalloc(mm))) SUPERLU_ABORT("Malloc fails for perm_r[].");
-	if (!(perm_c = intMalloc(nn))) SUPERLU_ABORT("Malloc fails for perm_c[].");
-
-	/*
-	* Get column permutation vector perm_c[], according to permc_spec:
-	*   permc_spec = 0: natural ordering
-	*   permc_spec = 1: minimum degree ordering on structure of A'*A
-	*   permc_spec = 2: minimum degree ordering on structure of A'+A
-	*   permc_spec = 3: approximate minimum degree for unsymmetric matrices
-	*/
-	permc_spec = 1;
-	get_perm_c(permc_spec, &sluA, perm_c);
-
-	pdgssv(nprocs, &sluA, perm_c, perm_r, &L, &U, &sluB, &info);
-
-	if (info != 0) {
-		qDebug() << "Error: superlumt.slove";
-		//qDebug() << "info: " << superlumt.info;
-	}
-	else {
-		double *sol = NULL;
-		A_old = A;
-		sol = (double*)((DNformat*)sluB.Store)->nzval;
-		//取得结果
-		for (int i = 0; i < num_pts - node_bdr; i++) {
-			pmeshnode[node_reorder(i)].A = sol[i];// / pmeshnode[i].x;//the A is r*A_real
-			A(node_reorder(i)) = sol[i];
-		}
-	}
-	time[tt++] = SuperLU_timer_();
-	//---------------------superLU--end----------------------------------
-	//-----------绘图----------------------------------------
-	QVector<double> x(num_ele), y(num_ele);
-	for (int i = 0; i < num_ele; ++i) {
-		x[i] = i;
-	}
-	QCustomPlot * customplot;
-	customplot = thePlot->getQcustomPlot();
-	QCPGraph *graph1 = customplot->addGraph();
-	graph1->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, QPen(Qt::black, 1.5), QBrush(Qt::black), 3));
-	graph1->setPen(QPen(QColor(120, 120, 120), 2));
-	graph1->setLineStyle(QCPGraph::lsNone);
-	customplot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
-	customplot->xAxis->setLabel("x");
-	customplot->xAxis->setRange(0, num_ele);
-	//customplot->xAxis->setAutoTickStep(false);
-	//customplot->xAxis->setTicks(false);
-	customplot->yAxis->setLabel("y");
-	//---------the main loop---------------------------------
-	int steps = 200;
-	int count;
-	double alpha = 1;
-	Voltage *Vr = (Voltage*)calloc(D34.size(), sizeof(Voltage));
-	Voltage *Vi = (Voltage*)calloc(D34.size(), sizeof(Voltage));
-	time[tt++] = SuperLU_timer_();
-	for (count = 0; count < steps; count++) {
-		//------update miu----------------
-		for (int i = 0; i < num_ele; i++) {
-			double bx = 0;
-			double by = 0;
-			for (int j = 0; j < 3; j++) {
-				bx += pmeshele[i].Q[j] * A(pmeshele[i].n[j]);
-				by += pmeshele[i].P[j] * A(pmeshele[i].n[j]);
-			}
-			pmeshele[i].B = sqrt(bx*bx + by*by) / 2. / pmeshele[i].AREA / ydot[i];
-			pmeshele[i].miut = materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B);
-			pmeshele[i].miut = y[i] + (count>90 ? 0.02 : (0.9 - count*0.001))*(pmeshele[i].miut - y[i]);
-			//y[i] = (A(pmeshele[i].n[0]) + A(pmeshele[i].n[1]) + A(pmeshele[i].n[2]))/3;
-			y[i] = pmeshele[i].miut;
-		}
-		//#pragma omp parallel for
-		for (int j = 0; j < D34.size(); j++) {
-			int i = D34[j];
-			CElement *m_e = pmeshele + i;
-			int k, m, n;
-			k = m_e->n[0];
-			m = m_e->n[1];
-			n = m_e->n[2];
-			double rtmp;//do this to mark it as private
-			rtmp = (m_e->miut - m_e->miu) / (m_e->miu + m_e->miut);
-			double hehe = -(m_e->miu - m_e->miut) / m_e->miut;
-			//qDebug()<<m_e->miut<<"\t"<<m_e->miu<<"\t"<<rtmp;
-
-			Vr[j].V12 = (pmeshnode[k].A - pmeshnode[m].A) - Vi[j].V12;
-			Vr[j].V23 = (pmeshnode[m].A - pmeshnode[n].A) - Vi[j].V23;
-			Vr[j].V13 = (pmeshnode[n].A - pmeshnode[k].A) - Vi[j].V13;
-
-			if (rm[i].Y12 < 0) {
-				Vi[j].V12 = Vr[j].V12 * rtmp;
-			}
-			else {
-				Vi[j].V12 = -0.5*(pmeshnode[k].A - pmeshnode[m].A)*hehe;
-			}
-			INL(k) += -2. *Vi[j].V12*rm[i].Y12;
-			INL(m) += 2. * Vi[j].V12 *rm[i].Y12;
-			if (rm[i].Y23 < 0) {
-				Vi[j].V23 = Vr[j].V23*rtmp;
-			}
-			else {
-				Vi[j].V23 = -0.5*(pmeshnode[m].A - pmeshnode[n].A)*hehe;
-			}
-			INL(m) += -2. * Vi[j].V23*rm[i].Y23;
-			INL(n) += 2. *Vi[j].V23*rm[i].Y23;
-			if (rm[i].Y13 < 0) {
-				Vi[j].V13 = Vr[j].V13 * rtmp;
-			}
-			else {
-				Vi[j].V13 = -0.5*(pmeshnode[n].A - pmeshnode[k].A)*hehe;
-			}
-			INL(n) += -2. * Vi[j].V13*rm[i].Y13;
-			INL(k) += 2.0 *Vi[j].V13*rm[i].Y13;
-		}
-		INL += bbJz;
-		for (int i = 0; i < num_pts - node_bdr; i++) {
-			unknown_b[i] = INL(node_reorder(i));
-		}
-		//time[tt++] = SuperLU_timer_();
-		dgstrs(trans, &L, &U, perm_r, perm_c, &sluB, &Gstat1, &info);
-		//myTriSolve(1, &L, &U, perm_r, perm_c, &sluB, &info);
-		//time[tt++] = SuperLU_timer_();
-		//pdgssv(nprocs, &sluA, perm_c, perm_r, &L, &U, &sluB, &info);
-		//NOW WE SOLVE THE LINEAR SYSTEM USING THE FACTORED FORM OF sluA.
-		if (info != 0) {
-			qDebug() << "Error: superlumt.slove";
-			//qDebug() << "info: " << superlumt.info;
-			break;
-		}
-		else {
-			double *sol = NULL;
-			A_old = A;
-			sol = (double*)((DNformat*)sluB.Store)->nzval;
-
-			for (int i = 0; i < num_pts - node_bdr; i++) {
-				pmeshnode[node_reorder(i)].A = sol[i];// / pmeshnode[i].x;//the A is r*A_real
-				A(node_reorder(i)) = sol[i];
-			}
-		}
-		double error = norm((A_old - A), 2) / norm(A, 2);
-		//qDebug() << "iter: " << count;
-		//qDebug() << "error: " << error;
-
-		graph1->setData(x, y);
-		customplot->rescaleAxes(true);
-		//customplot->xAxis->setRange(0, 0.09);
-		//customplot->yAxis->setRange(-0.04, 0.04);
-		//customplot->yAxis->setScaleRatio(customplot->xAxis, 1.0);
-		customplot->replot();
-
-
-		if (error < Precision) {
-			break;
-		}
-		INL.zeros();
-	}
-	time[tt++] = SuperLU_timer_();
-	// 求解结束，更新B
-	for (int i = 0; i < num_ele; i++) {
-		double bx = 0;
-		double by = 0;
-		for (int j = 0; j < 3; j++) {
-			bx += pmeshele[i].Q[j] * A(pmeshele[i].n[j]);
-			by += pmeshele[i].P[j] * A(pmeshele[i].n[j]);
-		}
-		pmeshele[i].B = sqrt(bx*bx + by*by) / 2. / pmeshele[i].AREA / ydot[i];
-		pmeshele[i].miut = materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B);
-	}
-	for (int i = 0; i < num_pts - node_bdr; i++) {
-		pmeshnode[node_reorder(i)].A /= pmeshnode[node_reorder(i)].x;// / pmeshnode[i].x;//the A is r*A_real
-	}
-	//output the time
-	for (int i = 1; i < tt; i++){
-		qDebug() << i << "\t" << time[i] - time[i - 1];
-	}
-
-	qDebug() << "TLM steps:" << count;
-	// 回收空间
-	if (rm != NULL) free(rm);
-	if (ydot != NULL) free(ydot);
-	if (Vi != NULL) free(Vi);
-	if (Vr != NULL) free(Vr);
-	if (unknown_b != NULL) free(unknown_b);
-
-	//SUPERLU_FREE(rhs);
-	//SUPERLU_FREE(xact);
-	//SUPERLU_FREE(perm_r);
-	//SUPERLU_FREE(perm_c);
-	//Destroy_CompCol_Matrix(&sluA);
-	//Destroy_SuperMatrix_Store(&sluB);
-	//Destroy_SuperNode_SCP(&L);
-	//Destroy_CompCol_NCP(&U);
-	//StatFree(&Gstat1);
 	return true;
 }
