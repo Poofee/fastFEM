@@ -55,6 +55,10 @@ public:
 	double getx(double xi, double eta, int index);
 	double gety(double xi, double eta, int index);
 	double getA(double xi, double eta, int index);
+	double getrA(double xi, double eta, int index);
+	double getDij(int i, int j, int index);
+	double getCij(int i, int j, double xi, double eta, int index);
+	double getD(int i, int j, double xi, double eta, int index);
 
 };
 

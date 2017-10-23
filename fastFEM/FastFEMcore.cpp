@@ -2070,6 +2070,65 @@ double CFastFEMcore::getJi(int Ki, int index){
 	}
 	return Ji;
 }
+double CFastFEMcore::getD(int i, int j, double xi, double eta, int index){
+	double D = 0;
+	//计算x
+	double x = getx(xi, eta, index);
+	if (x == 0){
+		x = pmeshele4[index].rc;
+	}
+	//计算B
+	double bx = 0;
+	double by = 0;
+	double tmpA = 0;
+	by += 1 / getx(xi, eta, index);
+	by *= getA(xi, eta, index);//考虑到x可能为0，所以后乘A，
+	double c1, c2;
+	c1 = 0;
+	c2 = 0;
+	for (int iele = 0; iele < 4; iele++){
+		bx += -pmeshnode[pmeshele4[index].n[iele]].A * getdNidy(iele, xi, eta, index); //qDebug() << bx;
+
+		by += pmeshnode[pmeshele4[index].n[iele]].A * getdNidx(iele, xi, eta, index);
+
+		c1 += getCij(i, iele, xi, eta, index)*pmeshnode[pmeshele4[index].n[iele]].A;
+		c2 += getCij(j, iele, xi, eta, index)*pmeshnode[pmeshele4[index].n[iele]].A;
+	}
+
+	double B = sqrt(bx*bx + by*by);
+	//计算dvdB
+	double dvdB = materialList[pmeshele4[index].domain].getdvdB(B);
+	//计算Cij
+	//积分
+	D = dvdB*c1*c2 / B / x / x / x * getJacobi(xi, eta, index);
+
+	return D;
+}
+double CFastFEMcore::getCij(int Ki, int Kj, double xi, double eta, int index){
+	double Cij = 0;
+	Cij = getdNidx(Ki, xi, eta, index)*getdNidx(Kj, xi, eta, index);
+	Cij += getdNidy(Ki, xi, eta, index)*getdNidy(Kj, xi, eta, index);
+	return Cij;
+}
+double CFastFEMcore::getDij(int i, int j, int index){
+	int gaussPoints = 3;
+	double * gaussweight;
+	double * gausspoint;
+	double Dij = 0;
+	if (gaussPoints == 3){
+		gaussweight = GaussWeight3;
+		gausspoint = GaussPoint3;
+	} else if (gaussPoints == 5){
+		gaussweight = GaussWeight5;
+		gausspoint = GaussPoint5;
+	}
+	for (int i = 0; i < gaussPoints; i++){
+		for (int j = 0; j < gaussPoints; j++){
+			Dij += gaussweight[i] * gaussweight[j] * getD(i, j, gausspoint[i], gausspoint[j], index);
+		}
+	}
+	return Dij;
+}
 double CFastFEMcore::getP(int Ki, int Kj, double xi, double eta, int index){
 	double p = 0;
 	p = getdNidx(Ki, xi, eta, index)*getdNidx(Kj, xi, eta, index);
@@ -2160,9 +2219,18 @@ double CFastFEMcore::getA(double xi, double eta, int index){
 	double A = 0;
 	//教材里插值针对的是A‘，而不是A
 	for (int i = 0; i < 4; i++){
-		A += pmeshnode[pmeshele4[index].n[i]].A*Ne(xi, eta, i)*pmeshnode[pmeshele4[index].n[i]].x;
+		A += pmeshnode[pmeshele4[index].n[i]].A*Ne(xi, eta, i);
 	}
 	A /= getx(xi, eta, index);
+	return A;
+}
+//根据等参单元法求得xi,eta与rA的对应关系
+double CFastFEMcore::getrA(double xi, double eta, int index){
+	double A = 0;
+	//这里得到的是rA
+	for (int i = 0; i < 4; i++){
+		A += pmeshnode[pmeshele4[index].n[i]].A*Ne(xi, eta, i);
+	}
 	return A;
 }
 //根据等参单元法求得xi,eta与x的对应关系
@@ -2275,16 +2343,16 @@ bool CFastFEMcore::StaticAxisQ4Relaxtion(){
 			//	ydot[i] = pmeshele4[i].rc / 2;
 
 				//计算系数
-				rm[i].Y11 = getLocal4Matrix(1 - 1, 1 - 1, i);
-				rm[i].Y12 = getLocal4Matrix(1 - 1, 2 - 1, i);
-				rm[i].Y13 = getLocal4Matrix(1 - 1, 3 - 1, i);
-				rm[i].Y14 = getLocal4Matrix(1 - 1, 4 - 1, i);
-				rm[i].Y22 = getLocal4Matrix(2 - 1, 2 - 1, i);
-				rm[i].Y23 = getLocal4Matrix(2 - 1, 3 - 1, i);
-				rm[i].Y24 = getLocal4Matrix(2 - 1, 4 - 1, i);
-				rm[i].Y33 = getLocal4Matrix(3 - 1, 3 - 1, i);
-				rm[i].Y34 = getLocal4Matrix(3 - 1, 4 - 1, i);
-				rm[i].Y44 = getLocal4Matrix(4 - 1, 4 - 1, i);
+			rm[i].Y11 = getLocal4Matrix(1 - 1, 1 - 1, i) + getDij(1 - 1, 1 - 1, i);
+			rm[i].Y12 = getLocal4Matrix(1 - 1, 2 - 1, i) + getDij(1 - 1, 2 - 1, i);
+			rm[i].Y13 = getLocal4Matrix(1 - 1, 3 - 1, i) + getDij(1 - 1, 3 - 1, i);
+			rm[i].Y14 = getLocal4Matrix(1 - 1, 4 - 1, i) + getDij(1 - 1, 4 - 1, i);
+			rm[i].Y22 = getLocal4Matrix(2 - 1, 2 - 1, i) + getDij(2 - 1, 2 - 1, i);
+			rm[i].Y23 = getLocal4Matrix(2 - 1, 3 - 1, i) + getDij(2 - 1, 3 - 1, i);
+			rm[i].Y24 = getLocal4Matrix(2 - 1, 4 - 1, i) + getDij(2 - 1, 4 - 1, i);
+			rm[i].Y33 = getLocal4Matrix(3 - 1, 3 - 1, i) + getDij(3 - 1, 3 - 1, i);
+			rm[i].Y34 = getLocal4Matrix(3 - 1, 4 - 1, i) + getDij(3 - 1, 4 - 1, i);
+			rm[i].Y44 = getLocal4Matrix(4 - 1, 4 - 1, i) + getDij(4 - 1, 4 - 1, i);
 
 				//qDebug() << rm[i].Y11;
 
@@ -2296,8 +2364,13 @@ bool CFastFEMcore::StaticAxisQ4Relaxtion(){
 				//}
 				for (int j = 0; j < 4; j++) {
 					bbJz(pmeshele4[i].n[j]) += jr*getJi(j, i);
+					double ctmp = 0;
+					for (int iele = 0; iele < 4; iele++){
+						ctmp += getDij(j,iele, i)*pmeshnode[pmeshele4[i].n[iele]].A;
+					}
+					bbJz(pmeshele4[i].n[j]) += ctmp;
 					// 计算永磁部分
-					//bbJz(pmeshele4[i].n[j]) -= materialList[pmeshele[i].domain - 1].H_c / 2.*pmeshele[i].Q[j];
+					//bbJz(pmeshele4[i].n[j]) += materialList[pmeshele[i].domain - 1].H_c / 2.*pmeshele[i].Q[j];
 				}
 			//}
 			ce[0][0] = rm[i].Y11; 
@@ -2365,8 +2438,8 @@ bool CFastFEMcore::StaticAxisQ4Relaxtion(){
 			sol = superlumt.getResult();
 
 			for (int i = 0; i < num_pts - node_bdr; i++) {
-				pmeshnode[node_reorder(i)].A = sol[i] / pmeshnode[node_reorder(i)].x;//the A is r*A_real
-				A(node_reorder(i)) = sol[i] / pmeshnode[node_reorder(i)].x;
+				pmeshnode[node_reorder(i)].A = sol[i];//the A is r*A_real
+				A(node_reorder(i)) = sol[i];
 			}
 		}
 		//更新B
@@ -2383,10 +2456,10 @@ bool CFastFEMcore::StaticAxisQ4Relaxtion(){
 			A.save("NRA.txt", arma::arma_ascii, false);
 			break;
 		}
-		for (int i = 0; i < num_pts - node_bdr; i++) {
-			pmeshnode[node_reorder(i)].A = A_old(node_reorder(i)) - 0.05*(A_old(node_reorder(i)) - pmeshnode[node_reorder(i)].A);//the A is r*A_real
-			A(node_reorder(i)) = A_old(node_reorder(i)) - 0.05*(A_old(node_reorder(i)) - A(node_reorder(i)));
-		}
+		//for (int i = 0; i < num_pts - node_bdr; i++) {
+		//	pmeshnode[node_reorder(i)].A = A_old(node_reorder(i)) - 0.05*(A_old(node_reorder(i)) - pmeshnode[node_reorder(i)].A);//the A is r*A_real
+		//	A(node_reorder(i)) = A_old(node_reorder(i)) - 0.05*(A_old(node_reorder(i)) - A(node_reorder(i)));
+		//}
 		pos = 0;
 		bn.zeros();
 
