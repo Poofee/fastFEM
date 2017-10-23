@@ -1573,7 +1573,7 @@ void CFastFEMcore::readBHElement(QXmlStreamReader &reader, int i) {
 	//qDebug()<<reader.name();
 	if (reader.name() == "BHpoints") {
 		materialList[i].BHpoints = reader.readElementText().toInt();
-		//qDebug() << "BHpoints = " << materialList[i].BHpoints;
+		qDebug() << "BHpoints = " << materialList[i].BHpoints;
 		if (materialList[i].BHpoints != 0) {
 			materialList[i].Bdata = (double*)malloc(materialList[i].BHpoints*sizeof(double));
 			materialList[i].Hdata = (double*)malloc(materialList[i].BHpoints*sizeof(double));
@@ -2097,11 +2097,23 @@ double CFastFEMcore::getD(int i, int j, double xi, double eta, int index){
 
 	double B = sqrt(bx*bx + by*by);
 	//计算dvdB
-	double dvdB = materialList[pmeshele4[index].domain].getdvdB(B);
+	double dvdB = materialList[pmeshele4[index].domain-1].getdvdB(B);
+	if (std::isnan(dvdB))
+		qDebug() << "error in getD";
 	//计算Cij
 	//积分
-	D = dvdB*c1*c2 / B / x / x / x * getJacobi(xi, eta, index);
-
+	if (pmeshele4[index].LinearFlag){
+		return 0;
+	}
+	
+	if (std::isnan(D))
+		qDebug() << "error in getD";
+	D = dvdB*c1*c2* getJacobi(xi, eta, index);
+	if (B > 1e-9){
+		D /=  B * x * x * x ;
+	}
+	if (std::isnan(D))
+		qDebug() << "error in getD";
 	return D;
 }
 double CFastFEMcore::getCij(int Ki, int Kj, double xi, double eta, int index){
@@ -2110,7 +2122,7 @@ double CFastFEMcore::getCij(int Ki, int Kj, double xi, double eta, int index){
 	Cij += getdNidy(Ki, xi, eta, index)*getdNidy(Kj, xi, eta, index);
 	return Cij;
 }
-double CFastFEMcore::getDij(int i, int j, int index){
+double CFastFEMcore::getDij(int Ki, int Kj, int index){
 	int gaussPoints = 3;
 	double * gaussweight;
 	double * gausspoint;
@@ -2124,7 +2136,7 @@ double CFastFEMcore::getDij(int i, int j, int index){
 	}
 	for (int i = 0; i < gaussPoints; i++){
 		for (int j = 0; j < gaussPoints; j++){
-			Dij += gaussweight[i] * gaussweight[j] * getD(i, j, gausspoint[i], gausspoint[j], index);
+			Dij += gaussweight[i] * gaussweight[j] * getD(Ki, Kj, gausspoint[i], gausspoint[j], index);
 		}
 	}
 	return Dij;
