@@ -2210,7 +2210,7 @@ double CFastFEMcore::Ne(double xi, double eta, int index){
 	double yeta[] = { -1, -1, 1, 1 };
 	return (1 + yeta[index] * eta)*(1 + xxi[index] * xi)*0.25;
 }
-bool CFastFEMcore::StaticAxisQ4Relaxtion(){
+bool CFastFEMcore::StaticAxisQ4NR(){
 	//计算边界信息
 	int k, l, m, n;
 	for (int i = 0; i < num_ele; i++){

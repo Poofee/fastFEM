@@ -29,7 +29,7 @@ void quadtest(){
         qDebug()<<"number of elements:"<<fem.num_ele;
         qDebug()<<"number of points:"<<fem.num_pts;
 
-		fem.StaticAxisQ4Relaxtion();
+		fem.StaticAxisQ4NR();
     }
 }
 
