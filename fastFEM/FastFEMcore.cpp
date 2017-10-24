@@ -2081,8 +2081,8 @@ double CFastFEMcore::getD(int i, int j, double xi, double eta, int index){
 	double bx = 0;
 	double by = 0;
 	double tmpA = 0;
-	by += 1 / getx(xi, eta, index);
-	by *= getA(xi, eta, index);//考虑到x可能为0，所以后乘A，
+	//by += 1 / getx(xi, eta, index);
+	//by *= getA(xi, eta, index);//考虑到x可能为0，所以后乘A，
 	double c1, c2;
 	c1 = 0;
 	c2 = 0;
@@ -2096,6 +2096,7 @@ double CFastFEMcore::getD(int i, int j, double xi, double eta, int index){
 	}
 
 	double B = sqrt(bx*bx + by*by);
+	B /= getx(xi, eta, index);
 	//计算dvdB
 	double dvdB = materialList[pmeshele4[index].domain-1].getdvdB(B);
 	if (std::isnan(dvdB))
@@ -2150,8 +2151,8 @@ double CFastFEMcore::getP(int Ki, int Kj, double xi, double eta, int index){
 	double bx = 0;
 	double by = 0;
 	double tmpA = 0;
-	by += 1 / getx(xi, eta, index);
-	by *= getA(xi,eta,index);//考虑到x可能为0，所以后乘A，
+	//by += 1 / getx(xi, eta, index);
+	//by *= getA(xi,eta,index);//考虑到x可能为0，所以后乘A，
 	for (int iele = 0; iele < 4; iele++){
 		bx += -pmeshnode[pmeshele4[index].n[iele]].A * getdNidy(iele, xi, eta, index); //qDebug() << bx;
 		
@@ -2159,6 +2160,7 @@ double CFastFEMcore::getP(int Ki, int Kj, double xi, double eta, int index){
 	}
 	
 	double B = sqrt(bx*bx + by*by);
+	B /= getx(xi, eta, index);
 	double miu = materialList[pmeshele4[index].domain - 1].getMiu(B);
 	p /= miu * getx(xi, eta, index);//可能为0的bug
 	if (std::isnan(p))
