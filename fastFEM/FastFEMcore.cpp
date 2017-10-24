@@ -2430,7 +2430,7 @@ bool CFastFEMcore::StaticAxisQ4Relaxtion(){
 			locs.reshape(2, pos);
 			vals.reshape(1, pos);
 			//bbJz.save("bbJz.txt", arma::arma_ascii, false);
-			bn.save("bn.txt", arma::arma_ascii, false);
+			//bn.save("D:\\mypaper\\zhcore\\插图\\bn.txt", arma::arma_ascii, false);
 		}
 
 		//使用构造函数来生成稀疏矩阵
@@ -2466,8 +2466,10 @@ bool CFastFEMcore::StaticAxisQ4Relaxtion(){
 		iter++;
 		qDebug() << "iter: " << iter;
 		qDebug() << "error: " << error;
-		if (error < Precision || iter > 20) {
-			A.save("NRA.txt", arma::arma_ascii, false);
+		if (error < Precision && iter > 20) {
+			A.save("D:\\mypaper\\zhcore\\插图\\NRA.txt", arma::arma_ascii, false);
+			bn.save("D:\\mypaper\\zhcore\\插图\\bn.txt", arma::arma_ascii, false);
+			qDebug() << "solve over";
 			break;
 		}
 		//for (int i = 0; i < num_pts - node_bdr; i++) {
@@ -2476,6 +2478,7 @@ bool CFastFEMcore::StaticAxisQ4Relaxtion(){
 		//}
 		pos = 0;
 		bn.zeros();
+		bbJz.zeros();
 
 	}
 	return true;
