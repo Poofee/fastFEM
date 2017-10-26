@@ -2323,7 +2323,9 @@ bool CFastFEMcore::StaticAxisQ4NR(){
 				}
 				bbJz(pmeshele4[i].n[j]) += ctmp;
 				// ¼ÆËãÓÀ´Å²¿·Ö
-				//bbJz(pmeshele4[i].n[j]) += materialList[pmeshele[i].domain - 1].H_c / 2.*pmeshele[i].Q[j];
+				int kk = j + 1; if (kk == 4) kk = 0;
+				bbJz(pmeshele4[i].n[j]) += -materialList[pmeshele4[i].domain - 1].H_c / 2.*(pmeshnode[pmeshele4[i].n[kk]].x - pmeshnode[pmeshele4[i].n[j]].x);
+				bbJz(pmeshele4[i].n[kk]) += -materialList[pmeshele4[i].domain - 1].H_c / 2.*(pmeshnode[pmeshele4[i].n[kk]].x - pmeshnode[pmeshele4[i].n[j]].x);
 			}
 			//}
 			ce[0][0] = rm[i].Y11;
@@ -2404,14 +2406,14 @@ bool CFastFEMcore::StaticAxisQ4NR(){
 		iter++;
 		qDebug() << "iter: " << iter;
 		qDebug() << "error: " << error;
-		if (error < Precision && iter > 20) {
+		if (error < Precision && iter > 5) {
 			//×ª»»A
 			for (int i = 0; i < num_pts - node_bdr; i++) {
 				pmeshnode[node_reorder(i)].A /= pmeshnode[node_reorder(i)].x;//the A is r*A_real
 				A(node_reorder(i)) /= pmeshnode[node_reorder(i)].x;
 			}
-			A.save("D:\\mypaper\\zhcore\\²åÍ¼\\NRA.txt", arma::arma_ascii, false);
-			bn.save("D:\\mypaper\\zhcore\\²åÍ¼\\bn.txt", arma::arma_ascii, false);
+			A.save("D:\\mypaper\\zhcore\\²åÍ¼\\NRpmA.txt", arma::arma_ascii, false);
+			bn.save("D:\\mypaper\\zhcore\\²åÍ¼\\pmbn.txt", arma::arma_ascii, false);
 			qDebug() << "solve over";
 			break;
 		}
