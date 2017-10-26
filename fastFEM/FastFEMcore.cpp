@@ -2262,12 +2262,10 @@ bool CFastFEMcore::StaticAxisQ4NR(){
 	vec bbJz = zeros<vec>(num_pts);
 	uvec node_reorder = zeros<uvec>(num_pts);
 	uvec node_pos = zeros<uvec>(num_pts);
-	vec bn = zeros<vec>(num_pts);
+	//vec bn = zeros<vec>(num_pts);
 	vec A = zeros<vec>(num_pts);
 	vec A_old = A;
 	double ce[4][4] = { 0 };
-	double * ydot = (double*)malloc(num_ele*sizeof(double));
-	Resist4Matrix * rm = (Resist4Matrix*)malloc(num_ele * sizeof(Resist4Matrix));
 	//处理边界点
 	int node_bdr = 0;
 	for (int i = 0; i < num_pts; i++) {
@@ -2290,66 +2288,17 @@ bool CFastFEMcore::StaticAxisQ4NR(){
 	while (1){
 		//生成全局矩阵
 		for (int i = 0; i < num_ele; i++){
-			//不变的部分只计算一次
-			//if (iter == 0){
-			//对对称轴上的点进行特殊处理
-			//	ydot[i] = pmeshele4[i].rc / 2;
-
-			//计算系数
-			rm[i].Y11 = getLocal4Matrix(1 - 1, 1 - 1, i) + getDij(1 - 1, 1 - 1, i);
-			rm[i].Y12 = getLocal4Matrix(1 - 1, 2 - 1, i) + getDij(1 - 1, 2 - 1, i);
-			rm[i].Y13 = getLocal4Matrix(1 - 1, 3 - 1, i) + getDij(1 - 1, 3 - 1, i);
-			rm[i].Y14 = getLocal4Matrix(1 - 1, 4 - 1, i) + getDij(1 - 1, 4 - 1, i);
-			rm[i].Y22 = getLocal4Matrix(2 - 1, 2 - 1, i) + getDij(2 - 1, 2 - 1, i);
-			rm[i].Y23 = getLocal4Matrix(2 - 1, 3 - 1, i) + getDij(2 - 1, 3 - 1, i);
-			rm[i].Y24 = getLocal4Matrix(2 - 1, 4 - 1, i) + getDij(2 - 1, 4 - 1, i);
-			rm[i].Y33 = getLocal4Matrix(3 - 1, 3 - 1, i) + getDij(3 - 1, 3 - 1, i);
-			rm[i].Y34 = getLocal4Matrix(3 - 1, 4 - 1, i) + getDij(3 - 1, 4 - 1, i);
-			rm[i].Y44 = getLocal4Matrix(4 - 1, 4 - 1, i) + getDij(4 - 1, 4 - 1, i);
-
-			//qDebug() << rm[i].Y11;
-
 			//计算电流密度矩阵
 			//计算电流密度//要注意domain会不会越界
-			double jr = materialList[pmeshele4[i].domain - 1].Jr; //qDebug() << jr;
-			//if (jr < 0){
-			//	qDebug() << jr;
-			//}
-			for (int j = 0; j < 4; j++) {
-				bbJz(pmeshele4[i].n[j]) += jr*getJi(j, i);
-				double ctmp = 0;
-				for (int iele = 0; iele < 4; iele++){
-					ctmp += getDij(j, iele, i)*pmeshnode[pmeshele4[i].n[iele]].A;
-				}
-				bbJz(pmeshele4[i].n[j]) += ctmp;
-				// 计算永磁部分
-				int kk = j + 1; if (kk == 4) kk = 0;
-				bbJz(pmeshele4[i].n[j]) += -materialList[pmeshele4[i].domain - 1].H_c / 2.*(pmeshnode[pmeshele4[i].n[kk]].x - pmeshnode[pmeshele4[i].n[j]].x);
-				bbJz(pmeshele4[i].n[kk]) += -materialList[pmeshele4[i].domain - 1].H_c / 2.*(pmeshnode[pmeshele4[i].n[kk]].x - pmeshnode[pmeshele4[i].n[j]].x);
-			}
-			//}
-			ce[0][0] = rm[i].Y11;
-			ce[0][1] = rm[i].Y12;
-			ce[0][2] = rm[i].Y13;
-			ce[0][3] = rm[i].Y14;
-
-			ce[1][0] = ce[0][1];
-			ce[1][1] = rm[i].Y22;
-			ce[1][2] = rm[i].Y23;
-			ce[1][3] = rm[i].Y24;
-
-			ce[2][0] = ce[0][2];
-			ce[2][1] = ce[1][2];
-			ce[2][2] = rm[i].Y33;
-			ce[2][3] = rm[i].Y34;
-
-			ce[3][0] = ce[0][3];
-			ce[3][1] = ce[1][3];
-			ce[3][2] = ce[2][3];
-			ce[3][3] = rm[i].Y44;
+			double jr = materialList[pmeshele4[i].domain - 1].Jr; 			
 
 			for (int row = 0; row < 4; row++) {
+				bbJz(pmeshele4[i].n[row]) += jr*getJi(row, i);
+				double ctmp = 0;
 				for (int col = 0; col < 4; col++) {
+					//计算系数
+					ce[row][col] = getLocal4Matrix(row, col, i) + getDij(row, col, i);					
+					ctmp += getDij(row, col, i)*pmeshnode[pmeshele4[i].n[col]].A;
 					//判断节点是否在未知节点内
 					//得到排序之后的编号
 					int n_row = node_pos(pmeshele4[i].n[row]);
@@ -2359,26 +2308,26 @@ bool CFastFEMcore::StaticAxisQ4NR(){
 						locs(1, pos) = n_col;
 						vals(0, pos) = ce[row][col];
 						pos++;
-					}
-					//bn的顺序并没有改
-					//bn(pmeshele[i].n[row]) += cn[row][col] * A(pmeshele[i].n[col]);
+					}				
 				}
+				bbJz(pmeshele4[i].n[row]) += ctmp;
+				// 计算永磁部分
+				int kk = row + 1; if (kk == 4) kk = 0;
+				bbJz(pmeshele4[i].n[row]) += -materialList[pmeshele4[i].domain - 1].H_c / 2.*(pmeshnode[pmeshele4[i].n[kk]].x - pmeshnode[pmeshele4[i].n[row]].x);
+				bbJz(pmeshele4[i].n[kk]) += -materialList[pmeshele4[i].domain - 1].H_c / 2.*(pmeshnode[pmeshele4[i].n[kk]].x - pmeshnode[pmeshele4[i].n[row]].x);
 			}
 		}
-		bn += bbJz;
 		//生成稀疏矩阵
 		if (iter == 0) {
 			locs.reshape(2, pos);
 			vals.reshape(1, pos);
-			//bbJz.save("bbJz.txt", arma::arma_ascii, false);
-			//bn.save("D:\\mypaper\\zhcore\\插图\\bn.txt", arma::arma_ascii, false);
 		}
 
 		//使用构造函数来生成稀疏矩阵
 		sp_mat X(true, locs, vals, num_pts - node_bdr, num_pts - node_bdr, true, true);
 
 		for (int i = 0; i < num_pts - node_bdr; i++) {
-			unknown_b[i] = bn(node_reorder(i));
+			unknown_b[i] = bbJz(node_reorder(i));
 		}
 		//---------------------superLU_MT---------------------------------------
 		CSuperLU_MT superlumt(num_pts - node_bdr, X, unknown_b);
@@ -2396,11 +2345,7 @@ bool CFastFEMcore::StaticAxisQ4NR(){
 				A(node_reorder(i)) = sol[i];
 			}
 		}
-		//更新B
-		for (int i = 0; i < num_ele; i++) {
-
-
-		}
+		
 		//double normA = norm(A, 2); //qDebug() << normA;
 		double error = norm((A_old - A), 2);
 		iter++;
@@ -2413,18 +2358,13 @@ bool CFastFEMcore::StaticAxisQ4NR(){
 				A(node_reorder(i)) /= pmeshnode[node_reorder(i)].x;
 			}
 			A.save("D:\\mypaper\\zhcore\\插图\\NRpmA.txt", arma::arma_ascii, false);
-			bn.save("D:\\mypaper\\zhcore\\插图\\pmbn.txt", arma::arma_ascii, false);
+			bbJz.save("D:\\mypaper\\zhcore\\插图\\pmbn.txt", arma::arma_ascii, false);
 			qDebug() << "solve over";
 			break;
 		}
-		//for (int i = 0; i < num_pts - node_bdr; i++) {
-		//	pmeshnode[node_reorder(i)].A = A_old(node_reorder(i)) - 0.05*(A_old(node_reorder(i)) - pmeshnode[node_reorder(i)].A);//the A is r*A_real
-		//	A(node_reorder(i)) = A_old(node_reorder(i)) - 0.05*(A_old(node_reorder(i)) - A(node_reorder(i)));
-		//}
+		//重新初始化
 		pos = 0;
-		bn.zeros();
 		bbJz.zeros();
-
 	}
 	return true;
 }
