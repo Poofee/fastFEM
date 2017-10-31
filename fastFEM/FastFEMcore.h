@@ -39,7 +39,9 @@ public:
     void myTriSolve(int ncore, SuperMatrix *L, SuperMatrix *U,
                     int_t *perm_r, int_t *perm_c, SuperMatrix *B, int_t *info);
     double getLocal4Matrix(int Ki, int Kj, int index);//返回单元矩阵的元素ij
+	double getTLMKij(int Ki, int Kj, int index);
     double getP(int Ki, int Kj, double xi, double eta,int index);//被积分的那个函数
+	double getPx(int Ki, int Kj, double xi, double eta, int index);
     double getdNidx(int Ki, double xi, double eta, int index);//返回形函数的对x偏导数
     double getdNidy(int Ki,double xi,double eta,int index);//返回形函数的对y的偏导数
     double getdxdxi(double eta, int index);

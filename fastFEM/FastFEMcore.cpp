@@ -1993,6 +1993,25 @@ double CFastFEMcore::getLocal4Matrix(int Ki, int Kj, int index){
 	//	qDebug() << Kij;
 	return Kij;
 }
+double CFastFEMcore::getTLMKij(int Ki, int Kj, int index) {
+	int gaussPoints = 3;
+	double * gaussweight;
+	double * gausspoint;
+	double Kij = 0;
+	if (gaussPoints == 3) {
+		gaussweight = GaussWeight3;
+		gausspoint = GaussPoint3;
+	} else if (gaussPoints == 5) {
+		gaussweight = GaussWeight5;
+		gausspoint = GaussPoint5;
+	}
+	for (int i = 0; i < gaussPoints; i++) {
+		for (int j = 0; j < gaussPoints; j++) {
+			Kij += gaussweight[i] * gaussweight[j] * getPx(Ki, Kj, gausspoint[i], gausspoint[j], index);
+		}
+	}
+	return Kij;
+}
 double CFastFEMcore::getJi(int Ki, int index){
 	int gaussPoints = 3;
 	double * gaussweight;
@@ -2083,6 +2102,14 @@ double CFastFEMcore::getDij(int Ki, int Kj, int index){
 		}
 	}
 	return Dij;
+}
+double CFastFEMcore::getPx(int Ki, int Kj, double xi, double eta, int index) {
+	double p = 0;
+	p = getdNidx(Ki, xi, eta, index)*getdNidx(Kj, xi, eta, index);
+	p += getdNidy(Ki, xi, eta, index)*getdNidy(Kj, xi, eta, index);
+	p *= getJacobi(xi, eta, index);	
+	p /=  getx(xi, eta, index);//可能为0的bug
+	return p;
 }
 double CFastFEMcore::getP(int Ki, int Kj, double xi, double eta, int index){
 	double p = 0;
@@ -2211,9 +2238,9 @@ double CFastFEMcore::Ne(double xi, double eta, int index){
 	return (1 + yeta[index] * eta)*(1 + xxi[index] * xi)*0.25;
 }
 bool CFastFEMcore::StaticAxisQ4NR(){
-	//计算边界信息
-	int k, l, m, n;
+	//计算边界信息	
 	for (int i = 0; i < num_ele; i++){
+		int k, l, m, n;
 		k = pmeshele4[i].n[0];
 		l = pmeshele4[i].n[1];
 		m = pmeshele4[i].n[2];
@@ -2291,7 +2318,7 @@ bool CFastFEMcore::StaticAxisQ4NR(){
 			//计算电流密度矩阵
 			//计算电流密度//要注意domain会不会越界
 			double jr = materialList[pmeshele4[i].domain - 1].Jr; 			
-
+			double hc = materialList[pmeshele4[i].domain - 1].H_c;
 			for (int row = 0; row < 4; row++) {
 				bbJz(pmeshele4[i].n[row]) += jr*getJi(row, i);
 				double ctmp = 0;
@@ -2313,8 +2340,8 @@ bool CFastFEMcore::StaticAxisQ4NR(){
 				bbJz(pmeshele4[i].n[row]) += ctmp;
 				// 计算永磁部分
 				int kk = row + 1; if (kk == 4) kk = 0;
-				bbJz(pmeshele4[i].n[row]) += -materialList[pmeshele4[i].domain - 1].H_c / 2.*(pmeshnode[pmeshele4[i].n[kk]].x - pmeshnode[pmeshele4[i].n[row]].x);
-				bbJz(pmeshele4[i].n[kk]) += -materialList[pmeshele4[i].domain - 1].H_c / 2.*(pmeshnode[pmeshele4[i].n[kk]].x - pmeshnode[pmeshele4[i].n[row]].x);
+				bbJz(pmeshele4[i].n[row]) += - hc / 2.*(pmeshnode[pmeshele4[i].n[kk]].x - pmeshnode[pmeshele4[i].n[row]].x);
+				bbJz(pmeshele4[i].n[kk]) += - hc / 2.*(pmeshnode[pmeshele4[i].n[kk]].x - pmeshnode[pmeshele4[i].n[row]].x);
 			}
 		}
 		//生成稀疏矩阵
@@ -2370,9 +2397,9 @@ bool CFastFEMcore::StaticAxisQ4NR(){
 }
 //采用传输线法求解轴对称静磁场，四边形分网
 bool CFastFEMcore::StaticAxisQ4TLM(){
-	//计算边界信息
-	int k, l, m, n;
+	//计算边界信息	
 	for (int i = 0; i < num_ele; i++){
+		int k, l, m, n;
 		k = pmeshele4[i].n[0];
 		l = pmeshele4[i].n[1];
 		m = pmeshele4[i].n[2];
@@ -2427,7 +2454,7 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 	locs.zeros();
 	mat vals(1, 16 * num_ele);
 	double ce[4][4] = { 0 };
-	Resist4Matrix *rm = (Resist4Matrix*)malloc(num_ele * sizeof(Resist4Matrix));
+	Resist4Matrix *rm = (Resist4Matrix*)malloc(D34.size() * sizeof(Resist4Matrix));
 	vec bbJz = zeros<vec>(num_pts);
 	vec A = zeros<vec>(num_pts);
 	vec A_old = A;
@@ -2453,22 +2480,6 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 
 	//计算导纳矩阵
 	for (int i = 0; i < num_ele; i++) {
-		//确定单元的近似半径
-		int flag = 0;
-		for (int f = 0; f < 3; f++)
-			if (pmeshnode[pmeshele[i].n[f]].x < 1e-7)
-				flag++;
-
-
-		//计算单元导纳
-
-
-		//生成单元矩阵，线性与非线性
-		// 因为线性与非线性的差不多，所以不再分开讨论了
-		ce[0][0] = rm[i].Y11;
-		ce[1][1] = rm[i].Y22;
-		ce[2][2] = rm[i].Y33;
-
 		if (pmeshele[i].LinearFlag) {//线性区，不用计算
 			ce[0][1] = rm[i].Y12;
 			ce[0][2] = rm[i].Y13;
@@ -2496,13 +2507,18 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 				ce[1][2] = 0;
 			}
 		}
-		ce[1][0] = ce[0][1];
-		ce[2][0] = ce[0][2];
-		ce[2][1] = ce[1][2];
 
 		//将单元矩阵进行存储
-		for (int row = 0; row < 3; row++) {
-			for (int col = 0; col < 3; col++) {
+		double jr = materialList[pmeshele4[i].domain - 1].Jr;
+		double hc = materialList[pmeshele4[i].domain - 1].H_c;
+		for (int row = 0; row < 4; row++) {			
+			for (int col = 0; col < 4; col++) {	
+				//线性部分，无需加传输线
+				if (pmeshele4[i].LinearFlag) {
+					ce[row][col] = getLocal4Matrix(row, col, i);
+				} else {
+					
+				}
 				//判断节点是否在未知节点内
 				//得到排序之后的编号
 				int n_row = node_pos(pmeshele[i].n[row]);
@@ -2514,14 +2530,13 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 					pos++;
 				}
 			}
-		}
-		//计算电流密度//要注意domain会不会越界
-		double jr = pmeshele[i].AREA*materialList[pmeshele[i].domain - 1].Jr / 3;
-		for (int j = 0; j < 3; j++) {
-			bbJz(pmeshele[i].n[j]) += jr;
+			//计算电流密度
+			bbJz(pmeshele4[i].n[row]) += jr*getJi(row, i);
 			// 计算永磁部分
-			bbJz(pmeshele[i].n[j]) -= materialList[pmeshele[i].domain - 1].H_c / 2.*pmeshele[i].Q[j];
-		}
+			int kk = row + 1; if (kk == 4) kk = 0;
+			bbJz(pmeshele4[i].n[row]) += -hc / 2.*(pmeshnode[pmeshele4[i].n[kk]].x - pmeshnode[pmeshele4[i].n[row]].x);
+			bbJz(pmeshele4[i].n[kk]) += -hc / 2.*(pmeshnode[pmeshele4[i].n[kk]].x - pmeshnode[pmeshele4[i].n[row]].x);
+		}		
 	}//end for
 	locs.reshape(2, pos);//重新调整大小
 	vals.reshape(1, pos);
@@ -2532,8 +2547,87 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 	for (int i = 0; i < num_pts - node_bdr; i++) {
 		unknown_b[i] = INL(node_reorder(i));
 	}
+	//第一次求解
+	//---------------------superLU_MT---------------------------------------
+	//CSuperLU_MT superlumt(num_pts - node_bdr, X, unknown_b);
+	SuperMatrix   sluA; SuperMatrix sluB, sluX;
+	//NCformat *Astore;
+	double   *a;
+	int_t      *asub, *xa;
+	int_t      *perm_r; /* row permutations from partial pivoting */
+	int_t      *perm_c; /* column permutation vector */
+	SuperMatrix   L;       /* factor L */
+	SCPformat *Lstore;
+	SuperMatrix   U;       /* factor U */
+	NCPformat *Ustore;
+	int_t      nrhs, info, m, n, nnz;
+	int_t      nprocs; /* maximum number of processors to use. */
+	int_t      panel_size, relax, maxsup;
+	int_t      permc_spec;
+	trans_t  trans;
+	//double   *rhs;
+	superlu_memusage_t   superlu_memusage;
+	DNformat	   *Bstore;
+	double      *rhsb, *rhsx;
+	Gstat_t  Gstat1;
+
+
+	panel_size = sp_ienv(1);
+	relax = sp_ienv(2);
+	maxsup = sp_ienv(3);
+
+	nprocs = 1;
+	nrhs = 1;
+	trans = NOTRANS;
+	/* create matrix A in Harwell-Boeing format.*/
+	m = num_pts - node_bdr; n = num_pts - node_bdr; nnz = X.n_nonzero;
+	a = const_cast<double *>(X.values);
+
+	StatAlloc(n, nprocs, panel_size, relax, &Gstat1);
+	StatInit(n, nprocs, &Gstat1);
+
+	asub = (int*)const_cast<unsigned int*>(X.row_indices);
+	xa = (int*)const_cast<unsigned int*>(X.col_ptrs);
+	dCreate_CompCol_Matrix(&sluA, m, n, nnz, a, asub, xa, SLU_NC, SLU_D, SLU_GE);
+
+	//------create B and X-------------------
+	if (!(rhsx = doubleMalloc(m * nrhs))) SUPERLU_ABORT("Malloc fails for rhsx[].");
+	dCreate_Dense_Matrix(&sluX, m, nrhs, rhsx, m, SLU_DN, SLU_D, SLU_GE);
+
+	rhsb = unknown_b;
+	dCreate_Dense_Matrix(&sluB, m, nrhs, rhsb, m, SLU_DN, SLU_D, SLU_GE);
+	Bstore = (DNformat*)sluB.Store;
+
+	if (!(perm_r = intMalloc(m))) SUPERLU_ABORT("Malloc fails for perm_r[].");
+	if (!(perm_c = intMalloc(n))) SUPERLU_ABORT("Malloc fails for perm_c[].");
+
+	/*
+	* Get column permutation vector perm_c[], according to permc_spec:
+	*   permc_spec = 0: natural ordering
+	*   permc_spec = 1: minimum degree ordering on structure of A'*A
+	*   permc_spec = 2: minimum degree ordering on structure of A'+A
+	*   permc_spec = 3: approximate minimum degree for unsymmetric matrices
+	*/
+	permc_spec = 1;
+	get_perm_c(permc_spec, &sluA, perm_c);
+
+	pdgssv(nprocs, &sluA, perm_c, perm_r, &L, &U, &sluB, &info);
+
+	if (info != 0) {
+		qDebug() << "Error: superlumt.slove";
+		//qDebug() << "info: " << superlumt.info;
+	} else {
+		double *sol = NULL;
+		A_old = A;
+		sol = (double*)((DNformat*)sluB.Store)->nzval;
+		//取得结果
+		for (int i = 0; i < num_pts - node_bdr; i++) {
+			pmeshnode[node_reorder(i)].A = sol[i];// / pmeshnode[i].x;//the A is r*A_real
+			A(node_reorder(i)) = sol[i];
+		}
+	}
 	//迭代
 
-
+	//
 	return true;
 }
