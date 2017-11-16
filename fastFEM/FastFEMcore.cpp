@@ -1146,18 +1146,22 @@ bool CFastFEMcore::StaticAxisTLMNR() {
 
 		//生成单元矩阵，线性与非线性
 		// 因为线性与非线性的差不多，所以不再分开讨论了
-		ce[0][0] = rm[i].Y11;
-		ce[1][1] = rm[i].Y22;
-		ce[2][2] = rm[i].Y33;
+		
 
 		if (pmeshele[i].LinearFlag) {//线性区，不用计算
 			ce[0][1] = rm[i].Y12;
 			ce[0][2] = rm[i].Y13;
 			ce[1][2] = rm[i].Y23;
+			ce[0][0] = rm[i].Y11;
+			ce[1][1] = rm[i].Y22;
+			ce[2][2] = rm[i].Y33;
 		} else {
-			ce[0][1] = abs(rm[i].Y12);
-			ce[0][2] = abs(rm[i].Y13);
-			ce[1][2] = abs(rm[i].Y23);
+			ce[0][1] = -abs(rm[i].Y12);
+			ce[0][2] = -abs(rm[i].Y13);
+			ce[1][2] = -abs(rm[i].Y23);
+			ce[0][0] = -ce[0][1] - ce[0][2];
+			ce[1][1] = -ce[0][1] - ce[1][2];
+			ce[2][2] = -ce[0][2]- ce[1][2];
 		}
 		ce[1][0] = ce[0][1];
 		ce[2][0] = ce[0][2];
@@ -1316,10 +1320,12 @@ bool CFastFEMcore::StaticAxisTLMNR() {
 			}
 			pmeshele[i].B = sqrt(bx*bx + by*by) / 2. / pmeshele[i].AREA / ydot[i];
 			pmeshele[i].miut = materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B);
-			//pmeshele[i].miut = y[i] + (count>90 ? 0.02 : (0.9 - count*0.001))*(pmeshele[i].miut - y[i]);
-			
-			//y[i] = (A(pmeshele[i].n[0]) + A(pmeshele[i].n[1]) + A(pmeshele[i].n[2]))/3;
 			y[i] = pmeshele[i].miut;
+			if (std::isnan(y[i])) {
+				qDebug() << A(pmeshele[i].n[0]);
+				qDebug() << A(pmeshele[i].n[1]);
+				qDebug() << A(pmeshele[i].n[2]);
+			}
 		}
 		//#pragma omp parallel for
 		for (int j = 0; j < D34.size(); j++) {
@@ -1335,43 +1341,52 @@ bool CFastFEMcore::StaticAxisTLMNR() {
 			Vr[j].V13 = (pmeshnode[n].A - pmeshnode[k].A) - Vi[j].V13;
 			//求解小电路，计算入射向线性网络电压
 			double J12, J23, J13, D12, D23, D13;
-
+			
 			double dvdB = materialList[m_e->domain - 1].getdvdB(m_e->B);
-			J12 = dvdB / m_e->B / ydot[i] / m_e->AREA*m_e->miu*m_e->miu;
-			J12 *= rm[i].Y12*(A(m)-A(k)) + rm[i].Y13*(A(n)-A(k));
-			J12 *= rm[i].Y12*(A(k)-A(m)) + rm[i].Y23*(A(n)-A(m));
-			J12 += rm[i].Y12*m_e->miu/m_e->miut;
+			dvdB /= ydot[i] * ydot[i];
+			double c12, c23, c13,c11,c22,c33;
+			c12 = rm[i].Y12*ydot[i] * m_e->miu;
+			c23 = rm[i].Y23*ydot[i] * m_e->miu;
+			c13 = rm[i].Y13*ydot[i] * m_e->miu;
+			c11 = -(c12 + c13);
+			c22 = -(c12 + c23);
+			c33 = -(c13 + c23);
+			double b = m_e->B * ydot[i];
+			double miu = m_e->miut*ydot[i];
+			double tmp, tmp1;
+			tmp = c11*A(k)*A(k) + c22*A(m)*A(m) + c33*A(n)*A(n);
+			tmp += 2 * c12*A(k)*A(m) + 2 * c13*A(k)*A(n) + 2 * c23*A(m)*A(n);
+			tmp *= dvdB / b / m_e->AREA;
+			tmp1 = tmp;
+			tmp += 1 / miu;
 
-			J23 = dvdB / m_e->B / ydot[i] / m_e->AREA*m_e->miu*m_e->miu;
-			J23 *= rm[i].Y12*(A(k) - A(m)) + rm[i].Y23*(A(n) - A(m));
-			J23 *= rm[i].Y13*(A(k) - A(n)) + rm[i].Y23*(A(m) - A(n));
-			J23 += rm[i].Y23*m_e->miu / m_e->miut;
+			J12 = c12*tmp;
+			J23 = c23*tmp;
+			J13 = c13*tmp;
 
-			J13 = dvdB / m_e->B / ydot[i] / m_e->AREA*m_e->miu*m_e->miu;
-			J13 *= rm[i].Y12*(A(m) - A(k)) + rm[i].Y13*(A(n) - A(k));
-			J13 *= rm[i].Y13*(A(k) - A(n)) + rm[i].Y23*(A(m) - A(n));
-			J13 += rm[i].Y13*m_e->miu / m_e->miut;
-
-			D12 = J12 - rm[i].Y12*m_e->miu / m_e->miut;
-			D23 = J23 - rm[i].Y23*m_e->miu / m_e->miut;
-			D13 = J13 - rm[i].Y13*m_e->miu / m_e->miut;
-
-			Vi[j].V12 = Vr[j].V12*(abs(rm[i].Y12)+J12)+D12*(A(m)-A(k));
-			Vi[j].V23 = Vr[j].V23*(abs(rm[i].Y23) + J23) + D23*(A(m) - A(n));
-			Vi[j].V13 = Vr[j].V13*(abs(rm[i].Y13) + J13) + D13*(A(n) - A(k));
+			Vi[j].V12 = Vr[j].V12*(fabs(rm[i].Y12) + J12) + c12*tmp1*(A(m) - A(k));
+			Vi[j].V12 /= (fabs(rm[i].Y12) - J12);
+			Vi[j].V23 = Vr[j].V23*(fabs(rm[i].Y23) + J23) + c23*tmp1*(A(n) - A(m));
+			Vi[j].V23 /= (fabs(rm[i].Y23) - J23);
+			Vi[j].V13 = Vr[j].V13*(fabs(rm[i].Y13) + J13) + c13*tmp1*(A(k) - A(n));
+			Vi[j].V13 /= (fabs(rm[i].Y13) - J13);
+			if (std::isnan(Vi[j].V12)) {
+				qDebug() << Vi[j].V12;
+			}
+			if (std::isnan(Vi[j].V23)) {
+				qDebug() << Vi[j].V23;
+			}
+			if (std::isnan(Vi[j].V13)) {
+				qDebug() << Vi[j].V13;
+			}
+			INL(k) += 2.*Vi[j].V12*fabs(rm[i].Y12) ;
+			INL(m) -= 2.*Vi[j].V12*fabs(rm[i].Y12) ;
 			
-			INL(k) += -2. *Vi[j].V12*rm[i].Y12;
-			INL(m) += 2. * Vi[j].V12 *rm[i].Y12;
+			INL(m) += 2.*Vi[j].V23*fabs(rm[i].Y23);
+			INL(n) -= 2.*Vi[j].V23*fabs(rm[i].Y23) ;
 			
-			Vi[j].V23 = Vr[j].V23;
-			
-			INL(m) += -2. * Vi[j].V23*rm[i].Y23;
-			INL(n) += 2. *Vi[j].V23*rm[i].Y23;
-			
-			Vi[j].V13 = Vr[j].V13;
-			
-			INL(n) += -2. * Vi[j].V13*rm[i].Y13;
-			INL(k) += 2.0 *Vi[j].V13*rm[i].Y13;
+			INL(n) += 2.*Vi[j].V13*fabs(rm[i].Y13);
+			INL(k) -= 2.*Vi[j].V13*fabs(rm[i].Y13) ;
 		}
 		INL += bbJz;
 		for (int i = 0; i < num_pts - node_bdr; i++) {
