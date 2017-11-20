@@ -1363,13 +1363,16 @@ bool CFastFEMcore::StaticAxisTLMNR() {
 			J12 = c12*tmp;
 			J23 = c23*tmp;
 			J13 = c13*tmp;
-
-			Vi[j].V12 = Vr[j].V12*(fabs(rm[i].Y12) + J12) + c12*tmp1*(A(m) - A(k));
+			
+			Vi[j].V12 = Vr[j].V12*(fabs(rm[i].Y12) + J12) + c12*tmp1*(A(m) - A(k)) - c13*tmp1*(A(k) - A(n));
 			Vi[j].V12 /= (fabs(rm[i].Y12) - J12);
-			Vi[j].V23 = Vr[j].V23*(fabs(rm[i].Y23) + J23) + c23*tmp1*(A(n) - A(m));
+			Vi[j].V23 = Vr[j].V23*(fabs(rm[i].Y23) + J23) + c23*tmp1*(A(n) - A(m)) - c12*tmp1*(A(m) - A(k));
 			Vi[j].V23 /= (fabs(rm[i].Y23) - J23);
-			Vi[j].V13 = Vr[j].V13*(fabs(rm[i].Y13) + J13) + c13*tmp1*(A(k) - A(n));
+			Vi[j].V13 = Vr[j].V13*(fabs(rm[i].Y13) + J13) + c13*tmp1*(A(k) - A(n)) - c23*tmp1*(A(n) - A(m));
 			Vi[j].V13 /= (fabs(rm[i].Y13) - J13);
+			if (fabs(Vi[j].V12 / Vr[j].V12) > 1) {
+				y[i] = 0;
+			}
 			if (std::isnan(Vi[j].V12)) {
 				qDebug() << Vi[j].V12;
 			}
