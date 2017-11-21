@@ -27,6 +27,7 @@ public:
     int LoadQ4MeshCOMSOL(const char fn[]);//读入四节点单元
 	bool StaticAxisymmetricTLM();//使用TLM静态轴对称磁场的计算函数
 	bool StaticAxisTLMNR();//新的迭代方法，NR+TLM
+	bool StaticAxisQ3TLMgroup();//三角形单元看作为整体
     bool StaticAxisQ4NR();//使用NR求解，四边形分网
     bool StaticAxisQ4TLM();//使用TLM求解，四边形分网
 	double CalcForce();//电磁力计算函数
