@@ -68,6 +68,12 @@ typedef Col <float> fcolvec;
 typedef Row <float> frowvec;
 typedef Cube<float> fcube;
 
+typedef Mat <double> dmat;
+typedef Col <double> dvec;
+typedef Col <double> dcolvec;
+typedef Row <double> drowvec;
+typedef Cube<double> dcube;
+
 typedef Mat <double> mat;
 typedef Col <double> vec;
 typedef Col <double> colvec;
@@ -79,6 +85,12 @@ typedef Col <cx_float> cx_fvec;
 typedef Col <cx_float> cx_fcolvec;
 typedef Row <cx_float> cx_frowvec;
 typedef Cube<cx_float> cx_fcube;
+
+typedef Mat <cx_double> cx_dmat;
+typedef Col <cx_double> cx_dvec;
+typedef Col <cx_double> cx_dcolvec;
+typedef Row <cx_double> cx_drowvec;
+typedef Cube<cx_double> cx_dcube;
 
 typedef Mat <cx_double> cx_mat;
 typedef Col <cx_double> cx_vec;
@@ -103,6 +115,11 @@ typedef SpCol <float> sp_fvec;
 typedef SpCol <float> sp_fcolvec;
 typedef SpRow <float> sp_frowvec;
 
+typedef SpMat <double> sp_dmat;
+typedef SpCol <double> sp_dvec;
+typedef SpCol <double> sp_dcolvec;
+typedef SpRow <double> sp_drowvec;
+
 typedef SpMat <double> sp_mat;
 typedef SpCol <double> sp_vec;
 typedef SpCol <double> sp_colvec;
@@ -113,10 +130,27 @@ typedef SpCol <cx_float> sp_cx_fvec;
 typedef SpCol <cx_float> sp_cx_fcolvec;
 typedef SpRow <cx_float> sp_cx_frowvec;
 
+typedef SpMat <cx_double> sp_cx_dmat;
+typedef SpCol <cx_double> sp_cx_dvec;
+typedef SpCol <cx_double> sp_cx_dcolvec;
+typedef SpRow <cx_double> sp_cx_drowvec;
+
 typedef SpMat <cx_double> sp_cx_mat;
 typedef SpCol <cx_double> sp_cx_vec;
 typedef SpCol <cx_double> sp_cx_colvec;
 typedef SpRow <cx_double> sp_cx_rowvec;
+
+
+// internal use only; subject to change and/or removal without notice
+typedef MapMat <uword>     map_umat;
+typedef MapMat <sword>     map_imat;
+typedef MapMat <float>     map_fmat;
+typedef MapMat <double>    map_dmat;
+typedef MapMat <double>    map_mat;
+typedef MapMat <cx_float>  map_cx_fmat;
+typedef MapMat <cx_double> map_cx_dmat;
+typedef MapMat <cx_double> map_cx_mat;
+
 
 
 //! @}

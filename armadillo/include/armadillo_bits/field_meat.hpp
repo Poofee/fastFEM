@@ -26,16 +26,10 @@ field<oT>::~field()
   
   delete_objects();
   
-  if(n_elem > field_prealloc_n_elem::val)
-    {
-    delete [] mem;
-    }
+  if(n_elem > field_prealloc_n_elem::val)  { delete [] mem; }
   
-  if(arma_config::debug == true)
-    {
-    // try to expose buggy user code that accesses deleted objects
-    mem = 0;
-    }
+  // try to expose buggy user code that accesses deleted objects
+  if(arma_config::debug)  { mem = 0; }
   }
 
 
@@ -74,7 +68,7 @@ field<oT>::field(const field& x)
 //! construct a field from a given field
 template<typename oT>
 inline
-const field<oT>&
+field<oT>&
 field<oT>::operator=(const field& x)
   {
   arma_extra_debug_sigprint();
@@ -105,7 +99,7 @@ field<oT>::field(const subview_field<oT>& X)
 //! construct a field from subview_field (e.g. construct a field from a delayed subfield operation)
 template<typename oT>
 inline
-const field<oT>&
+field<oT>&
 field<oT>::operator=(const subview_field<oT>& X)
   {
   arma_extra_debug_sigprint();
@@ -279,7 +273,7 @@ field<oT>::set_size(const SizeCube& s)
   
   template<typename oT>
   inline
-  const field<oT>&
+  field<oT>&
   field<oT>::operator=(const std::initializer_list<oT>& list)
     {
     arma_extra_debug_sigprint();
@@ -317,7 +311,7 @@ field<oT>::set_size(const SizeCube& s)
   
   template<typename oT>
   inline
-  const field<oT>&
+  field<oT>&
   field<oT>::operator=(const std::initializer_list< std::initializer_list<oT> >& list)
     {
     arma_extra_debug_sigprint();
@@ -404,7 +398,7 @@ field<oT>::set_size(const SizeCube& s)
   
   template<typename oT>
   inline
-  const field<oT>&
+  field<oT>&
   field<oT>::operator=(field<oT>&& X)
     {
     arma_extra_debug_sigprint(arma_str::format("this = %x   X = %x") % this % &X);
@@ -1345,14 +1339,14 @@ field<oT>::print(const std::string extra_text) const
   
   if(extra_text.length() != 0)
     {
-    const std::streamsize orig_width = ARMA_DEFAULT_OSTREAM.width();
+    const std::streamsize orig_width = get_cout_stream().width();
     
-    ARMA_DEFAULT_OSTREAM << extra_text << '\n';
-  
-    ARMA_DEFAULT_OSTREAM.width(orig_width);
+    get_cout_stream() << extra_text << '\n';
+    
+    get_cout_stream().width(orig_width);
     }
   
-  arma_ostream::print(ARMA_DEFAULT_OSTREAM, *this);
+  arma_ostream::print(get_cout_stream(), *this);
   }
 
 

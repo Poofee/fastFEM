@@ -35,6 +35,7 @@
 #include <complex>
 #include <vector>
 #include <utility>
+#include <map>
 
 
 #if ( defined(__unix__) || defined(__unix) || defined(_POSIX_C_SOURCE) || (defined(__APPLE__) && defined(__MACH__)) ) && !defined(_WIN32)
@@ -47,12 +48,7 @@
 #endif
 
 
-#if (__cplusplus >= 201103L)
-  #undef  ARMA_USE_CXX11
-  #define ARMA_USE_CXX11
-#endif
-
-
+#include "armadillo_bits/compiler_extra.hpp"
 #include "armadillo_bits/config.hpp"
 #include "armadillo_bits/compiler_setup.hpp"
 
@@ -89,7 +85,7 @@
 #include "armadillo_bits/include_superlu.hpp"
 
 
-#if defined(_OPENMP)
+#if defined(ARMA_USE_OPENMP)
   #include <omp.h>
 #endif
 
@@ -118,6 +114,7 @@ namespace arma
   #include "armadillo_bits/distr_param.hpp"
   #include "armadillo_bits/constants.hpp"
   #include "armadillo_bits/constants_old.hpp"
+  #include "armadillo_bits/mp_misc.hpp"
   
   #ifdef ARMA_RNG_ALT
     #include ARMA_INCFILE_WRAP(ARMA_RNG_ALT)
@@ -172,6 +169,7 @@ namespace arma
   #include "armadillo_bits/SpRow_bones.hpp"
   #include "armadillo_bits/SpSubview_bones.hpp"
   #include "armadillo_bits/spdiagview_bones.hpp"
+  #include "armadillo_bits/MapMat_bones.hpp"
   
   #include "armadillo_bits/typedef_mat_fixed.hpp"
   
@@ -295,9 +293,12 @@ namespace arma
   #include "armadillo_bits/glue_hypot_bones.hpp"
   #include "armadillo_bits/glue_polyfit_bones.hpp"
   #include "armadillo_bits/glue_polyval_bones.hpp"
+  #include "armadillo_bits/glue_intersect_bones.hpp"
+  #include "armadillo_bits/glue_affmul_bones.hpp"
   
   #include "armadillo_bits/gmm_misc_bones.hpp"
   #include "armadillo_bits/gmm_diag_bones.hpp"
+  #include "armadillo_bits/gmm_full_bones.hpp"
   
   #include "armadillo_bits/spop_max_bones.hpp"
   #include "armadillo_bits/spop_min_bones.hpp"
@@ -521,6 +522,8 @@ namespace arma
   #include "armadillo_bits/fn_range.hpp"
   #include "armadillo_bits/fn_polyfit.hpp"
   #include "armadillo_bits/fn_polyval.hpp"
+  #include "armadillo_bits/fn_intersect.hpp"
+  #include "armadillo_bits/fn_normpdf.hpp"
   
   #include "armadillo_bits/fn_speye.hpp"
   #include "armadillo_bits/fn_spones.hpp"
@@ -536,6 +539,7 @@ namespace arma
   
   #include "armadillo_bits/hdf5_misc.hpp"
   #include "armadillo_bits/fft_engine.hpp"
+  #include "armadillo_bits/band_helper.hpp"
   
   //
   // classes implementing various forms of dense matrix multiplication
@@ -587,6 +591,7 @@ namespace arma
   #include "armadillo_bits/SpSubview_meat.hpp"
   #include "armadillo_bits/SpSubview_iterators_meat.hpp"
   #include "armadillo_bits/spdiagview_meat.hpp"
+  #include "armadillo_bits/MapMat_meat.hpp"
   
   #include "armadillo_bits/diskio_meat.hpp"
   #include "armadillo_bits/wall_clock_meat.hpp"
@@ -670,9 +675,12 @@ namespace arma
   #include "armadillo_bits/glue_hypot_meat.hpp"
   #include "armadillo_bits/glue_polyfit_meat.hpp"
   #include "armadillo_bits/glue_polyval_meat.hpp"
+  #include "armadillo_bits/glue_intersect_meat.hpp"
+  #include "armadillo_bits/glue_affmul_meat.hpp"
   
   #include "armadillo_bits/gmm_misc_meat.hpp"
   #include "armadillo_bits/gmm_diag_meat.hpp"
+  #include "armadillo_bits/gmm_full_meat.hpp"
   
   #include "armadillo_bits/spop_max_meat.hpp"
   #include "armadillo_bits/spop_min_meat.hpp"

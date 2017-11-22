@@ -37,10 +37,9 @@ class SpSubview : public SpBase<eT, SpSubview<eT> >
   const uword n_cols;
   const uword n_elem;
   const uword n_nonzero;
-
-  // So that SpValProxy can call add_element() and delete_element().
-  friend class SpValProxy<SpSubview<eT> >;
-
+  
+  friend class SpValProxy< SpSubview<eT> >;   // allow SpValProxy to call insert_element() and delete_element()
+  
   protected:
 
   arma_inline SpSubview(const SpMat<eT>& in_m, const uword in_row1, const uword in_col1, const uword in_n_rows, const uword in_n_cols);
@@ -72,7 +71,7 @@ class SpSubview : public SpBase<eT, SpSubview<eT> >
   template<typename T1> inline const SpSubview& operator*=(const SpBase<eT, T1>& x);
   template<typename T1> inline const SpSubview& operator%=(const SpBase<eT, T1>& x);
   template<typename T1> inline const SpSubview& operator/=(const SpBase<eT, T1>& x);
-
+  
   /*
   inline static void extract(SpMat<eT>& out, const SpSubview& in);
 
@@ -89,20 +88,20 @@ class SpSubview : public SpBase<eT, SpSubview<eT> >
   inline void ones();
   inline void eye();
 
-  arma_hot inline SpValProxy<SpSubview<eT> > operator[](const uword i);
-  arma_hot inline eT                         operator[](const uword i) const;
+  arma_hot inline MapMat_svel<eT> operator[](const uword i);
+  arma_hot inline eT              operator[](const uword i) const;
 
-  arma_hot inline SpValProxy<SpSubview<eT> > operator()(const uword i);
-  arma_hot inline eT                         operator()(const uword i) const;
+  arma_hot inline MapMat_svel<eT> operator()(const uword i);
+  arma_hot inline eT              operator()(const uword i) const;
 
-  arma_hot inline SpValProxy<SpSubview<eT> > operator()(const uword in_row, const uword in_col);
-  arma_hot inline eT                         operator()(const uword in_row, const uword in_col) const;
+  arma_hot inline MapMat_svel<eT> operator()(const uword in_row, const uword in_col);
+  arma_hot inline eT              operator()(const uword in_row, const uword in_col) const;
 
-  arma_hot inline SpValProxy<SpSubview<eT> > at(const uword i);
-  arma_hot inline eT                         at(const uword i) const;
+  arma_hot inline MapMat_svel<eT> at(const uword i);
+  arma_hot inline eT              at(const uword i) const;
 
-  arma_hot inline SpValProxy<SpSubview<eT> > at(const uword in_row, const uword in_col);
-  arma_hot inline eT                         at(const uword in_row, const uword in_col) const;
+  arma_hot inline MapMat_svel<eT> at(const uword in_row, const uword in_col);
+  arma_hot inline eT              at(const uword in_row, const uword in_col) const;
 
   inline bool check_overlap(const SpSubview& x) const;
 
@@ -154,7 +153,7 @@ class SpSubview : public SpBase<eT, SpSubview<eT> >
     inline iterator_base(const SpSubview& in_M);
     inline iterator_base(const SpSubview& in_M, const uword col, const uword pos, const uword skip_pos);
 
-    inline eT operator*() const;
+    arma_inline eT operator*() const;
 
     // Don't hold location internally; call "dummy" methods to get that information.
     arma_inline uword row() const { return M.m.row_indices[internal_pos + skip_pos] - M.aux_row1; }
@@ -305,11 +304,11 @@ class SpSubview : public SpBase<eT, SpSubview<eT> >
   private:
   friend class SpMat<eT>;
   SpSubview();
-
-  // For use by SpValProxy.  We just update n_nonzero and pass the call on to the matrix.
-  inline arma_hot arma_warn_unused eT&  add_element(const uword in_row, const uword in_col, const eT in_val = 0.0);
-  inline arma_hot                  void delete_element(const uword in_row, const uword in_col);
-
+  
+  inline arma_warn_unused eT&  insert_element(const uword in_row, const uword in_col, const eT in_val = eT(0));
+  inline                  void delete_element(const uword in_row, const uword in_col);
+  
+  inline void invalidate_cache() const;
   };
 
 /*

@@ -318,7 +318,7 @@ is_finite(const BaseCube<typename T1::elem_type,T1>& X)
 
 
 
-//! DO NOT USE IN NEW CODE; change instances of inv(sympd(X)) to inv_sympd(X)
+//! NOTE: don't use this function: it will be removed
 template<typename T1>
 arma_deprecated
 inline
@@ -654,6 +654,23 @@ sub2ind(const SizeCube& s, const Base<uword,T1>& subscripts)
     }
   
   return out;
+  }
+
+
+
+template<typename T1, typename T2>
+arma_inline
+typename
+enable_if2
+  <
+  (is_arma_type<T1>::value && is_same_type<typename T1::elem_type, typename T2::elem_type>::value),
+  const Glue<T1, T2, glue_affmul>
+  >::result
+affmul(const T1& A, const T2& B)
+  {
+  arma_extra_debug_sigprint();
+  
+  return Glue<T1, T2, glue_affmul>(A,B);
   }
 
 

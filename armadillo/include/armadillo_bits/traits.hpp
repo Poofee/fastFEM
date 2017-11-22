@@ -241,6 +241,10 @@ template<typename eT>
 struct is_Cube< Cube<eT> >
   { static const bool value = true; };
 
+template<typename eT>
+struct is_Cube< const Cube<eT> >
+  { static const bool value = true; };
+
 template<typename T>
 struct is_subview_cube
   { static const bool value = false; };
@@ -249,6 +253,9 @@ template<typename eT>
 struct is_subview_cube< subview_cube<eT> >
   { static const bool value = true; };
 
+template<typename eT>
+struct is_subview_cube< const subview_cube<eT> >
+  { static const bool value = true; };
 
 
 //
@@ -629,7 +636,7 @@ struct is_basevec< const subview_elem1<eT,T1> >
 
 
 template<typename T1>
-struct is_arma_type
+struct is_arma_type2
   {
   static const bool value
   =  is_Mat<T1>::value
@@ -647,6 +654,17 @@ struct is_arma_type
   || is_subview_elem1<T1>::value
   || is_subview_elem2<T1>::value
   ;
+  };
+
+
+
+// due to rather baroque C++ rules for proving constant expressions,
+// certain compilers may get confused with the combination of conditional inheritance, nested classes and the shenanigans in is_Mat_fixed_only.
+// below we explicitly ensure the type is forced to be const, which seems to eliminate the confusion.
+template<typename T1>
+struct is_arma_type
+  {
+  static const bool value = is_arma_type2<const T1>::value;
   };
 
 
@@ -723,6 +741,15 @@ struct is_SpSubview< SpSubview<eT> >
 
 
 template<typename T>
+struct is_spdiagview
+  { static const bool value = false; };
+
+template<typename eT>
+struct is_spdiagview< spdiagview<eT> >
+  { static const bool value = true; };
+
+
+template<typename T>
 struct is_SpOp
   { static const bool value = false; };
  
@@ -756,6 +783,7 @@ struct is_arma_sparse_type
   static const bool value
   =  is_SpMat<T1>::value
   || is_SpSubview<T1>::value
+  || is_spdiagview<T1>::value
   || is_SpOp<T1>::value
   || is_SpGlue<T1>::value
   || is_mtSpOp<T1>::value

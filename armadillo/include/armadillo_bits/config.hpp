@@ -16,14 +16,14 @@
 
 
 #if !defined(ARMA_USE_LAPACK)
-/* #undef ARMA_USE_LAPACK */
+#define ARMA_USE_LAPACK
 //// Comment out the above line if you don't have LAPACK or a high-speed replacement for LAPACK,
 //// such as Intel MKL, AMD ACML, or the Accelerate framework.
 //// LAPACK is required for matrix decompositions (eg. SVD) and matrix inverse.
 #endif
 
 #if !defined(ARMA_USE_BLAS)
-/* #undef ARMA_USE_BLAS */
+#define ARMA_USE_BLAS
 //// Comment out the above line if you don't have BLAS or a high-speed replacement for BLAS,
 //// such as OpenBLAS, GotoBLAS, Intel MKL, AMD ACML, or the Accelerate framework.
 //// BLAS is used for matrix multiplication.
@@ -37,26 +37,26 @@
 #endif
 
 #if !defined(ARMA_USE_ARPACK)
-/* #undef ARMA_USE_ARPACK */
+// #define ARMA_USE_ARPACK
 //// Uncomment the above line if you have ARPACK or a high-speed replacement for ARPACK.
 //// ARPACK is required for eigen decompositions of complex sparse matrices
 #endif
 
 #if !defined(ARMA_USE_SUPERLU)
-/* #undef ARMA_USE_SUPERLU */
+// #define ARMA_USE_SUPERLU
 //// Uncomment the above line if you have SuperLU.
 //// SuperLU is used for solving sparse linear systems via spsolve()
 //// Caveat: only SuperLU version 5.2 can be used!
 #endif
 
 #if !defined(ARMA_SUPERLU_INCLUDE_DIR)
-#define ARMA_SUPERLU_INCLUDE_DIR /
+// #define ARMA_SUPERLU_INCLUDE_DIR /usr/include/
 //// If you're using SuperLU and want to explicitly include the SuperLU headers,
 //// uncomment the above define and specify the appropriate include directory.
 //// Make sure the directory has a trailing /
 #endif
 
-#define ARMA_USE_WRAPPER
+// #define ARMA_USE_WRAPPER
 //// Comment out the above line if you're getting linking errors when compiling your programs,
 //// or if you prefer to directly link with LAPACK, BLAS + etc instead of the Armadillo runtime library.
 //// You will then need to link your programs directly with -llapack -lblas instead of -larmadillo
@@ -80,8 +80,8 @@
 // #define ARMA_USE_MKL_ALLOC
 //// Uncomment the above line if you want to use Intel MKL mkl_malloc() and mkl_free() instead of standard malloc() and free()
 
-/* #undef ARMA_USE_ATLAS */
-#define ARMA_ATLAS_INCLUDE_DIR /
+// #define ARMA_USE_ATLAS
+// #define ARMA_ATLAS_INCLUDE_DIR /usr/include/
 //// If you're using ATLAS and the compiler can't find cblas.h and/or clapack.h
 //// uncomment the above define and specify the appropriate include directory.
 //// Make sure the directory has a trailing /
@@ -89,14 +89,20 @@
 #if !defined(ARMA_USE_CXX11)
 // #define ARMA_USE_CXX11
 //// Uncomment the above line to forcefully enable use of C++11 features (eg. initialiser lists).
-//// Note that ARMA_USE_CXX11 is automatically enabled when a C++11 compiler is detected
+//// Note that ARMA_USE_CXX11 is automatically enabled when a C++11 compiler is detected.
+#endif
+
+#if !defined(ARMA_USE_OPENMP)
+// #define ARMA_USE_OPENMP
+//// Uncomment the above line to forcefully enable use of OpenMP for parallelisation.
+//// Note that ARMA_USE_OPENMP is automatically enabled when a compiler supporting OpenMP 3.0 is detected.
 #endif
 
 #if !defined(ARMA_64BIT_WORD)
 // #define ARMA_64BIT_WORD
 //// Uncomment the above line if you require matrices/vectors capable of holding more than 4 billion elements.
-//// Your machine and compiler must have support for 64 bit integers (eg. via "long" or "long long")
-//// Note that ARMA_64BIT_WORD is automatically enabled when a C++11 compiler is detected
+//// Your machine and compiler must have support for 64 bit integers (eg. via "long" or "long long").
+//// Note that ARMA_64BIT_WORD is automatically enabled when a C++11 compiler is detected.
 #endif
 
 #if !defined(ARMA_USE_HDF5)
@@ -106,12 +112,12 @@
 //// and you will need to link with the hdf5 library (eg. -lhdf5)
 #endif
 
-/* #undef ARMA_USE_HDF5_ALT */
+// #define ARMA_USE_HDF5_ALT
 #if defined(ARMA_USE_HDF5_ALT) && defined(ARMA_USE_WRAPPER)
   #undef  ARMA_USE_HDF5
   #define ARMA_USE_HDF5
   
-  #define ARMA_HDF5_INCLUDE_DIR /
+  // #define ARMA_HDF5_INCLUDE_DIR /usr/include/
 #endif
 
 #if !defined(ARMA_MAT_PREALLOC)
@@ -121,6 +127,18 @@
 //// it must be an integer that is at least 1.
 //// If you mainly use lots of very small vectors (eg. <= 4 elements),
 //// change the number to the size of your vectors.
+
+#if !defined(ARMA_OPENMP_THRESHOLD)
+  #define ARMA_OPENMP_THRESHOLD 384
+#endif
+//// The minimum number of elements in a matrix to allow OpenMP based parallelisation;
+//// it must be an integer that is at least 1.
+
+#if !defined(ARMA_OPENMP_THREADS)
+  #define ARMA_OPENMP_THREADS 10
+#endif
+//// The maximum number of threads to use for OpenMP based parallelisation;
+//// it must be an integer that is at least 1.
 
 #if !defined(ARMA_SPMAT_CHUNKSIZE)
   #define ARMA_SPMAT_CHUNKSIZE 256
@@ -141,9 +159,30 @@
 //// This is mainly useful for debugging of the library.
 
 
-#if !defined(ARMA_DEFAULT_OSTREAM)
-  #define ARMA_DEFAULT_OSTREAM std::cout
+#if defined(ARMA_DEFAULT_OSTREAM)
+  #pragma message ("WARNING: support for ARMA_DEFAULT_OSTREAM is deprecated and will be removed;")
+  #pragma message ("WARNING: use ARMA_COUT_STREAM and ARMA_CERR_STREAM instead")
 #endif
+
+
+#if !defined(ARMA_COUT_STREAM)
+  #if defined(ARMA_DEFAULT_OSTREAM)
+    // for compatibility with earlier versions of Armadillo
+    #define ARMA_COUT_STREAM ARMA_DEFAULT_OSTREAM
+  #else
+    #define ARMA_COUT_STREAM std::cout
+  #endif
+#endif
+
+#if !defined(ARMA_CERR_STREAM)
+  #if defined(ARMA_DEFAULT_OSTREAM)
+    // for compatibility with earlier versions of Armadillo
+    #define ARMA_CERR_STREAM ARMA_DEFAULT_OSTREAM
+  #else
+    #define ARMA_CERR_STREAM std::cerr
+  #endif
+#endif
+
 
 #if !defined(ARMA_PRINT_ERRORS)
 #define ARMA_PRINT_ERRORS
@@ -190,10 +229,14 @@
   #undef ARMA_USE_EXTERN_CXX11_RNG
 #endif
 
+#if defined(ARMA_DONT_USE_OPENMP)
+  #undef ARMA_USE_OPENMP
+#endif
+
 #if defined(ARMA_USE_WRAPPER)
   #if defined(ARMA_USE_CXX11)
     #if !defined(ARMA_USE_EXTERN_CXX11_RNG)
-      #define ARMA_USE_EXTERN_CXX11_RNG
+      // #define ARMA_USE_EXTERN_CXX11_RNG
     #endif
   #endif
 #endif
@@ -208,6 +251,7 @@
 
 #if defined(ARMA_DONT_USE_HDF5)
   #undef ARMA_USE_HDF5
+  #undef ARMA_USE_HDF5_ALT
 #endif
 
 #if defined(ARMA_DONT_PRINT_ERRORS)
@@ -223,5 +267,5 @@
 // ARMA_AUX_LIBS lists the libraries required by Armadillo on this system, and
 // ARMA_AUX_INCDIRS lists the include directories required by Armadillo on this system.
 // Do not use these unless you know what you are doing.
-#define ARMA_AUX_LIBS 
-#define ARMA_AUX_INCDIRS 
+#define ARMA_AUX_LIBS
+#define ARMA_AUX_INCDIRS
