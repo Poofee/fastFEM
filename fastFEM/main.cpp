@@ -2,13 +2,15 @@
 #include <QApplication>
 #include "FastFEMcore.h"
 #include "slu_mt_ddefs.h"
+#include <armadillo> 
 
 #define PI 3.14159265358979323846
-
+using namespace arma;
 void triangletest();
 void triangletest1();
 void triangletestgroup();
 void quadtest();
+void armatest();
 
 int main(int argc, char *argv[])
 {
@@ -16,10 +18,24 @@ int main(int argc, char *argv[])
 	qDebug() << "current applicationDirPath: " << QCoreApplication::applicationDirPath();
 	qDebug() << "current currentPath: " << QDir::currentPath();
 
-	triangletest1();
+	//armatest();
+	//triangletest1();
+	triangletestgroup();
 	Plot myplot;
 	myplot.show();
     return a.exec();
+}
+void armatest(){
+	mat A (3, 3);
+	colvec b (3);
+	A(0, 0) = 3; A(0, 1) = -1; A(0, 2) = -2;
+	A(1, 0) = -1; A(1, 1) = 4; A(1, 2) = -3;
+	A(2, 0) = -2; A(2, 1) = -3; A(2, 2) = 5;
+
+	b(0) = 4; b(1) = -5; b(2) = 1;
+	colvec x2;//5 3 4
+	bool status = solve(x2, A, b);
+	qDebug() << x2(0) << x2(1) << x2(2);
 }
 void quadtest(){
     CFastFEMcore fem;
@@ -45,16 +61,16 @@ void triangletestgroup() {
 	if (fem.Load2DMeshCOMSOL("..\\model\\mesh24.mphtxt") == 0) {
 		fem.preCalculation();
 		t1 = SuperLU_timer_();
-		//fem.StaticAxisymmetricNR();
+		fem.StaticAxisymmetricNR();
 		t1 = SuperLU_timer_() - t1;
 		qDebug() << "NR:" << t1;
 		for (int i = 0; i < fem.num_ele; i++) {
 			if (!fem.pmeshele[i].LinearFlag) {
-				fem.pmeshele[i].miu = 0.9*fem.pmeshele[i].miut;
+				//fem.pmeshele[i].miu = 0.9*fem.pmeshele[i].miut;
 			}
 		}
 		t1 = SuperLU_timer_();
-		fem.StaticAxisQ3TLMgroup();
+		fem.StaticAxisT3TLMgroup();
 		t1 = SuperLU_timer_() - t1;
 		qDebug() << "TLM:" << t1;
 		//fem.CalcForce();

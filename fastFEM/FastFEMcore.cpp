@@ -1072,8 +1072,8 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 	//StatFree(&Gstat1);
 	return true;
 }
-//尝试将三角形单元的电路看作为一个整体
-bool CFastFEMcore::StaticAxisQ3TLMgroup() {
+//尝试将三角形单元的电路看作为一个整体，三角单元内部暂时还是使用线性来处理
+bool CFastFEMcore::StaticAxisT3TLMgroup() {
 	double time[10];
 	int tt = 0;
 	time[tt++] = SuperLU_timer_();
@@ -1146,36 +1146,24 @@ bool CFastFEMcore::StaticAxisQ3TLMgroup() {
 
 		//生成单元矩阵，线性与非线性
 		// 因为线性与非线性的差不多，所以不再分开讨论了
-		ce[0][0] = rm[i].Y11;
-		ce[1][1] = rm[i].Y22;
-		ce[2][2] = rm[i].Y33;
+		
 
 		if (pmeshele[i].LinearFlag) {//线性区，不用计算
 			ce[0][1] = rm[i].Y12;
 			ce[0][2] = rm[i].Y13;
 			ce[1][2] = rm[i].Y23;
+
+			ce[0][0] = rm[i].Y11;
+			ce[1][1] = rm[i].Y22;
+			ce[2][2] = rm[i].Y33;
 		} else {
-			if (rm[i].Y12 < 0) {//电阻
-				ce[0][1] = rm[i].Y12;
-			} else {
-				ce[0][0] += rm[i].Y12;//在对角项上减去受控源
-				ce[1][1] += rm[i].Y12;
-				ce[0][1] = 0;//受控源在右侧，所以为0
-			}
-			if (rm[i].Y13 < 0) {
-				ce[0][2] = rm[i].Y13;
-			} else {
-				ce[0][0] += rm[i].Y13;
-				ce[2][2] += rm[i].Y13;
-				ce[0][2] = 0;
-			}
-			if (rm[i].Y23 < 0) {
-				ce[1][2] = rm[i].Y23;
-			} else {
-				ce[1][1] += rm[i].Y23;
-				ce[2][2] += rm[i].Y23;
-				ce[1][2] = 0;
-			}
+			ce[0][1] = 0;
+			ce[0][2] = 0;
+			ce[1][2] = 0;
+
+			ce[0][0] = abs(rm[i].Y12);
+			ce[1][1] = abs(rm[i].Y23);
+			ce[2][2] = abs(rm[i].Y13);
 		}
 		ce[1][0] = ce[0][1];
 		ce[2][0] = ce[0][2];
@@ -1317,7 +1305,7 @@ bool CFastFEMcore::StaticAxisQ3TLMgroup() {
 	//customplot->xAxis2->setTicks(false);
 	//customplot->yAxis->setScaleRatio(customplot->xAxis, 1.0);
 	//---------the main loop---------------------------------
-	int steps = 300;
+	int steps = 1000;
 	int count;
 	double alpha = 1;
 	Voltage *Vr = (Voltage*)calloc(D34.size(), sizeof(Voltage));
@@ -1334,46 +1322,7 @@ bool CFastFEMcore::StaticAxisQ3TLMgroup() {
 			}
 			pmeshele[i].B = sqrt(bx*bx + by*by) / 2. / pmeshele[i].AREA / ydot[i];
 			pmeshele[i].miut = materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B);
-			pmeshele[i].miut = y[i] + (count>90 ? 0.02 : (0.9 - count*0.001))*(pmeshele[i].miut - y[i]);
-			//pmeshele[i].miut = y[i] + (count>30 ? 0.02 : (0.9-count*0.03))*(pmeshele[i].miut - y[i]);
-			//            if(fabs(y[i]-pmeshele[i].B)/y[i] > 0.2 && count > 180){
-			//            //if(pmeshele[i].domain == 4 || pmeshele[i].domain == 3){
-			//                QCPCurve *newCurve = new QCPCurve(customplot->xAxis, customplot->yAxis);
-			//                QVector <double> x11(4);
-			//                QVector <double> y11(4);
-			//                x11[0] = pmeshnode[pmeshele[i].n[0]].x;
-			//                y11[0] = pmeshnode[pmeshele[i].n[0]].y;
-			//                x11[1] = pmeshnode[pmeshele[i].n[1]].x;
-			//                y11[1] = pmeshnode[pmeshele[i].n[1]].y;
-			//                x11[2] = pmeshnode[pmeshele[i].n[2]].x;
-			//                y11[2] = pmeshnode[pmeshele[i].n[2]].y;
-			//                x11[3] = pmeshnode[pmeshele[i].n[0]].x;
-			//                y11[3] = pmeshnode[pmeshele[i].n[0]].y;
-			//                newCurve->setData(x11, y11);
-			//                newCurve->setPen(QPen(Qt::black, 1));
-			//                newCurve->setBrush(QColor(255, 0, 0,100));
-			//                qDebug()<<pmeshele[i].B;
-			//            }
-			//            if(count == 1){
-			//            //if(pmeshele[i].domain == 4 || pmeshele[i].domain == 3){
-			//                QCPCurve *newCurve = new QCPCurve(customplot->xAxis, customplot->yAxis);
-			//                QVector <double> x11(4);
-			//                QVector <double> y11(4);
-			//                x11[0] = pmeshnode[pmeshele[i].n[0]].x;
-			//                y11[0] = pmeshnode[pmeshele[i].n[0]].y;
-			//                x11[1] = pmeshnode[pmeshele[i].n[1]].x;
-			//                y11[1] = pmeshnode[pmeshele[i].n[1]].y;
-			//                x11[2] = pmeshnode[pmeshele[i].n[2]].x;
-			//                y11[2] = pmeshnode[pmeshele[i].n[2]].y;
-			//                x11[3] = pmeshnode[pmeshele[i].n[0]].x;
-			//                y11[3] = pmeshnode[pmeshele[i].n[0]].y;
-			//                newCurve->setData(x11, y11);
-			//                newCurve->setPen(QPen(Qt::black, 1));
-			//                newCurve->setBrush(QColor(255, 255, 0,100));
-			//            }
-
-
-			//y[i] = (A(pmeshele[i].n[0]) + A(pmeshele[i].n[1]) + A(pmeshele[i].n[2]))/3;
+			//pmeshele[i].miut = y[i] + (count>90 ? 0.02 : (0.9 - count*0.001))*(pmeshele[i].miut - y[i]);
 			y[i] = pmeshele[i].miut;
 		}
 		//#pragma omp parallel for
@@ -1383,37 +1332,39 @@ bool CFastFEMcore::StaticAxisQ3TLMgroup() {
 			int k, m, n;
 			k = m_e->n[0];
 			m = m_e->n[1];
-			n = m_e->n[2];
-			double rtmp;//do this to mark it as private
-			rtmp = (m_e->miut - m_e->miu) / (m_e->miu + m_e->miut);
-			double hehe = -(m_e->miu - m_e->miut) / m_e->miut;
-			//qDebug()<<m_e->miut<<"\t"<<m_e->miu<<"\t"<<rtmp;
+			n = m_e->n[2];			
+			//计算反射电压
+			Vr[j].V12 = (pmeshnode[k].A - 0) - Vi[j].V12;
+			Vr[j].V23 = (pmeshnode[m].A - 0) - Vi[j].V23;
+			Vr[j].V13 = (pmeshnode[n].A - 0) - Vi[j].V13;
+			//求解小电路，计算入射电压
+			mat A(3, 3);
+			colvec b(3);
+			double tmp = m_e->miu / m_e->miut;
+			A(0, 0) = abs(rm[i].Y12) - rm[i].Y12*tmp - rm[i].Y13*tmp; A(0, 1) = rm[i].Y12*tmp; A(0, 2) = rm[i].Y13*tmp;
+			A(1, 0) = rm[i].Y12*tmp; A(1, 1) = abs(rm[i].Y23) - rm[i].Y12*tmp - rm[i].Y23*tmp; A(1, 2) = rm[i].Y23*tmp;
+			A(2, 0) = rm[i].Y13*tmp; A(2, 1) = rm[i].Y23*tmp; A(2, 2) = abs(rm[i].Y13) - rm[i].Y13*tmp - rm[i].Y23*tmp;
 
-			Vr[j].V12 = (pmeshnode[k].A - pmeshnode[m].A) - Vi[j].V12;
-			Vr[j].V23 = (pmeshnode[m].A - pmeshnode[n].A) - Vi[j].V23;
-			Vr[j].V13 = (pmeshnode[n].A - pmeshnode[k].A) - Vi[j].V13;
-
-			if (rm[i].Y12 < 0) {
-				Vi[j].V12 = Vr[j].V12 * rtmp;
-			} else {
-				Vi[j].V12 = 0;// 0.5*(pmeshnode[k].A - pmeshnode[m].A) * 1;
+			b(0) = 2. * Vr[j].V12*abs(rm[i].Y12);
+			b(1) = 2. * Vr[j].V23*abs(rm[i].Y23); 
+			b(2) = 2. * Vr[j].V13*abs(rm[i].Y13);
+			colvec x2;//5 3 4
+			bool status = arma::solve(x2, A, b);
+			if (!status){
+				return false;
 			}
+			//qDebug() << x2(0) << x2(1) << x2(2);
+			Vi[j].V12 = x2(0) - Vr[j].V12;
+			Vi[j].V23 = x2(1) - Vr[j].V23;
+			Vi[j].V13 = x2(2) - Vr[j].V13;
 			INL(k) += 2. *Vi[j].V12*abs(rm[i].Y12);
-			INL(m) += -2. * Vi[j].V12 *abs(rm[i].Y12);
-			if (rm[i].Y23 < 0) {
-				Vi[j].V23 = Vr[j].V23*rtmp;
-			} else {
-				Vi[j].V23 = 0;// 0.5*(pmeshnode[m].A - pmeshnode[n].A) * 1;
-			}
+			//INL(m) += -2. * Vi[j].V12 *abs(rm[i].Y12);
+			
 			INL(m) += 2. * Vi[j].V23*abs(rm[i].Y23);
-			INL(n) += -2. *Vi[j].V23*abs(rm[i].Y23);
-			if (rm[i].Y13 < 0) {
-				Vi[j].V13 = Vr[j].V13 * rtmp;
-			} else {
-				Vi[j].V13 = 0;// 0.5*(pmeshnode[n].A - pmeshnode[k].A) * 1;
-			}
+			//INL(n) += -2. *Vi[j].V23*abs(rm[i].Y23);
+			
 			INL(n) += 2. * Vi[j].V13*abs(rm[i].Y13);
-			INL(k) += -2.0 *Vi[j].V13*abs(rm[i].Y13);
+			//INL(k) += -2.0 *Vi[j].V13*abs(rm[i].Y13);
 		}
 		INL += bbJz;
 		for (int i = 0; i < num_pts - node_bdr; i++) {
@@ -2384,7 +2335,10 @@ void CFastFEMcore::readBHElement(QXmlStreamReader &reader, int i) {
 	}
 	reader.skipCurrentElement();
 }
-
+//非线性迭代采用NR方法，每一步的线性方程组求解采用TLM迭代
+bool CFastFEMcore::StaticAXisT3NRTLM(){
+	return true;
+}
 //使用牛顿迭代实现非线性求解，是真的牛顿迭代而不是松弛迭代
 //牛顿迭代的公式推导，参见颜威利数值分析教材P54
 int CFastFEMcore::StaticAxisymmetricNR() {

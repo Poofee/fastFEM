@@ -80,9 +80,10 @@ LIBS += \
     ..\OpenBLAS-v0.2.15-Win64-int32\lib\libopenblas.dll.a
 
 #additional include path
-INCLUDEPATH += \
+INCLUDEPATH += \	
     ..\armadillo\include \
     ..\qcustomplot \
     ..\SuperLU_MT_3.1\SRC \
+	..\OpenBLAS-v0.2.15-Win64-int32\include \
 
 }
