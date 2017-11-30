@@ -1137,33 +1137,33 @@ bool CFastFEMcore::StaticAxisT3TLMgroup() {
 		rm[i].Y23 = pmeshele[i].Q[1] * pmeshele[i].Q[2] + pmeshele[i].P[1] * pmeshele[i].P[2];
 		rm[i].Y33 = pmeshele[i].Q[2] * pmeshele[i].Q[2] + pmeshele[i].P[2] * pmeshele[i].P[2];
 
-		rm[i].Y11 /= 4. * pmeshele[i].AREA*ydot[i] * pmeshele[i].miu;//猜测值
-		rm[i].Y12 /= 4. * pmeshele[i].AREA*ydot[i] * pmeshele[i].miu;
-		rm[i].Y13 /= 4. * pmeshele[i].AREA*ydot[i] * pmeshele[i].miu;
-		rm[i].Y22 /= 4. * pmeshele[i].AREA*ydot[i] * pmeshele[i].miu;
-		rm[i].Y23 /= 4. * pmeshele[i].AREA*ydot[i] * pmeshele[i].miu;
-		rm[i].Y33 /= 4. * pmeshele[i].AREA*ydot[i] * pmeshele[i].miu;
+		rm[i].Y11 /= 4. * pmeshele[i].AREA*ydot[i];//猜测值
+		rm[i].Y12 /= 4. * pmeshele[i].AREA*ydot[i];
+		rm[i].Y13 /= 4. * pmeshele[i].AREA*ydot[i];
+		rm[i].Y22 /= 4. * pmeshele[i].AREA*ydot[i];
+		rm[i].Y23 /= 4. * pmeshele[i].AREA*ydot[i];
+		rm[i].Y33 /= 4. * pmeshele[i].AREA*ydot[i];
 
 		//生成单元矩阵，线性与非线性
 		// 因为线性与非线性的差不多，所以不再分开讨论了
-		
+
 
 		if (pmeshele[i].LinearFlag) {//线性区，不用计算
-			ce[0][1] = rm[i].Y12;
-			ce[0][2] = rm[i].Y13;
-			ce[1][2] = rm[i].Y23;
+			ce[0][1] = rm[i].Y12 / pmeshele[i].miu;
+			ce[0][2] = rm[i].Y13 / pmeshele[i].miu;
+			ce[1][2] = rm[i].Y23 / pmeshele[i].miu;
 
-			ce[0][0] = rm[i].Y11;
-			ce[1][1] = rm[i].Y22;
-			ce[2][2] = rm[i].Y33;
+			ce[0][0] = rm[i].Y11 / pmeshele[i].miu;
+			ce[1][1] = rm[i].Y22 / pmeshele[i].miu;
+			ce[2][2] = rm[i].Y33 / pmeshele[i].miu;
 		} else {
 			ce[0][1] = 0;
 			ce[0][2] = 0;
 			ce[1][2] = 0;
 
-			ce[0][0] = abs(rm[i].Y12);
-			ce[1][1] = abs(rm[i].Y23);
-			ce[2][2] = abs(rm[i].Y13);
+			ce[0][0] = abs(rm[i].Y12) / pmeshele[i].miu;
+			ce[1][1] = abs(rm[i].Y23) / pmeshele[i].miu;
+			ce[2][2] = abs(rm[i].Y13) / pmeshele[i].miu;
 		}
 		ce[1][0] = ce[0][1];
 		ce[2][0] = ce[0][2];
@@ -1313,18 +1313,18 @@ bool CFastFEMcore::StaticAxisT3TLMgroup() {
 	time[tt++] = SuperLU_timer_();
 	for (count = 0; count < steps; count++) {
 		//------update miu----------------
-		for (int i = 0; i < num_ele; i++) {
-			double bx = 0;
-			double by = 0;
-			for (int j = 0; j < 3; j++) {
-				bx += pmeshele[i].Q[j] * A(pmeshele[i].n[j]);
-				by += pmeshele[i].P[j] * A(pmeshele[i].n[j]);
-			}
-			pmeshele[i].B = sqrt(bx*bx + by*by) / 2. / pmeshele[i].AREA / ydot[i];
-			pmeshele[i].miut = materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B);
-			//pmeshele[i].miut = y[i] + (count>90 ? 0.02 : (0.9 - count*0.001))*(pmeshele[i].miut - y[i]);
-			y[i] = pmeshele[i].miut;
-		}
+		//for (int i = 0; i < num_ele; i++) {
+		//	double bx = 0;
+		//	double by = 0;
+		//	for (int j = 0; j < 3; j++) {
+		//		bx += pmeshele[i].Q[j] * A(pmeshele[i].n[j]);
+		//		by += pmeshele[i].P[j] * A(pmeshele[i].n[j]);
+		//	}
+		//	pmeshele[i].B = sqrt(bx*bx + by*by) / 2. / pmeshele[i].AREA / ydot[i];
+		//	pmeshele[i].miut = materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B);
+		//	//pmeshele[i].miut = y[i] + (count>90 ? 0.02 : (0.9 - count*0.001))*(pmeshele[i].miut - y[i]);
+		//	y[i] = pmeshele[i].miut;
+		//}
 		//#pragma omp parallel for
 		for (int j = 0; j < D34.size(); j++) {
 			int i = D34[j];
@@ -1332,39 +1332,80 @@ bool CFastFEMcore::StaticAxisT3TLMgroup() {
 			int k, m, n;
 			k = m_e->n[0];
 			m = m_e->n[1];
-			n = m_e->n[2];			
+			n = m_e->n[2];
 			//计算反射电压
 			Vr[j].V12 = (pmeshnode[k].A - 0) - Vi[j].V12;
 			Vr[j].V23 = (pmeshnode[m].A - 0) - Vi[j].V23;
 			Vr[j].V13 = (pmeshnode[n].A - 0) - Vi[j].V13;
 			//求解小电路，计算入射电压
-			mat A(3, 3);
+			//采用线性代入不收敛，遂尝试牛顿迭代
+			mat C(3, 3);//单元系数矩阵，为了方便计算
+			C(0, 0) = rm[i].Y11; C(0, 1) = rm[i].Y12; C(0, 2) = rm[i].Y13;
+			C(1, 0) = rm[i].Y12; C(1, 1) = rm[i].Y22; C(1, 2) = rm[i].Y23;
+			C(2, 0) = rm[i].Y13; C(2, 1) = rm[i].Y23; C(2, 2) = rm[i].Y33;
+			mat AJ(3, 3);
 			colvec b(3);
-			double tmp = m_e->miu / m_e->miut;
-			A(0, 0) = abs(rm[i].Y12) - rm[i].Y12*tmp - rm[i].Y13*tmp; A(0, 1) = rm[i].Y12*tmp; A(0, 2) = rm[i].Y13*tmp;
-			A(1, 0) = rm[i].Y12*tmp; A(1, 1) = abs(rm[i].Y23) - rm[i].Y12*tmp - rm[i].Y23*tmp; A(1, 2) = rm[i].Y23*tmp;
-			A(2, 0) = rm[i].Y13*tmp; A(2, 1) = rm[i].Y23*tmp; A(2, 2) = abs(rm[i].Y13) - rm[i].Y13*tmp - rm[i].Y23*tmp;
-
-			b(0) = 2. * Vr[j].V12*abs(rm[i].Y12);
-			b(1) = 2. * Vr[j].V23*abs(rm[i].Y23); 
-			b(2) = 2. * Vr[j].V13*abs(rm[i].Y13);
-			colvec x2;//5 3 4
-			bool status = arma::solve(x2, A, b);
-			if (!status){
-				return false;
+			colvec x2(3); x2.zeros();
+			double err1 = 0;
+			
+			for (int iter = 0; iter < 20; iter++){
+				//初始化电流
+				b(0) = 2. * Vr[j].V12*abs(rm[i].Y12) / m_e->miu;
+				b(1) = 2. * Vr[j].V23*abs(rm[i].Y23) / m_e->miu;
+				b(2) = 2. * Vr[j].V13*abs(rm[i].Y13) / m_e->miu;
+				//
+				AJ.zeros();
+				double ca[3];//理论上来说，这里的A应当是三个节点的A
+				for (int row = 0; row < 3; row++){
+					ca[row] = C(row, 0)*x2(0) + C(row, 1)*x2(1) + C(row, 2)*x2(2);
+				}
+				//求解单元mu值
+				double bx = 0;
+				double by = 0;
+				for (int j = 0; j < 3; j++) {
+					bx += pmeshele[i].Q[j] * x2(j);
+					by += pmeshele[i].P[j] * x2(j);
+				}
+				pmeshele[i].B = sqrt(bx*bx + by*by) / 2. / pmeshele[i].AREA / ydot[i];
+				pmeshele[i].miut = materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B);
+				y[i] = pmeshele[i].miut;
+				//计算雅可比矩阵
+				double tmp = materialList[pmeshele[i].domain - 1].getdvdB(pmeshele[i].B);
+				if (pmeshele[i].B > 1e-9){
+					tmp /= pmeshele[i].B * pmeshele[i].AREA;//B==0?
+					tmp /= ydot[i];
+				}
+				for (int row = 0; row < 3; row++){
+					for (int col = 0; col < 3; col++){
+						//注意C已经被除了一次ydot了
+						AJ(row, col) = ca[row];
+						AJ(row, col) *= ca[col];
+						AJ(row, col) *= tmp;
+						b(row) += AJ(row, col)*x2(col);
+						AJ(row, col) += C(row, col) / m_e->miut;
+					}
+				}
+				//加上对地导纳
+				AJ(0, 0) += abs(rm[i].Y12) / m_e->miu;
+				AJ(1, 1) += abs(rm[i].Y23) / m_e->miu;
+				AJ(2, 2) += abs(rm[i].Y13) / m_e->miu;
+				//求解电压V
+				bool status = arma::solve(x2, AJ, b);
+				if (!status){
+					qDebug() << "error: solve !";
+					return false;
+				}
 			}
+			
 			//qDebug() << x2(0) << x2(1) << x2(2);
 			Vi[j].V12 = x2(0) - Vr[j].V12;
 			Vi[j].V23 = x2(1) - Vr[j].V23;
 			Vi[j].V13 = x2(2) - Vr[j].V13;
-			INL(k) += 2. *Vi[j].V12*abs(rm[i].Y12);
-			//INL(m) += -2. * Vi[j].V12 *abs(rm[i].Y12);
-			
-			INL(m) += 2. * Vi[j].V23*abs(rm[i].Y23);
-			//INL(n) += -2. *Vi[j].V23*abs(rm[i].Y23);
-			
-			INL(n) += 2. * Vi[j].V13*abs(rm[i].Y13);
-			//INL(k) += -2.0 *Vi[j].V13*abs(rm[i].Y13);
+			INL(k) += 2. *Vi[j].V12*abs(rm[i].Y12) / m_e->miu;
+
+			INL(m) += 2. * Vi[j].V23*abs(rm[i].Y23) / m_e->miu;
+
+			INL(n) += 2. * Vi[j].V13*abs(rm[i].Y13) / m_e->miu;
 		}
 		INL += bbJz;
 		for (int i = 0; i < num_pts - node_bdr; i++) {
@@ -1520,7 +1561,7 @@ bool CFastFEMcore::StaticAxisTLMNR() {
 
 		//生成单元矩阵，线性与非线性
 		// 因为线性与非线性的差不多，所以不再分开讨论了
-		
+
 
 		if (pmeshele[i].LinearFlag) {//线性区，不用计算
 			ce[0][1] = rm[i].Y12;
@@ -1535,7 +1576,7 @@ bool CFastFEMcore::StaticAxisTLMNR() {
 			ce[1][2] = -abs(rm[i].Y23);
 			ce[0][0] = -ce[0][1] - ce[0][2];
 			ce[1][1] = -ce[0][1] - ce[1][2];
-			ce[2][2] = -ce[0][2]- ce[1][2];
+			ce[2][2] = -ce[0][2] - ce[1][2];
 		}
 		ce[1][0] = ce[0][1];
 		ce[2][0] = ce[0][2];
@@ -1715,10 +1756,10 @@ bool CFastFEMcore::StaticAxisTLMNR() {
 			Vr[j].V13 = (pmeshnode[n].A - pmeshnode[k].A) - Vi[j].V13;
 			//求解小电路，计算入射向线性网络电压
 			double J12, J23, J13, D12, D23, D13;
-			
+
 			double dvdB = materialList[m_e->domain - 1].getdvdB(m_e->B);
 			dvdB /= ydot[i] * ydot[i];
-			double c12, c23, c13,c11,c22,c33;
+			double c12, c23, c13, c11, c22, c33;
 			c12 = rm[i].Y12*ydot[i] * m_e->miu;
 			c23 = rm[i].Y23*ydot[i] * m_e->miu;
 			c13 = rm[i].Y13*ydot[i] * m_e->miu;
@@ -1737,7 +1778,7 @@ bool CFastFEMcore::StaticAxisTLMNR() {
 			J12 = c12*tmp;
 			J23 = c23*tmp;
 			J13 = c13*tmp;
-			
+
 			Vi[j].V12 = Vr[j].V12*(fabs(rm[i].Y12) + J12) + c12*tmp1*(A(m) - A(k)) - c13*tmp1*(A(k) - A(n));
 			Vi[j].V12 /= (fabs(rm[i].Y12) - J12);
 			Vi[j].V23 = Vr[j].V23*(fabs(rm[i].Y23) + J23) + c23*tmp1*(A(n) - A(m)) - c12*tmp1*(A(m) - A(k));
@@ -1756,14 +1797,14 @@ bool CFastFEMcore::StaticAxisTLMNR() {
 			if (std::isnan(Vi[j].V13)) {
 				qDebug() << Vi[j].V13;
 			}
-			INL(k) += 2.*Vi[j].V12*fabs(rm[i].Y12) ;
-			INL(m) -= 2.*Vi[j].V12*fabs(rm[i].Y12) ;
-			
+			INL(k) += 2.*Vi[j].V12*fabs(rm[i].Y12);
+			INL(m) -= 2.*Vi[j].V12*fabs(rm[i].Y12);
+
 			INL(m) += 2.*Vi[j].V23*fabs(rm[i].Y23);
-			INL(n) -= 2.*Vi[j].V23*fabs(rm[i].Y23) ;
-			
+			INL(n) -= 2.*Vi[j].V23*fabs(rm[i].Y23);
+
 			INL(n) += 2.*Vi[j].V13*fabs(rm[i].Y13);
-			INL(k) -= 2.*Vi[j].V13*fabs(rm[i].Y13) ;
+			INL(k) -= 2.*Vi[j].V13*fabs(rm[i].Y13);
 		}
 		INL += bbJz;
 		for (int i = 0; i < num_pts - node_bdr; i++) {
@@ -2883,8 +2924,8 @@ double CFastFEMcore::getPx(int Ki, int Kj, double xi, double eta, int index) {
 	double p = 0;
 	p = getdNidx(Ki, xi, eta, index)*getdNidx(Kj, xi, eta, index);
 	p += getdNidy(Ki, xi, eta, index)*getdNidy(Kj, xi, eta, index);
-	p *= getJacobi(xi, eta, index);	
-	p /=  getx(xi, eta, index);//可能为0的bug
+	p *= getJacobi(xi, eta, index);
+	p /= getx(xi, eta, index);//可能为0的bug
 	return p;
 }
 double CFastFEMcore::getP(int Ki, int Kj, double xi, double eta, int index){
@@ -3093,14 +3134,14 @@ bool CFastFEMcore::StaticAxisQ4NR(){
 		for (int i = 0; i < num_ele; i++){
 			//计算电流密度矩阵
 			//计算电流密度//要注意domain会不会越界
-			double jr = materialList[pmeshele4[i].domain - 1].Jr; 			
+			double jr = materialList[pmeshele4[i].domain - 1].Jr;
 			double hc = materialList[pmeshele4[i].domain - 1].H_c;
 			for (int row = 0; row < 4; row++) {
 				bbJz(pmeshele4[i].n[row]) += jr*getJi(row, i);
 				double ctmp = 0;
 				for (int col = 0; col < 4; col++) {
 					//计算系数
-					ce[row][col] = getLocal4Matrix(row, col, i) + getDij(row, col, i);					
+					ce[row][col] = getLocal4Matrix(row, col, i) + getDij(row, col, i);
 					ctmp += getDij(row, col, i)*pmeshnode[pmeshele4[i].n[col]].A;
 					//判断节点是否在未知节点内
 					//得到排序之后的编号
@@ -3111,13 +3152,13 @@ bool CFastFEMcore::StaticAxisQ4NR(){
 						locs(1, pos) = n_col;
 						vals(0, pos) = ce[row][col];
 						pos++;
-					}				
+					}
 				}
 				bbJz(pmeshele4[i].n[row]) += ctmp;
 				// 计算永磁部分
 				int kk = row + 1; if (kk == 4) kk = 0;
-				bbJz(pmeshele4[i].n[row]) += - hc / 2.*(pmeshnode[pmeshele4[i].n[kk]].x - pmeshnode[pmeshele4[i].n[row]].x);
-				bbJz(pmeshele4[i].n[kk]) += - hc / 2.*(pmeshnode[pmeshele4[i].n[kk]].x - pmeshnode[pmeshele4[i].n[row]].x);
+				bbJz(pmeshele4[i].n[row]) += -hc / 2.*(pmeshnode[pmeshele4[i].n[kk]].x - pmeshnode[pmeshele4[i].n[row]].x);
+				bbJz(pmeshele4[i].n[kk]) += -hc / 2.*(pmeshnode[pmeshele4[i].n[kk]].x - pmeshnode[pmeshele4[i].n[row]].x);
 			}
 		}
 		//生成稀疏矩阵
@@ -3148,7 +3189,7 @@ bool CFastFEMcore::StaticAxisQ4NR(){
 				A(node_reorder(i)) = sol[i];
 			}
 		}
-		
+
 		//double normA = norm(A, 2); //qDebug() << normA;
 		double error = norm((A_old - A), 2);
 		iter++;
@@ -3287,13 +3328,13 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 		//将单元矩阵进行存储
 		double jr = materialList[pmeshele4[i].domain - 1].Jr;
 		double hc = materialList[pmeshele4[i].domain - 1].H_c;
-		for (int row = 0; row < 4; row++) {			
-			for (int col = 0; col < 4; col++) {	
+		for (int row = 0; row < 4; row++) {
+			for (int col = 0; col < 4; col++) {
 				//线性部分，无需加传输线
 				if (pmeshele4[i].LinearFlag) {
 					ce[row][col] = getLocal4Matrix(row, col, i);
 				} else {
-					
+
 				}
 				//判断节点是否在未知节点内
 				//得到排序之后的编号
@@ -3312,7 +3353,7 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 			int kk = row + 1; if (kk == 4) kk = 0;
 			bbJz(pmeshele4[i].n[row]) += -hc / 2.*(pmeshnode[pmeshele4[i].n[kk]].x - pmeshnode[pmeshele4[i].n[row]].x);
 			bbJz(pmeshele4[i].n[kk]) += -hc / 2.*(pmeshnode[pmeshele4[i].n[kk]].x - pmeshnode[pmeshele4[i].n[row]].x);
-		}		
+		}
 	}//end for
 	locs.reshape(2, pos);//重新调整大小
 	vals.reshape(1, pos);
