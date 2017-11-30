@@ -3213,6 +3213,7 @@ bool CFastFEMcore::StaticAxisQ4NR(){
 	return true;
 }
 //采用传输线法求解轴对称静磁场，四边形分网
+//该方法的主要思路是将每个单元的等效电路当作一个黑盒子，不去考虑具体内部是什么电路
 bool CFastFEMcore::StaticAxisQ4TLM(){
 	//计算边界信息	
 	for (int i = 0; i < num_ele; i++){
@@ -3296,35 +3297,11 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 	int pos = 0;
 
 	//计算导纳矩阵
+	int nonlinr = -1;
 	for (int i = 0; i < num_ele; i++) {
-		if (pmeshele[i].LinearFlag) {//线性区，不用计算
-			ce[0][1] = rm[i].Y12;
-			ce[0][2] = rm[i].Y13;
-			ce[1][2] = rm[i].Y23;
-		} else {
-			if (rm[i].Y12 < 0){//电阻
-				ce[0][1] = rm[i].Y12;
-			} else{
-				ce[0][0] += rm[i].Y12;//在对角项上减去受控源
-				ce[1][1] += rm[i].Y12;
-				ce[0][1] = 0;//受控源在右侧，所以为0
-			}
-			if (rm[i].Y13 < 0){
-				ce[0][2] = rm[i].Y13;
-			} else{
-				ce[0][0] += rm[i].Y13;
-				ce[2][2] += rm[i].Y13;
-				ce[0][2] = 0;
-			}
-			if (rm[i].Y23 < 0){
-				ce[1][2] = rm[i].Y23;
-			} else{
-				ce[1][1] += rm[i].Y23;
-				ce[2][2] += rm[i].Y23;
-				ce[1][2] = 0;
-			}
+		if (!pmeshele4[i].LinearFlag){
+			nonlinr++;
 		}
-
 		//将单元矩阵进行存储
 		double jr = materialList[pmeshele4[i].domain - 1].Jr;
 		double hc = materialList[pmeshele4[i].domain - 1].H_c;
@@ -3334,7 +3311,13 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 				if (pmeshele4[i].LinearFlag) {
 					ce[row][col] = getLocal4Matrix(row, col, i);
 				} else {
-
+					//非线性部分，采用传输线,仅含有对地支路
+					if (row == col){
+						rm[nonlinr].Y[row] = abs(getLocal4Matrix(row, col, i));						
+						ce[row][col] = rm[nonlinr].Y[row];
+					} else{
+						ce[row][col] = 0;
+					}
 				}
 				//判断节点是否在未知节点内
 				//得到排序之后的编号
@@ -3439,12 +3422,104 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 		sol = (double*)((DNformat*)sluB.Store)->nzval;
 		//取得结果
 		for (int i = 0; i < num_pts - node_bdr; i++) {
-			pmeshnode[node_reorder(i)].A = sol[i];// / pmeshnode[i].x;//the A is r*A_real
+			//pmeshnode[node_reorder(i)].A = sol[i];// / pmeshnode[i].x;//the A is r*A_real
 			A(node_reorder(i)) = sol[i];
 		}
 	}
 	//迭代
+	int count;//迭代步数
+	VoltageQ4 *Vr = (VoltageQ4*)calloc(D34.size(), sizeof(VoltageQ4));
+	VoltageQ4 *Vi = (VoltageQ4*)calloc(D34.size(), sizeof(VoltageQ4));
+	for (count = 0; count < 200; count++){
+		//反射到单个非线性单元进行迭代
+		for (int j = 0; j < D34.size(); j++){
+			int i = D34[j];
+			CElement4 *m_e = pmeshele4 + i;
+			int n1, n2, n3, n4;
+			n1 = m_e->n[0];
+			n2 = m_e->n[1];
+			n3 = m_e->n[2];
+			n4 = m_e->n[3];
+			//计算反射电压
+			Vr[j].V[0] = (A(m_e->n[0]) - 0) - Vi[j].V[0];
+			Vr[j].V[1] = (A(m_e->n[1]) - 0) - Vi[j].V[1];
+			Vr[j].V[2] = (A(m_e->n[2]) - 0) - Vi[j].V[2];
+			Vr[j].V[3] = (A(m_e->n[3]) - 0) - Vi[j].V[3];
+			//使用牛顿迭代求解小电路
+			mat AJ(4, 4);
+			colvec b(4);
+			colvec x2(4); x2.zeros();
+			double err1 = 0;
 
+			for (int iter = 0; iter < 20; iter++){
+				//流向节点的电流源
+				b(0) = 2 * Vr[j].V[0] * rm[i].Y[0];
+				b(1) = 2 * Vr[j].V[1] * rm[i].Y[1];
+				b(2) = 2 * Vr[j].V[2] * rm[i].Y[2];
+				b(3) = 2 * Vr[j].V[3] * rm[i].Y[3];
+
+				for (int row = 0; row < 4; row++){
+					for (int col = 0; col < 4; col++){
+						AJ(row, col) = getLocal4Matrix(row, col, i) + getDij(row, col, i);
+						b(row) += getDij(row, col, i)*pmeshnode[m_e->n[col]].A;
+					}
+				}
+				//加上对地导纳
+				AJ(0, 0) += rm[j].Y[0];
+				AJ(1, 1) += rm[j].Y[1];
+				AJ(2, 2) += rm[j].Y[2];
+				AJ(3, 3) += rm[j].Y[3];
+				//求解电压V
+				bool status = arma::solve(x2, AJ, b);
+				if (!status){
+					qDebug() << "error: solve !";
+					return false;
+				}
+				//更新电压
+				pmeshnode[m_e->n[0]].A = x2(0);
+				pmeshnode[m_e->n[1]].A = x2(1);
+				pmeshnode[m_e->n[2]].A = x2(2);
+				pmeshnode[m_e->n[3]].A = x2(3);
+			}
+			//计算入射电压
+			Vi[j].V[0] = x2(0) - Vr[j].V[0];
+			Vi[j].V[1] = x2(1) - Vr[j].V[1];
+			Vi[j].V[2] = x2(2) - Vr[j].V[2];
+			Vi[j].V[3] = x2(3) - Vr[j].V[3];
+			//入射电流源项
+			INL(n1) += 2 * Vi[j].V[0] * rm[j].Y[0];
+			INL(n2) += 2 * Vi[j].V[1] * rm[j].Y[1];
+			INL(n3) += 2 * Vi[j].V[2] * rm[j].Y[2];
+			INL(n4) += 2 * Vi[j].V[3] * rm[j].Y[3];
+		}
+		//入射到线性网络过程
+		INL += bbJz;
+		for (int i = 0; i < num_pts - node_bdr; i++) {
+			unknown_b[i] = INL(node_reorder(i));
+		}
+		dgstrs(trans, &L, &U, perm_r, perm_c, &sluB, &Gstat1, &info);
+		//NOW WE SOLVE THE LINEAR SYSTEM USING THE FACTORED FORM OF sluA.
+		if (info != 0) {
+			qDebug() << "Error: superlumt.slove";
+			//qDebug() << "info: " << superlumt.info;
+			break;
+		} else {
+			double *sol = NULL;
+			A_old = A;
+			sol = (double*)((DNformat*)sluB.Store)->nzval;
+
+			for (int i = 0; i < num_pts - node_bdr; i++) {
+				pmeshnode[node_reorder(i)].A = sol[i];// / pmeshnode[i].x;//the A is r*A_real
+				A(node_reorder(i)) = sol[i];
+			}
+		}
+		double error = norm((A_old - A), 2) / norm(A, 2);
+
+		if (error < Precision) {
+			break;
+		}
+		INL.zeros();
+	}
 	//
 	return true;
 }

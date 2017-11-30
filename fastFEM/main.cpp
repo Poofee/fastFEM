@@ -11,6 +11,7 @@ void triangletest1();
 void triangletestgroup();
 void quadtest();
 void armatest();
+void quadtlmtest();
 
 int main(int argc, char *argv[])
 {
@@ -49,6 +50,24 @@ void quadtest(){
 
 		fem.StaticAxisQ4NR();
     }
+}
+void quadtlmtest(){
+	CFastFEMcore fem;
+	//读取工程文件
+	fem.openProject("..\\model\\project1.mag");
+	//读取分网
+	if (fem.LoadQ4MeshCOMSOL("..\\model\\reg1.mphtxt") == 0){
+		qDebug() << "OK";
+		qDebug() << "number of elements:" << fem.num_ele;
+		qDebug() << "number of points:" << fem.num_pts;
+		//先进行一次牛顿求解
+		fem.StaticAxisQ4NR();
+		//设置一个猜测值
+		for (int i = 0; i < fem.num_pts; i++){
+			fem.pmeshnode[i].A /= 2;
+		}
+		fem.StaticAxisQ4TLM();
+	}
 }
 void triangletestgroup() {
 	CFastFEMcore fem;

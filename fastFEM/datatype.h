@@ -63,24 +63,11 @@ public:
 	double Y33;
 };
 typedef struct _Resist4Matrix{
-    double Y11;
-    double Y12;
-    double Y13;
-    double Y14;
-    double Y22;
-    double Y23;
-    double Y24;
-    double Y33;
-    double Y34;
-    double Y44;
-	double Y10;
-	double Y20;
-	double Y30;
-	double Y40;
+	double Y[4];
 }Resist4Matrix;
 
 typedef struct _VoltageQ4{
-	double V12, V13, V14, V23, V24, V34, V10, V20, V30, V40;
+	double V[4];
 }VoltageQ4;
 class Voltage{
 public:
