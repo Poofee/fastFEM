@@ -2877,8 +2877,11 @@ double CFastFEMcore::getD(int i, int j, double xi, double eta, int index){
 	B /= getx(xi, eta, index);
 	//计算dvdB
 	double dvdB = materialList[pmeshele4[index].domain - 1].getdvdB(B);
-	if (std::isnan(dvdB))
-		qDebug() << "error in getD";
+	if (std::isnan(dvdB)){
+		qDebug() << "error in getD: dvdB" << getx(xi, eta, index);
+		return 1;
+	}
+		
 	//计算Cij
 	//积分
 	if (pmeshele4[index].LinearFlag){
@@ -2886,7 +2889,7 @@ double CFastFEMcore::getD(int i, int j, double xi, double eta, int index){
 	}
 
 	if (std::isnan(D))
-		qDebug() << "error in getD";
+		qDebug() << "error in getD: D";
 	D = dvdB*c1*c2 * getJacobi(xi, eta, index);
 	if (B > 1e-9){
 		D /= B * x * x * x;
@@ -2969,8 +2972,8 @@ double CFastFEMcore::getdNidy(int Ki, double xi, double eta, int index){
 double CFastFEMcore::getJacobi(double xi, double eta, int index){
 	double tmp = getdxdxi(eta, index)*getdydeta(xi, index) - getdydxi(eta, index)*getdxdeta(xi, index);
 	//qDebug() << tmp;
-	if ((tmp) == 0)
-		qDebug() << tmp;
+	if (tmp <= 0)
+		qDebug() << "error: Jacobi.";
 	return fabs(tmp);
 }
 
@@ -3321,8 +3324,8 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 				}
 				//判断节点是否在未知节点内
 				//得到排序之后的编号
-				int n_row = node_pos(pmeshele[i].n[row]);
-				int n_col = node_pos(pmeshele[i].n[col]);
+				int n_row = node_pos(pmeshele4[i].n[row]);
+				int n_col = node_pos(pmeshele4[i].n[col]);
 				if (n_row < num_pts - node_bdr && n_col < num_pts - node_bdr) {
 					locs(0, pos) = n_row;
 					locs(1, pos) = n_col;
@@ -3441,10 +3444,10 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 			n3 = m_e->n[2];
 			n4 = m_e->n[3];
 			//计算反射电压
-			Vr[j].V[0] = (A(m_e->n[0]) - 0) - Vi[j].V[0];
-			Vr[j].V[1] = (A(m_e->n[1]) - 0) - Vi[j].V[1];
-			Vr[j].V[2] = (A(m_e->n[2]) - 0) - Vi[j].V[2];
-			Vr[j].V[3] = (A(m_e->n[3]) - 0) - Vi[j].V[3];
+			Vr[j].V[0] = A(n1) - Vi[j].V[0];
+			Vr[j].V[1] = A(n2) - Vi[j].V[1];
+			Vr[j].V[2] = A(n3) - Vi[j].V[2];
+			Vr[j].V[3] = A(n4) - Vi[j].V[3];
 			//使用牛顿迭代求解小电路
 			mat AJ(4, 4);
 			colvec b(4);
@@ -3453,10 +3456,10 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 
 			for (int iter = 0; iter < 20; iter++){
 				//流向节点的电流源
-				b(0) = 2 * Vr[j].V[0] * rm[i].Y[0];
-				b(1) = 2 * Vr[j].V[1] * rm[i].Y[1];
-				b(2) = 2 * Vr[j].V[2] * rm[i].Y[2];
-				b(3) = 2 * Vr[j].V[3] * rm[i].Y[3];
+				b(0) = 2 * Vr[j].V[0] * rm[j].Y[0];
+				b(1) = 2 * Vr[j].V[1] * rm[j].Y[1];
+				b(2) = 2 * Vr[j].V[2] * rm[j].Y[2];
+				b(3) = 2 * Vr[j].V[3] * rm[j].Y[3];
 
 				for (int row = 0; row < 4; row++){
 					for (int col = 0; col < 4; col++){
@@ -3476,10 +3479,10 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 					return false;
 				}
 				//更新电压
-				pmeshnode[m_e->n[0]].A = x2(0);
-				pmeshnode[m_e->n[1]].A = x2(1);
-				pmeshnode[m_e->n[2]].A = x2(2);
-				pmeshnode[m_e->n[3]].A = x2(3);
+				pmeshnode[n1].A = x2(0);
+				pmeshnode[n2].A = x2(1);
+				pmeshnode[n3].A = x2(2);
+				pmeshnode[n4].A = x2(3);
 			}
 			//计算入射电压
 			Vi[j].V[0] = x2(0) - Vr[j].V[0];
@@ -3509,13 +3512,15 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 			sol = (double*)((DNformat*)sluB.Store)->nzval;
 
 			for (int i = 0; i < num_pts - node_bdr; i++) {
-				pmeshnode[node_reorder(i)].A = sol[i];// / pmeshnode[i].x;//the A is r*A_real
+				//pmeshnode[node_reorder(i)].A = sol[i];// / pmeshnode[i].x;//the A is r*A_real
 				A(node_reorder(i)) = sol[i];
 			}
 		}
 		double error = norm((A_old - A), 2) / norm(A, 2);
-
+		qDebug() << "steps: " << count;
+		qDebug() <<"error: "<< error;
 		if (error < Precision) {
+			qDebug() << "Solve Successfully!";
 			break;
 		}
 		INL.zeros();

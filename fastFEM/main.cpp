@@ -21,7 +21,8 @@ int main(int argc, char *argv[])
 
 	//armatest();
 	//triangletest1();
-	triangletestgroup();
+	quadtlmtest();
+	//triangletestgroup();
 	Plot myplot;
 	myplot.show();
     return a.exec();
