@@ -3520,6 +3520,13 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 		qDebug() << "steps: " << count;
 		qDebug() <<"error: "<< error;
 		if (error < Precision) {
+			//×ª»»A
+			for (int i = 0; i < num_pts - node_bdr; i++) {
+				pmeshnode[node_reorder(i)].A /= pmeshnode[node_reorder(i)].x;//the A is r*A_real
+				A(node_reorder(i)) /= pmeshnode[node_reorder(i)].x;
+			}
+			A.save("D:\\mypaper\\zhcore\\²åÍ¼\\TLMpmA.txt", arma::arma_ascii, false);
+			//bbJz.save("D:\\mypaper\\zhcore\\²åÍ¼\\pmbn.txt", arma::arma_ascii, false);
 			qDebug() << "Solve Successfully!";
 			break;
 		}
