@@ -36,13 +36,17 @@ public:
 	double      *ferr, *berr;
 	double      u, drop_tol, rpg, rcond;
 	superlu_memusage_t superlu_memusage;
+	Gstat_t  Gstat1;
 
 	CSuperLU_MT();
 	CSuperLU_MT(int mm, arma::sp_mat& X,double *b);
 	int solve();
+	int solve1();
 	int LUsolve();
+	int triangleSolve();//使用superlu自带函数进行三角求解
     int triSolve();//using level schedule to solve triangular system
-	double * getResult();
+	double * getResult();//返回求解后数组指针
+	double * get1Result();//返回重复LU求解时的结果指针
 	~CSuperLU_MT();
 };
 

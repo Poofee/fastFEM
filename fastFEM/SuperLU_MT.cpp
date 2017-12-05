@@ -40,6 +40,8 @@ CSuperLU_MT::CSuperLU_MT(int mm, arma::sp_mat &X, double * b) {
     xa = (int*)const_cast<unsigned int*>(X.col_ptrs);
 	dCreate_CompCol_Matrix(&sluA, m, n, nnz, a, asub, xa, SLU_NC, SLU_D, SLU_GE);
 
+	StatAlloc(n, nprocs, panel_size, relax, &Gstat1);
+	StatInit(n, nprocs, &Gstat1);
 	//------create B and X-------------------
 	if (!(rhsx = doubleMalloc(m * nrhs))) SUPERLU_ABORT("Malloc fails for rhsx[].");
 	dCreate_Dense_Matrix(&sluX, m, nrhs, rhsx, m, SLU_DN, SLU_D, SLU_GE);
@@ -118,7 +120,34 @@ int CSuperLU_MT::solve() {
 	}
 	return 1;
 }
-
+int CSuperLU_MT::solve1() {
+	pdgssv(nprocs, &sluA, perm_c, perm_r, &L, &U, &sluB, &info);	
+	if (info == 0 || info == n + 1) {
+		//sol = (double*)((DNformat*)sluX.Store)->nzval;
+		//for (int i = 0; i < num_pts; i++) {
+		//	pmeshnode[i].A = sol[i] * miu0;
+		//	A(i) = sol[i] * miu0;
+		//}
+		return 0;
+	} else if (info > 0 && lwork == -1) {
+		return 1;
+	}
+	return 1;
+}
+int CSuperLU_MT::triangleSolve(){
+	dgstrs(trans, &L, &U, perm_r, perm_c, &sluB, &Gstat1, &info);
+	if (info == 0 || info == n + 1) {
+		//sol = (double*)((DNformat*)sluX.Store)->nzval;
+		//for (int i = 0; i < num_pts; i++) {
+		//	pmeshnode[i].A = sol[i] * miu0;
+		//	A(i) = sol[i] * miu0;
+		//}
+		return 0;
+	} else if (info > 0 && lwork == -1) {
+		return 1;
+	}
+	return 1;
+}
 int CSuperLU_MT::LUsolve() {
 	//NOW WE SOLVE THE LINEAR SYSTEM USING THE FACTORED FORM OF sluA.
 	//Bstore->nzval = const_cast<double*>(b.mem);
@@ -154,6 +183,20 @@ double * CSuperLU_MT::getResult() {
 	} else if (info > 0 && lwork == -1) {
 		return NULL;
 	}	
+	return NULL;
+}
+
+double * CSuperLU_MT::get1Result() {
+	if (info == 0 || info == n + 1) {
+		//sol = (double*)((DNformat*)sluX.Store)->nzval;
+		//for (int i = 0; i < num_pts; i++) {
+		//	pmeshnode[i].A = sol[i] * miu0;
+		//	A(i) = sol[i] * miu0;
+		//}
+		return (double*)((DNformat*)sluB.Store)->nzval;
+	} else if (info > 0 && lwork == -1) {
+		return NULL;
+	}
 	return NULL;
 }
 CSuperLU_MT::~CSuperLU_MT() {

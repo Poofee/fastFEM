@@ -3197,10 +3197,10 @@ bool CFastFEMcore::StaticAxisQ4NR(){
 		}
 
 		//double normA = norm(A, 2); //qDebug() << normA;
-		error = norm((A_old - A), 2);
+		error = norm((A_old - A), 2) / norm(A, 2);
 		iter++;
-		//qDebug() << "iter: " << iter;
-		//qDebug() << "error: " << error;
+		qDebug() << "iter: " << iter;
+		qDebug() << "error: " << error;
 		if (error < Precision && iter > 5) {
 			//转换A
 			for (int i = 0; i < num_pts - node_bdr; i++) {
@@ -3372,77 +3372,14 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 	}
 	//第一次求解
 	//---------------------superLU_MT---------------------------------------
-	//CSuperLU_MT superlumt(num_pts - node_bdr, X, unknown_b);
-	SuperMatrix   sluA; SuperMatrix sluB, sluX;
-	//NCformat *Astore;
-	double   *a;
-	int_t      *asub, *xa;
-	int_t      *perm_r; /* row permutations from partial pivoting */
-	int_t      *perm_c; /* column permutation vector */
-	SuperMatrix   L;       /* factor L */
-	SCPformat *Lstore;
-	SuperMatrix   U;       /* factor U */
-	NCPformat *Ustore;
-	int_t      nrhs, info, m, n, nnz;
-	int_t      nprocs; /* maximum number of processors to use. */
-	int_t      panel_size, relax, maxsup;
-	int_t      permc_spec;
-	trans_t  trans;
-	//double   *rhs;
-	superlu_memusage_t   superlu_memusage;
-	DNformat	   *Bstore;
-	double      *rhsb, *rhsx;
-	Gstat_t  Gstat1;
-
-
-	panel_size = sp_ienv(1);
-	relax = sp_ienv(2);
-	maxsup = sp_ienv(3);
-
-	nprocs = 1;
-	nrhs = 1;
-	trans = NOTRANS;
-	/* create matrix A in Harwell-Boeing format.*/
-	m = num_pts - node_bdr; n = num_pts - node_bdr; nnz = X.n_nonzero;
-	a = const_cast<double *>(X.values);
-
-	StatAlloc(n, nprocs, panel_size, relax, &Gstat1);
-	StatInit(n, nprocs, &Gstat1);
-
-	asub = (int*)const_cast<unsigned int*>(X.row_indices);
-	xa = (int*)const_cast<unsigned int*>(X.col_ptrs);
-	dCreate_CompCol_Matrix(&sluA, m, n, nnz, a, asub, xa, SLU_NC, SLU_D, SLU_GE);
-
-	//------create B and X-------------------
-	if (!(rhsx = doubleMalloc(m * nrhs))) SUPERLU_ABORT("Malloc fails for rhsx[].");
-	dCreate_Dense_Matrix(&sluX, m, nrhs, rhsx, m, SLU_DN, SLU_D, SLU_GE);
-
-	rhsb = unknown_b;
-	dCreate_Dense_Matrix(&sluB, m, nrhs, rhsb, m, SLU_DN, SLU_D, SLU_GE);
-	Bstore = (DNformat*)sluB.Store;
-
-	if (!(perm_r = intMalloc(m))) SUPERLU_ABORT("Malloc fails for perm_r[].");
-	if (!(perm_c = intMalloc(n))) SUPERLU_ABORT("Malloc fails for perm_c[].");
-
-	/*
-	* Get column permutation vector perm_c[], according to permc_spec:
-	*   permc_spec = 0: natural ordering
-	*   permc_spec = 1: minimum degree ordering on structure of A'*A
-	*   permc_spec = 2: minimum degree ordering on structure of A'+A
-	*   permc_spec = 3: approximate minimum degree for unsymmetric matrices
-	*/
-	permc_spec = 1;
-	get_perm_c(permc_spec, &sluA, perm_c);
-
-	pdgssv(nprocs, &sluA, perm_c, perm_r, &L, &U, &sluB, &info);
-
-	if (info != 0) {
+	CSuperLU_MT superlumt(num_pts - node_bdr, X, unknown_b);
+	if (superlumt.solve1() == 1) {
 		qDebug() << "Error: superlumt.slove";
 		//qDebug() << "info: " << superlumt.info;
 	} else {
 		double *sol = NULL;
 		A_old = A;
-		sol = (double*)((DNformat*)sluB.Store)->nzval;
+		sol = superlumt.get1Result();
 		//取得结果
 		for (int i = 0; i < num_pts - node_bdr; i++) {
 			//pmeshnode[node_reorder(i)].A = sol[i];// / pmeshnode[i].x;//the A is r*A_real
@@ -3526,17 +3463,16 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 		INL += bbJz;
 		for (int i = 0; i < num_pts - node_bdr; i++) {
 			unknown_b[i] = INL(node_reorder(i));
-		}
-		dgstrs(trans, &L, &U, perm_r, perm_c, &sluB, &Gstat1, &info);
+		}		
 		//NOW WE SOLVE THE LINEAR SYSTEM USING THE FACTORED FORM OF sluA.
-		if (info != 0) {
+		if (superlumt.triangleSolve() == 1) {
 			qDebug() << "Error: superlumt.slove";
 			//qDebug() << "info: " << superlumt.info;
 			break;
 		} else {
 			double *sol = NULL;
 			A_old = A;
-			sol = (double*)((DNformat*)sluB.Store)->nzval;
+			sol = superlumt.get1Result();
 
 			for (int i = 0; i < num_pts - node_bdr; i++) {
 				//pmeshnode[node_reorder(i)].A = sol[i];// / pmeshnode[i].x;//the A is r*A_real
@@ -3544,9 +3480,9 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 			}
 		}
 		error = norm((A_old - A), 2) / norm(A, 2);
-		//qDebug() << "steps: " << count;
-		//qDebug() <<"error: "<< error;
-		if (error < Precision) {
+		qDebug() << "steps: " << count;
+		qDebug() <<"error: "<< error;
+		if (error < Precision && count > 10) {
 			//转换A
 			for (int i = 0; i < num_pts - node_bdr; i++) {
 				pmeshnode[node_reorder(i)].A /= pmeshnode[node_reorder(i)].x;//the A is r*A_real
@@ -3562,7 +3498,7 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 	time[tt++] = SuperLU_timer_();
 	qDebug() << "steps: " << count;
 	qDebug() <<"error: "<< error;
-	qDebug() <<"Single step time of TLM: "<< (time[tt - 1] - time[tt - 2]) / 50;
+	qDebug() <<"Single step time of TLM: "<< (time[tt - 1] - time[tt - 2]) / count;
 	qDebug() << "Total time of TLM: " << (time[tt - 1] - time[tt - 2]);
 	//
 	return true;
