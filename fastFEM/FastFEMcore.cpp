@@ -3058,6 +3058,8 @@ double CFastFEMcore::Ne(double xi, double eta, int index){
 	return (1 + yeta[index] * eta)*(1 + xxi[index] * xi)*0.25;
 }
 bool CFastFEMcore::StaticAxisQ4NR(){
+	double time[10]; int tt = 10;
+	time[tt++] = SuperLU_timer_();
 	//计算边界信息	
 	for (int i = 0; i < num_ele; i++){
 		int k, l, m, n;
@@ -3129,8 +3131,9 @@ bool CFastFEMcore::StaticAxisQ4NR(){
 	}
 	double* unknown_b = (double*)calloc(num_pts - node_bdr, sizeof(double));
 	int iter = 0;//迭代步数
+	double error;
 	int pos = 0;
-
+	time[tt++] = SuperLU_timer_();
 	//主循环
 	while (1){
 		//生成全局矩阵
@@ -3194,30 +3197,37 @@ bool CFastFEMcore::StaticAxisQ4NR(){
 		}
 
 		//double normA = norm(A, 2); //qDebug() << normA;
-		double error = norm((A_old - A), 2);
+		error = norm((A_old - A), 2);
 		iter++;
-		qDebug() << "iter: " << iter;
-		qDebug() << "error: " << error;
+		//qDebug() << "iter: " << iter;
+		//qDebug() << "error: " << error;
 		if (error < Precision && iter > 5) {
 			//转换A
 			for (int i = 0; i < num_pts - node_bdr; i++) {
 				pmeshnode[node_reorder(i)].A /= pmeshnode[node_reorder(i)].x;//the A is r*A_real
 				A(node_reorder(i)) /= pmeshnode[node_reorder(i)].x;
 			}
-			A.save("D:\\mypaper\\zhcore\\插图\\NRpmA.txt", arma::arma_ascii, false);
-			bbJz.save("D:\\mypaper\\zhcore\\插图\\pmbn.txt", arma::arma_ascii, false);
-			qDebug() << "solve over";
+			//A.save("D:\\mypaper\\zhcore\\插图\\NRpmA.txt", arma::arma_ascii, false);
+			//bbJz.save("D:\\mypaper\\zhcore\\插图\\pmbn.txt", arma::arma_ascii, false);
+			//qDebug() << "solve over";
 			break;
 		}
 		//重新初始化
 		pos = 0;
 		bbJz.zeros();
 	}
+	time[tt++] = SuperLU_timer_();
+	qDebug() << "iter: " << iter;
+	qDebug() << "error: " << error;
+	qDebug() <<"Single step time of NR: "<< (time[tt - 1] - time[tt - 2]) / iter;
+	qDebug() << "Single step time of NR: " << (time[tt - 1] - time[tt - 2]);
 	return true;
 }
 //采用传输线法求解轴对称静磁场，四边形分网
 //该方法的主要思路是将每个单元的等效电路当作一个黑盒子，不去考虑具体内部是什么电路
 bool CFastFEMcore::StaticAxisQ4TLM(){
+	double time[10]; int  tt = 0;
+	time[tt++] = SuperLU_timer_();
 	//计算边界信息	
 	for (int i = 0; i < num_ele; i++){
 		int k, l, m, n;
@@ -3271,6 +3281,7 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 			D34.push_back(i);
 		}
 	}
+	qDebug() << "D34 size: " << D34.size();
 	umat locs(2, 16 * num_ele);
 	locs.zeros();
 	mat vals(1, 16 * num_ele);
@@ -3298,7 +3309,7 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 	}
 	double* unknown_b = (double*)calloc(num_pts - node_bdr, sizeof(double));
 	int pos = 0;
-
+	time[tt++] = SuperLU_timer_();
 	//计算导纳矩阵
 	int nonlinr = -1;
 	for (int i = 0; i < num_ele; i++) {
@@ -3316,7 +3327,16 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 				} else {
 					//非线性部分，采用传输线,仅含有对地支路
 					if (row == col){
-						rm[nonlinr].Y[row] = abs(getLocal4Matrix(row, col, i));						
+						rm[nonlinr].Y[row]  = getLocal4Matrix(row, 0, i)*pmeshnode[pmeshele4[i].n[0]].A;
+						rm[nonlinr].Y[row] += getLocal4Matrix(row, 1, i)*pmeshnode[pmeshele4[i].n[1]].A;
+						rm[nonlinr].Y[row] += getLocal4Matrix(row, 2, i)*pmeshnode[pmeshele4[i].n[2]].A;
+						rm[nonlinr].Y[row] += getLocal4Matrix(row, 3, i)*pmeshnode[pmeshele4[i].n[3]].A;
+						rm[nonlinr].Y[row] = abs(rm[nonlinr].Y[row] / pmeshnode[pmeshele4[i].n[row]].A );
+						if (std::isinf(rm[nonlinr].Y[row])){
+							//qDebug() << pmeshnode[pmeshele4[i].n[row]].A;
+							rm[nonlinr].Y[row] = abs(getLocal4Matrix(row, col, i));
+						}
+							
 						ce[row][col] = rm[nonlinr].Y[row];
 					} else{
 						ce[row][col] = 0;
@@ -3345,7 +3365,7 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 	vals.reshape(1, pos);
 	//----using armadillo constructor function-----
 	sp_mat X(true, locs, vals, num_pts - node_bdr, num_pts - node_bdr, true, true);
-
+	time[tt++] = SuperLU_timer_();
 	INL += bbJz;
 	for (int i = 0; i < num_pts - node_bdr; i++) {
 		unknown_b[i] = INL(node_reorder(i));
@@ -3429,11 +3449,13 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 			A(node_reorder(i)) = sol[i];
 		}
 	}
+	time[tt++] = SuperLU_timer_();
 	//迭代
 	int count;//迭代步数
+	double error;
 	VoltageQ4 *Vr = (VoltageQ4*)calloc(D34.size(), sizeof(VoltageQ4));
 	VoltageQ4 *Vi = (VoltageQ4*)calloc(D34.size(), sizeof(VoltageQ4));
-	for (count = 0; count < 200; count++){
+	for (count = 0; count < 50; count++){
 		//反射到单个非线性单元进行迭代
 		for (int j = 0; j < D34.size(); j++){
 			int i = D34[j];
@@ -3454,7 +3476,7 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 			colvec x2(4); x2.zeros();
 			double err1 = 0;
 
-			for (int iter = 0; iter < 20; iter++){
+			for (int iter = 0; iter < 10; iter++){
 				//流向节点的电流源
 				b(0) = 2 * Vr[j].V[0] * rm[j].Y[0];
 				b(1) = 2 * Vr[j].V[1] * rm[j].Y[1];
@@ -3477,12 +3499,17 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 				if (!status){
 					qDebug() << "error: solve !";
 					return false;
-				}
+				}				
 				//更新电压
 				pmeshnode[n1].A = x2(0);
 				pmeshnode[n2].A = x2(1);
 				pmeshnode[n3].A = x2(2);
 				pmeshnode[n4].A = x2(3);
+				//判断收敛
+				double error1 = x2(0) + x2(1) + x2(2) + x2(3);
+				error1 -= pmeshnode[n1].A + pmeshnode[n2].A + pmeshnode[n3].A + pmeshnode[n4].A;
+				error1 /= 4;
+				if (abs(error1) < 1e-5) break;
 			}
 			//计算入射电压
 			Vi[j].V[0] = x2(0) - Vr[j].V[0];
@@ -3516,22 +3543,27 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 				A(node_reorder(i)) = sol[i];
 			}
 		}
-		double error = norm((A_old - A), 2) / norm(A, 2);
-		qDebug() << "steps: " << count;
-		qDebug() <<"error: "<< error;
+		error = norm((A_old - A), 2) / norm(A, 2);
+		//qDebug() << "steps: " << count;
+		//qDebug() <<"error: "<< error;
 		if (error < Precision) {
 			//转换A
 			for (int i = 0; i < num_pts - node_bdr; i++) {
 				pmeshnode[node_reorder(i)].A /= pmeshnode[node_reorder(i)].x;//the A is r*A_real
 				A(node_reorder(i)) /= pmeshnode[node_reorder(i)].x;
 			}
-			A.save("D:\\mypaper\\zhcore\\插图\\TLMpmA.txt", arma::arma_ascii, false);
+			//A.save("D:\\mypaper\\zhcore\\插图\\TLMpmA.txt", arma::arma_ascii, false);
 			//bbJz.save("D:\\mypaper\\zhcore\\插图\\pmbn.txt", arma::arma_ascii, false);
 			qDebug() << "Solve Successfully!";
 			break;
 		}
 		INL.zeros();
 	}
+	time[tt++] = SuperLU_timer_();
+	qDebug() << "steps: " << count;
+	qDebug() <<"error: "<< error;
+	qDebug() <<"Single step time of TLM: "<< (time[tt - 1] - time[tt - 2]) / 50;
+	qDebug() << "Total time of TLM: " << (time[tt - 1] - time[tt - 2]);
 	//
 	return true;
 }
