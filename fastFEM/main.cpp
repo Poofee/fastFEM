@@ -21,8 +21,8 @@ int main(int argc, char *argv[])
 
 	//armatest();
 	//triangletest1();
-	quadtlmtest();
-	//triangletestgroup();
+	//quadtlmtest();
+	triangletestgroup();
 	Plot myplot;
 	myplot.show();
     return a.exec();
@@ -65,7 +65,7 @@ void quadtlmtest(){
 		fem.StaticAxisQ4NR();
 		//设置一个猜测值
 		for (int i = 0; i < fem.num_pts; i++){
-			fem.pmeshnode[i].A *= 1;
+			fem.pmeshnode[i].A *= 0.9;
 		}
 		fem.StaticAxisQ4TLM();
 	}

@@ -1112,6 +1112,10 @@ bool CFastFEMcore::StaticAxisT3TLMgroup() {
 		}
 	}
 	double* unknown_b = (double*)calloc(num_pts - node_bdr, sizeof(double));
+	double * y10 = (double*)malloc(D34.size()*sizeof(double));
+	double * y20 = (double*)malloc(D34.size()*sizeof(double));
+	double * y30 = (double*)malloc(D34.size()*sizeof(double));
+	int nlin = 0;
 	int pos = 0;
 	//轴对称：A'=rA,v'=v/r,
 	for (int i = 0; i < num_ele; i++) {
@@ -1161,9 +1165,35 @@ bool CFastFEMcore::StaticAxisT3TLMgroup() {
 			ce[0][2] = 0;
 			ce[1][2] = 0;
 
-			ce[0][0] = abs(rm[i].Y12) / pmeshele[i].miu;
-			ce[1][1] = abs(rm[i].Y23) / pmeshele[i].miu;
-			ce[2][2] = abs(rm[i].Y13) / pmeshele[i].miu;
+			y10[nlin] = rm[i].Y11*pmeshnode[pmeshele[i].n[0]].A +
+				rm[i].Y12*pmeshnode[pmeshele[i].n[1]].A +
+				rm[i].Y13*pmeshnode[pmeshele[i].n[2]].A;
+			y10[nlin] /= pmeshele[i].miu;
+			y10[nlin] /= pmeshnode[pmeshele[i].n[0]].A;
+			if (std::isinf(y10[nlin])){
+				y10[nlin] = abs(rm[i].Y12) / pmeshele[i].miu;
+			}
+			y20[nlin] = rm[i].Y12*pmeshnode[pmeshele[i].n[0]].A +
+				rm[i].Y22*pmeshnode[pmeshele[i].n[1]].A +
+				rm[i].Y23*pmeshnode[pmeshele[i].n[2]].A;
+			y20[nlin] /= pmeshele[i].miu;
+			y20[nlin] /= pmeshnode[pmeshele[i].n[1]].A;
+			if (std::isinf(y20[nlin])){
+				y20[nlin] = abs(rm[i].Y23) / pmeshele[i].miu;
+			}
+			y30[nlin] = rm[i].Y13*pmeshnode[pmeshele[i].n[0]].A +
+				rm[i].Y23*pmeshnode[pmeshele[i].n[1]].A +
+				rm[i].Y33*pmeshnode[pmeshele[i].n[2]].A;
+			y30[nlin] /= pmeshele[i].miu;
+			y30[nlin] /= pmeshnode[pmeshele[i].n[2]].A;
+			if (std::isinf(y30[nlin])){
+				y30[nlin] = abs(rm[i].Y13) / pmeshele[i].miu;
+			}
+			
+			ce[0][0] = abs(y10[nlin]);
+			ce[1][1] = abs(y20[nlin]);
+			ce[2][2] = abs(y30[nlin]);
+			nlin++;
 		}
 		ce[1][0] = ce[0][1];
 		ce[2][0] = ce[0][2];
@@ -1350,9 +1380,9 @@ bool CFastFEMcore::StaticAxisT3TLMgroup() {
 			
 			for (int iter = 0; iter < 20; iter++){
 				//初始化电流
-				b(0) = 2. * Vr[j].V12*abs(rm[i].Y12) / m_e->miu;
-				b(1) = 2. * Vr[j].V23*abs(rm[i].Y23) / m_e->miu;
-				b(2) = 2. * Vr[j].V13*abs(rm[i].Y13) / m_e->miu;
+				b(0) = 2. * Vr[j].V12*abs(y10[j]);
+				b(1) = 2. * Vr[j].V23*abs(y20[j]);
+				b(2) = 2. * Vr[j].V13*abs(y30[j]);
 				//
 				AJ.zeros();
 				double ca[3];//理论上来说，这里的A应当是三个节点的A
@@ -1386,9 +1416,9 @@ bool CFastFEMcore::StaticAxisT3TLMgroup() {
 					}
 				}
 				//加上对地导纳
-				AJ(0, 0) += abs(rm[i].Y12) / m_e->miu;
-				AJ(1, 1) += abs(rm[i].Y23) / m_e->miu;
-				AJ(2, 2) += abs(rm[i].Y13) / m_e->miu;
+				AJ(0, 0) += abs(y10[j]);
+				AJ(1, 1) += abs(y20[j]);
+				AJ(2, 2) += abs(y30[j]);
 				//求解电压V
 				bool status = arma::solve(x2, AJ, b);
 				if (!status){
@@ -1401,11 +1431,11 @@ bool CFastFEMcore::StaticAxisT3TLMgroup() {
 			Vi[j].V12 = x2(0) - Vr[j].V12;
 			Vi[j].V23 = x2(1) - Vr[j].V23;
 			Vi[j].V13 = x2(2) - Vr[j].V13;
-			INL(k) += 2. *Vi[j].V12*abs(rm[i].Y12) / m_e->miu;
+			INL(k) += 2. *Vi[j].V12*abs(y10[j]);
 
-			INL(m) += 2. * Vi[j].V23*abs(rm[i].Y23) / m_e->miu;
+			INL(m) += 2. * Vi[j].V23*abs(y20[j]);
 
-			INL(n) += 2. * Vi[j].V13*abs(rm[i].Y13) / m_e->miu;
+			INL(n) += 2. * Vi[j].V13*abs(y30[j]);
 		}
 		INL += bbJz;
 		for (int i = 0; i < num_pts - node_bdr; i++) {
@@ -1432,8 +1462,8 @@ bool CFastFEMcore::StaticAxisT3TLMgroup() {
 			}
 		}
 		double error = norm((A_old - A), 2) / norm(A, 2);
-		//qDebug() << "iter: " << count;
-		//qDebug() << "error: " << error;
+		qDebug() << "iter: " << count;
+		qDebug() << "error: " << error;
 
 		graph1->setData(x, y);
 		customplot->rescaleAxes(true);
