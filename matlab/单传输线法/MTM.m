@@ -38,4 +38,4 @@ for i=1:50
     plot(i,U2(1),'r*');hold on;
     plot(i,U2(2),'b*');hold on;
 end
-U1
+U1-V
