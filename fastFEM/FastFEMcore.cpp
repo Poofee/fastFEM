@@ -1335,7 +1335,7 @@ bool CFastFEMcore::StaticAxisT3TLMgroup() {
 	//customplot->xAxis2->setTicks(false);
 	//customplot->yAxis->setScaleRatio(customplot->xAxis, 1.0);
 	//---------the main loop---------------------------------
-	int steps = 1000;
+	int steps = 200;
 	int count;
 	double alpha = 1;
 	Voltage *Vr = (Voltage*)calloc(D34.size(), sizeof(Voltage));
@@ -1462,15 +1462,15 @@ bool CFastFEMcore::StaticAxisT3TLMgroup() {
 			}
 		}
 		double error = norm((A_old - A), 2) / norm(A, 2);
-		qDebug() << "iter: " << count;
-		qDebug() << "error: " << error;
+		//qDebug() << "iter: " << count;
+		//qDebug() << "error: " << error;
 
-		graph1->setData(x, y);
-		customplot->rescaleAxes(true);
+		//graph1->setData(x, y);
+		//customplot->rescaleAxes(true);
 		//customplot->xAxis->setRange(0, 0.09);
 		//customplot->yAxis->setRange(-0.04, 0.04);
 		//customplot->yAxis->setScaleRatio(customplot->xAxis, 1.0);
-		customplot->replot();
+		//customplot->replot();
 
 
 		if (error < Precision) {
@@ -2634,15 +2634,15 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 		//qDebug() << "iter: " << iter;
 		//qDebug() << "error: " << error;
 		if (error < Precision || iter > 20) {
-			A.save("NRA.txt", arma::arma_ascii, false);
+			//A.save("NRA.txt", arma::arma_ascii, false);
 			break;
 		}
 		bn.zeros();
 		pos = 0;
 
-		graph1->setData(x, y);
-		customplot->rescaleAxes(true);
-		customplot->replot();
+		//graph1->setData(x, y);
+		//customplot->rescaleAxes(true);
+		//customplot->replot();
 	}
 	time[tt++] = clock();
 	for (int i = 1; i < tt; i++){
