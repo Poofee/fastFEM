@@ -40,17 +40,17 @@ Y = [1/R1+1/R2,    -1/R2,  0,           0;
 R3c = 30;
 R4c = 40;
 R6c = 60;
-YTL = [1/R3c+1/R4c+1/1000000,        -1/R3c,             -1/R4c;
+YTL = [1/R3c+1/R4c+1/100,        -1/R3c,             -1/R4c;
           -1/R3c,                1/R3c+1/R6c,     -1/R6c;
           -1/R4c,                -1/R6c,              1/R6c+1/R4c;]; 
-YTL = 0.9* YTL;
+YTL = 1* YTL;
 Y(2:4,2:4) = Y(2:4,2:4) + YTL;
 % 右边的导纳矩阵
 Y2 = [1/R3+1/R4,        -1/R3,             -1/R4;
           -1/R3,                1/R3+1/R6,     -1/R6;
           -1/R4,                -1/R6,              1/R6+1/R4;];   
 Y2 = Y2 + YTL;
-for i=1:50
+for i=1:150
 %     左边的电流源电流
 %     a(1) = U2(1)/Z1-i2(1);
 %     a(2) = U2(2)/Z2-i2(2);
@@ -80,9 +80,12 @@ for i=1:50
     plot(i,U1(2),'ro');hold on;
     plot(i,U1(3),'bo');hold on;
     plot(i,U1(4),'go');hold on;
-    plot(i,V(2),'r*');hold on;
-    plot(i,V(3),'b*');hold on;
-    plot(i,V(4),'g*');hold on;
+    plot(i,U2(1),'r*');hold on;
+    plot(i,U2(2),'b*');hold on;
+    plot(i,U2(3),'g*');hold on;
+    plot(i,V(2),'r.-');hold on;
+    plot(i,V(3),'b.-');hold on;
+    plot(i,V(4),'g.-');hold on;
     if abs(U1-V) > 1e-3
         i
 %         break;

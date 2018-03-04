@@ -42,7 +42,7 @@ R6c = 60;
 YTL = [1/R3c+1/R4c,        -1/R3c,             -1/R4c;
           -1/R3c,                1/R3c+1/R6c,     -1/R6c;
           -1/R4c,                -1/R6c,              1/R6c+1/R4c;]; 
-YTL = 0.9* YTL;
+YTL = 0.5* YTL;
 Y(2:4,2:4) = Y(2:4,2:4) + YTL;
 % 右边的导纳矩阵
 Y2 = [1/R3+1/R4,        -1/R3,             -1/R4;
@@ -67,7 +67,8 @@ for i=1:50
     I2 = b;
     U1 = Y\IL;
     U2(1:2) = Y2(1:2,1:2)\I2(1:2);%右边的电路跟左边的地不一样，降阶矩阵    
-    
+    U2(3) = 0;
+    U2 = U2 + U1(4);
 %     i1(1) = a(1)-U1(1)/Z1;
 %     i1(2) = a(2)-U1(2)/Z2;
 %     i1 = a - YTL*U1(2:4);
@@ -79,6 +80,8 @@ for i=1:50
     plot(i,U1(2),'ro');hold on;
     plot(i,U1(3),'bo');hold on;
     plot(i,U1(4),'go');hold on;
+    plot(i,U2(1),'ro');hold on;
+    plot(i,U2(2),'bo');hold on;
     plot(i,V(2),'r*');hold on;
     plot(i,V(3),'b*');hold on;
     plot(i,V(4),'g*');hold on;
