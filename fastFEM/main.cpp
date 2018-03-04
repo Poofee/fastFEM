@@ -113,7 +113,7 @@ void triangletestvtm() {
 		qDebug() << "NR:" << t1;
 		for (int i = 0; i < fem.num_ele; i++) {
 			if (!fem.pmeshele[i].LinearFlag) {
-				fem.pmeshele[i].miu = 0.9*fem.pmeshele[i].miut;
+				fem.pmeshele[i].miu = 1*fem.pmeshele[i].miut;
 			}
 		}
 		t1 = SuperLU_timer_();

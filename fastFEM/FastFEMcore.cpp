@@ -1161,8 +1161,9 @@ bool CFastFEMcore::StaticAxisT3VTM() {
 		ce[2][2] = rm[i].Y33 / pmeshele[i].miut;
 
 		//非线性区，计算传输线导纳矩阵
+		double delta = 1e-3;//接地导纳
 		if (!pmeshele[i].LinearFlag) {
-			Ytl[6 * nlin + 0] = ce[0][0];
+			Ytl[6 * nlin + 0] = ce[0][0] + delta;
 			Ytl[6 * nlin + 1] = ce[0][1];
 			Ytl[6 * nlin + 2] = ce[0][2];
 			Ytl[6 * nlin + 3] = ce[1][1];
@@ -1351,26 +1352,28 @@ bool CFastFEMcore::StaticAxisT3VTM() {
 			INL(k) += Is[j].V12;
 			INL(m) += Is[j].V23;
 			INL(n) += Is[j].V13;
-			//PART D：牛顿迭代求解小电路，计算电压，第三个单元节点设为地
-			mat C(2, 2);//单元系数矩阵，为了方便计算
-			C(0, 0) = rm[i].Y11; C(0, 1) = rm[i].Y12;
-			C(1, 0) = rm[i].Y12; C(1, 1) = rm[i].Y22; 
-			mat AJ(2, 2);
-			colvec b(2);
-			colvec x2(2); x2.zeros();
+			//PART D：牛顿迭代求解小电路，计算电压
+			mat C(3, 3);//单元系数矩阵，为了方便计算
+			C(0, 0) = rm[i].Y11; C(0, 1) = rm[i].Y12; C(0, 2) = rm[i].Y13;
+			C(1, 0) = rm[i].Y12; C(1, 1) = rm[i].Y22; C(1, 2) = rm[i].Y23;
+			C(2, 0) = rm[i].Y13; C(2, 1) = rm[i].Y23; C(2, 2) = rm[i].Y33;
+			mat AJ(3, 3);
+			colvec b(3);
+			colvec x2(3); x2.zeros();
 			double err1 = 0;
 
-			for (int iter = 0; iter < 20; iter++) {
-				//初始化电流
+			for (int iter = 0; iter < 20; iter++){
+				//1.初始化电流
 				b(0) = Ie[j].V12;
 				b(1) = Ie[j].V23;
+				b(2) = Ie[j].V13;
 				//
 				AJ.zeros();
-				double ca[2];//理论上来说，这里的A应当是三个节点的A
-				for (int row = 0; row < 2; row++) {
-					ca[row] = C(row, 0)*x2(0) + C(row, 1)*x2(1);
+				double ca[3];//理论上来说，这里的A应当是三个节点的A
+				for (int row = 0; row < 3; row++){
+					ca[row] = C(row, 0)*x2(0) + C(row, 1)*x2(1) + C(row, 2)*x2(2);
 				}
-				//求解单元mu值
+				//2.求解单元mu值
 				double bx = 0;
 				double by = 0;
 				for (int j = 0; j < 3; j++) {
@@ -1380,14 +1383,14 @@ bool CFastFEMcore::StaticAxisT3VTM() {
 				pmeshele[i].B = sqrt(bx*bx + by*by) / 2. / pmeshele[i].AREA / ydot[i];
 				pmeshele[i].miut = materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B);
 				y[i] = pmeshele[i].miut;
-				//计算雅可比矩阵
+				//3.计算雅可比矩阵
 				double tmp = materialList[pmeshele[i].domain - 1].getdvdB(pmeshele[i].B);
-				if (pmeshele[i].B > 1e-9) {
+				if (pmeshele[i].B > 1e-9){
 					tmp /= pmeshele[i].B * pmeshele[i].AREA;//B==0?
 					tmp /= ydot[i];
 				}
-				for (int row = 0; row < 2; row++) {
-					for (int col = 0; col < 2; col++) {
+				for (int row = 0; row < 3; row++){
+					for (int col = 0; col < 3; col++){
 						//注意C已经被除了一次ydot了
 						AJ(row, col) = ca[row];
 						AJ(row, col) *= ca[col];
@@ -1396,14 +1399,19 @@ bool CFastFEMcore::StaticAxisT3VTM() {
 						AJ(row, col) += C(row, col) / m_e->miut;
 					}
 				}
-				//加上传输线导纳
+				//4.加上传输线导纳
 				AJ(0, 0) += Ytl[6 * j + 0];
 				AJ(0, 1) += Ytl[6 * j + 1];
+				AJ(0, 2) += Ytl[6 * j + 2];
 				AJ(1, 0) += Ytl[6 * j + 1];
 				AJ(1, 1) += Ytl[6 * j + 3];
-				//求解电压V
+				AJ(1, 2) += Ytl[6 * j + 4];
+				AJ(2, 0) += Ytl[6 * j + 2];
+				AJ(2, 1) += Ytl[6 * j + 4];
+				AJ(2, 2) += Ytl[6 * j + 5];
+				//5.求解电压V
 				bool status = arma::solve(x2, AJ, b);
-				if (!status) {
+				if (!status){
 					qDebug() << "error: solve !";
 					return false;
 				}
@@ -1412,18 +1420,20 @@ bool CFastFEMcore::StaticAxisT3VTM() {
 			//qDebug() << x2(0) << x2(1) << x2(2);
 			Ve[j].V12 = x2(0);
 			Ve[j].V23 = x2(1);
-			Ve[j].V13 = 0;			
+			Ve[j].V13 = x2(2);
 		}
 		INL += bbJz;
 		for (int i = 0; i < num_pts - node_bdr; i++) {
 			unknown_b[i] = INL(node_reorder(i));
 		}
 		//time[tt++] = SuperLU_timer_();
+		//调用superLU三角求解
 		dgstrs(trans, &L, &U, perm_r, perm_c, &sluB, &Gstat1, &info);
 		//myTriSolve(1, &L, &U, perm_r, perm_c, &sluB, &info);
 		//time[tt++] = SuperLU_timer_();
 		//pdgssv(nprocs, &sluA, perm_c, perm_r, &L, &U, &sluB, &info);
 		//NOW WE SOLVE THE LINEAR SYSTEM USING THE FACTORED FORM OF sluA.
+		//读取求解结果
 		if (info != 0) {
 			qDebug() << "Error: superlumt.slove";
 			//qDebug() << "info: " << superlumt.info;
@@ -1438,17 +1448,18 @@ bool CFastFEMcore::StaticAxisT3VTM() {
 				A(node_reorder(i)) = sol[i];
 			}
 		}
+		//误差判断
 		double error = norm((A_old - A), 2) / norm(A, 2);
-		//qDebug() << "iter: " << count;
-		//qDebug() << "error: " << error;
+		qDebug() << "iter: " << count;
+		qDebug() << "error: " << error;
 
-		//graph1->setData(x, y);
-		//customplot->rescaleAxes(true);
+		//绘制计算结果
+		graph1->setData(x, y);
+		customplot->rescaleAxes(true);
 		//customplot->xAxis->setRange(0, 0.09);
 		//customplot->yAxis->setRange(-0.04, 0.04);
 		//customplot->yAxis->setScaleRatio(customplot->xAxis, 1.0);
-		//customplot->replot();
-
+		customplot->replot();
 
 		if (error < Precision) {
 			break;
@@ -3063,9 +3074,9 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 		bn.zeros();
 		pos = 0;
 
-		//graph1->setData(x, y);
-		//customplot->rescaleAxes(true);
-		//customplot->replot();
+		graph1->setData(x, y);
+		customplot->rescaleAxes(true);
+		customplot->replot();
 	}
 	time[tt++] = clock();
 	for (int i = 1; i < tt; i++){
