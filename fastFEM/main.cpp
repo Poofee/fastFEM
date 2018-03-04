@@ -12,6 +12,7 @@ void triangletestgroup();
 void quadtest();
 void armatest();
 void quadtlmtest();
+void triangletestvtm();
 
 int main(int argc, char *argv[])
 {
@@ -22,7 +23,7 @@ int main(int argc, char *argv[])
 	//armatest();
 	//triangletest1();
 	//quadtlmtest();
-	triangletestgroup();
+	triangletestvtm();
 	Plot myplot;
 	myplot.show();
     return a.exec();
@@ -91,6 +92,32 @@ void triangletestgroup() {
 		}
 		t1 = SuperLU_timer_();
 		fem.StaticAxisT3TLMgroup();
+		t1 = SuperLU_timer_() - t1;
+		qDebug() << "TLM:" << t1;
+		//fem.CalcForce();
+	}
+}
+void triangletestvtm() {
+	CFastFEMcore fem;
+	double t1;
+	qDebug() << "current applicationDirPath: " << QCoreApplication::applicationDirPath();
+	qDebug() << "current currentPath: " << QDir::currentPath();
+
+	fem.openProject("..\\model\\project1.mag");
+
+	if (fem.Load2DMeshCOMSOL("..\\model\\mesh24.mphtxt") == 0) {
+		fem.preCalculation();
+		t1 = SuperLU_timer_();
+		fem.StaticAxisymmetricNR();
+		t1 = SuperLU_timer_() - t1;
+		qDebug() << "NR:" << t1;
+		for (int i = 0; i < fem.num_ele; i++) {
+			if (!fem.pmeshele[i].LinearFlag) {
+				fem.pmeshele[i].miu = 0.9*fem.pmeshele[i].miut;
+			}
+		}
+		t1 = SuperLU_timer_();
+		fem.StaticAxisT3VTM();
 		t1 = SuperLU_timer_() - t1;
 		qDebug() << "TLM:" << t1;
 		//fem.CalcForce();

@@ -1115,9 +1115,8 @@ bool CFastFEMcore::StaticAxisT3VTM() {
 		}
 	}
 	double* unknown_b = (double*)calloc(num_pts - node_bdr, sizeof(double));
-	double * y10 = (double*)malloc(D34.size()*sizeof(double));
-	double * y20 = (double*)malloc(D34.size()*sizeof(double));
-	double * y30 = (double*)malloc(D34.size()*sizeof(double));
+	//传输线导纳矩阵，只保存上三角矩阵
+	double * Ytl = (double*)malloc(D34.size()*6*sizeof(double));
 	int nlin = 0;
 	int pos = 0;
 	//轴对称：A'=rA,v'=v/r,
@@ -1152,50 +1151,23 @@ bool CFastFEMcore::StaticAxisT3VTM() {
 		rm[i].Y33 /= 4. * pmeshele[i].AREA*ydot[i];
 
 		//生成单元矩阵，线性与非线性
-		// 因为线性与非线性的差不多，所以不再分开讨论了
+		//因为线性与非线性的差不多，所以不再分开讨论了
+		ce[0][1] = rm[i].Y12 / pmeshele[i].miut;
+		ce[0][2] = rm[i].Y13 / pmeshele[i].miut;
+		ce[1][2] = rm[i].Y23 / pmeshele[i].miut;
 
+		ce[0][0] = rm[i].Y11 / pmeshele[i].miut;
+		ce[1][1] = rm[i].Y22 / pmeshele[i].miut;
+		ce[2][2] = rm[i].Y33 / pmeshele[i].miut;
 
-		if (pmeshele[i].LinearFlag) {//线性区，不用计算
-			ce[0][1] = rm[i].Y12 / pmeshele[i].miu;
-			ce[0][2] = rm[i].Y13 / pmeshele[i].miu;
-			ce[1][2] = rm[i].Y23 / pmeshele[i].miu;
-
-			ce[0][0] = rm[i].Y11 / pmeshele[i].miu;
-			ce[1][1] = rm[i].Y22 / pmeshele[i].miu;
-			ce[2][2] = rm[i].Y33 / pmeshele[i].miu;
-		} else {
-			ce[0][1] = 0;
-			ce[0][2] = 0;
-			ce[1][2] = 0;
-
-			y10[nlin] = rm[i].Y11*pmeshnode[pmeshele[i].n[0]].A +
-				rm[i].Y12*pmeshnode[pmeshele[i].n[1]].A +
-				rm[i].Y13*pmeshnode[pmeshele[i].n[2]].A;
-			y10[nlin] /= pmeshele[i].miu;
-			y10[nlin] /= pmeshnode[pmeshele[i].n[0]].A;
-			if (std::isinf(y10[nlin])) {
-				y10[nlin] = abs(rm[i].Y12) / pmeshele[i].miu;
-			}
-			y20[nlin] = rm[i].Y12*pmeshnode[pmeshele[i].n[0]].A +
-				rm[i].Y22*pmeshnode[pmeshele[i].n[1]].A +
-				rm[i].Y23*pmeshnode[pmeshele[i].n[2]].A;
-			y20[nlin] /= pmeshele[i].miu;
-			y20[nlin] /= pmeshnode[pmeshele[i].n[1]].A;
-			if (std::isinf(y20[nlin])) {
-				y20[nlin] = abs(rm[i].Y23) / pmeshele[i].miu;
-			}
-			y30[nlin] = rm[i].Y13*pmeshnode[pmeshele[i].n[0]].A +
-				rm[i].Y23*pmeshnode[pmeshele[i].n[1]].A +
-				rm[i].Y33*pmeshnode[pmeshele[i].n[2]].A;
-			y30[nlin] /= pmeshele[i].miu;
-			y30[nlin] /= pmeshnode[pmeshele[i].n[2]].A;
-			if (std::isinf(y30[nlin])) {
-				y30[nlin] = abs(rm[i].Y13) / pmeshele[i].miu;
-			}
-
-			ce[0][0] = abs(y10[nlin]);
-			ce[1][1] = abs(y20[nlin]);
-			ce[2][2] = abs(y30[nlin]);
+		//非线性区，计算传输线导纳矩阵
+		if (!pmeshele[i].LinearFlag) {
+			Ytl[6 * nlin + 0] = ce[0][0];
+			Ytl[6 * nlin + 1] = ce[0][1];
+			Ytl[6 * nlin + 2] = ce[0][2];
+			Ytl[6 * nlin + 3] = ce[1][1];
+			Ytl[6 * nlin + 4] = ce[1][2];
+			Ytl[6 * nlin + 5] = ce[2][2];
 			nlin++;
 		}
 		ce[1][0] = ce[0][1];
@@ -1341,23 +1313,15 @@ bool CFastFEMcore::StaticAxisT3VTM() {
 	int steps = 200;
 	int count;
 	double alpha = 1;
-	Voltage *Vr = (Voltage*)calloc(D34.size(), sizeof(Voltage));
-	Voltage *Vi = (Voltage*)calloc(D34.size(), sizeof(Voltage));
+	//保存非线性单元节点电压，不是反射电压了
+	Voltage *Vs = (Voltage*)calloc(D34.size(), sizeof(Voltage));//Voltage of system
+	Voltage *Ve = (Voltage*)calloc(D34.size(), sizeof(Voltage));//Voltage of element
+	//保存电流
+	Voltage *Is = (Voltage*)calloc(D34.size(), sizeof(Voltage));//Current flowing into system
+	Voltage *Ie = (Voltage*)calloc(D34.size(), sizeof(Voltage));//Current flowing into element
 	time[tt++] = SuperLU_timer_();
 	for (count = 0; count < steps; count++) {
-		//------update miu----------------
-		//for (int i = 0; i < num_ele; i++) {
-		//	double bx = 0;
-		//	double by = 0;
-		//	for (int j = 0; j < 3; j++) {
-		//		bx += pmeshele[i].Q[j] * A(pmeshele[i].n[j]);
-		//		by += pmeshele[i].P[j] * A(pmeshele[i].n[j]);
-		//	}
-		//	pmeshele[i].B = sqrt(bx*bx + by*by) / 2. / pmeshele[i].AREA / ydot[i];
-		//	pmeshele[i].miut = materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B);
-		//	//pmeshele[i].miut = y[i] + (count>90 ? 0.02 : (0.9 - count*0.001))*(pmeshele[i].miut - y[i]);
-		//	y[i] = pmeshele[i].miut;
-		//}
+		//PART A：计算非线性单元部分
 		//#pragma omp parallel for
 		for (int j = 0; j < D34.size(); j++) {
 			int i = D34[j];
@@ -1366,31 +1330,45 @@ bool CFastFEMcore::StaticAxisT3VTM() {
 			k = m_e->n[0];
 			m = m_e->n[1];
 			n = m_e->n[2];
-			//计算反射电压
-			Vr[j].V12 = (pmeshnode[k].A - 0) - Vi[j].V12;
-			Vr[j].V23 = (pmeshnode[m].A - 0) - Vi[j].V23;
-			Vr[j].V13 = (pmeshnode[n].A - 0) - Vi[j].V13;
-			//求解小电路，计算入射电压
-			//采用线性代入不收敛，遂尝试牛顿迭代
-			mat C(3, 3);//单元系数矩阵，为了方便计算
-			C(0, 0) = rm[i].Y11; C(0, 1) = rm[i].Y12; C(0, 2) = rm[i].Y13;
-			C(1, 0) = rm[i].Y12; C(1, 1) = rm[i].Y22; C(1, 2) = rm[i].Y23;
-			C(2, 0) = rm[i].Y13; C(2, 1) = rm[i].Y23; C(2, 2) = rm[i].Y33;
-			mat AJ(3, 3);
-			colvec b(3);
-			colvec x2(3); x2.zeros();
+			//PART B：计算流入非线性单元侧的电流
+			double Vlast[3];//保存上一步的值
+			Vlast[0] = Ie[j].V12;
+			Vlast[1] = Ie[j].V23;
+			Vlast[2] = Ie[j].V13;
+			//计算电压
+			Vs[j].V12 = pmeshnode[k].A - 0;
+			Vs[j].V23 = pmeshnode[m].A - 0;
+			Vs[j].V13 = pmeshnode[n].A - 0;
+
+			Ie[j].V12 = 2 * (Ytl[6 * j + 0] * Vs[j].V12 + Ytl[6 * j + 1] * Vs[j].V23 + Ytl[6 * j + 2] * Vs[j].V13) - Is[j].V12;
+			Ie[j].V23 = 2 * (Ytl[6 * j + 1] * Vs[j].V12 + Ytl[6 * j + 3] * Vs[j].V23 + Ytl[6 * j + 4] * Vs[j].V13) - Is[j].V23;
+			Ie[j].V13 = 2 * (Ytl[6 * j + 2] * Vs[j].V12 + Ytl[6 * j + 4] * Vs[j].V23 + Ytl[6 * j + 5] * Vs[j].V13) - Is[j].V13;
+			//PART C：计算流入线性系统侧的电流
+			Is[j].V12 = 2 * (Ytl[6 * j + 0] * Ve[j].V12 + Ytl[6 * j + 1] * Ve[j].V23 + Ytl[6 * j + 2] * Ve[j].V13) - Vlast[0];
+			Is[j].V23 = 2 * (Ytl[6 * j + 1] * Ve[j].V12 + Ytl[6 * j + 3] * Ve[j].V23 + Ytl[6 * j + 4] * Ve[j].V13) - Vlast[1];
+			Is[j].V13 = 2 * (Ytl[6 * j + 2] * Ve[j].V12 + Ytl[6 * j + 4] * Ve[j].V23 + Ytl[6 * j + 5] * Ve[j].V13) - Vlast[2];
+
+			INL(k) += Is[j].V12;
+			INL(m) += Is[j].V23;
+			INL(n) += Is[j].V13;
+			//PART D：牛顿迭代求解小电路，计算电压，第三个单元节点设为地
+			mat C(2, 2);//单元系数矩阵，为了方便计算
+			C(0, 0) = rm[i].Y11; C(0, 1) = rm[i].Y12;
+			C(1, 0) = rm[i].Y12; C(1, 1) = rm[i].Y22; 
+			mat AJ(2, 2);
+			colvec b(2);
+			colvec x2(2); x2.zeros();
 			double err1 = 0;
 
 			for (int iter = 0; iter < 20; iter++) {
 				//初始化电流
-				b(0) = 2. * Vr[j].V12*abs(y10[j]);
-				b(1) = 2. * Vr[j].V23*abs(y20[j]);
-				b(2) = 2. * Vr[j].V13*abs(y30[j]);
+				b(0) = Ie[j].V12;
+				b(1) = Ie[j].V23;
 				//
 				AJ.zeros();
-				double ca[3];//理论上来说，这里的A应当是三个节点的A
-				for (int row = 0; row < 3; row++) {
-					ca[row] = C(row, 0)*x2(0) + C(row, 1)*x2(1) + C(row, 2)*x2(2);
+				double ca[2];//理论上来说，这里的A应当是三个节点的A
+				for (int row = 0; row < 2; row++) {
+					ca[row] = C(row, 0)*x2(0) + C(row, 1)*x2(1);
 				}
 				//求解单元mu值
 				double bx = 0;
@@ -1408,8 +1386,8 @@ bool CFastFEMcore::StaticAxisT3VTM() {
 					tmp /= pmeshele[i].B * pmeshele[i].AREA;//B==0?
 					tmp /= ydot[i];
 				}
-				for (int row = 0; row < 3; row++) {
-					for (int col = 0; col < 3; col++) {
+				for (int row = 0; row < 2; row++) {
+					for (int col = 0; col < 2; col++) {
 						//注意C已经被除了一次ydot了
 						AJ(row, col) = ca[row];
 						AJ(row, col) *= ca[col];
@@ -1418,10 +1396,11 @@ bool CFastFEMcore::StaticAxisT3VTM() {
 						AJ(row, col) += C(row, col) / m_e->miut;
 					}
 				}
-				//加上对地导纳
-				AJ(0, 0) += abs(y10[j]);
-				AJ(1, 1) += abs(y20[j]);
-				AJ(2, 2) += abs(y30[j]);
+				//加上传输线导纳
+				AJ(0, 0) += Ytl[6 * j + 0];
+				AJ(0, 1) += Ytl[6 * j + 1];
+				AJ(1, 0) += Ytl[6 * j + 1];
+				AJ(1, 1) += Ytl[6 * j + 3];
 				//求解电压V
 				bool status = arma::solve(x2, AJ, b);
 				if (!status) {
@@ -1431,14 +1410,9 @@ bool CFastFEMcore::StaticAxisT3VTM() {
 			}
 
 			//qDebug() << x2(0) << x2(1) << x2(2);
-			Vi[j].V12 = x2(0) - Vr[j].V12;
-			Vi[j].V23 = x2(1) - Vr[j].V23;
-			Vi[j].V13 = x2(2) - Vr[j].V13;
-			INL(k) += 2. *Vi[j].V12*abs(y10[j]);
-
-			INL(m) += 2. * Vi[j].V23*abs(y20[j]);
-
-			INL(n) += 2. * Vi[j].V13*abs(y30[j]);
+			Ve[j].V12 = x2(0);
+			Ve[j].V23 = x2(1);
+			Ve[j].V13 = 0;			
 		}
 		INL += bbJz;
 		for (int i = 0; i < num_pts - node_bdr; i++) {
@@ -1505,8 +1479,8 @@ bool CFastFEMcore::StaticAxisT3VTM() {
 	// 回收空间
 	if (rm != NULL) free(rm);
 	if (ydot != NULL) free(ydot);
-	if (Vi != NULL) free(Vi);
-	if (Vr != NULL) free(Vr);
+	if (Vs != NULL) free(Vs);
+	if (Ve != NULL) free(Ve);
 	if (unknown_b != NULL) free(unknown_b);
 
 	//SUPERLU_FREE(rhs);
