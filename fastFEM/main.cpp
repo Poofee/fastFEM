@@ -14,6 +14,8 @@ void armatest();
 void quadtlmtest();
 void triangletestvtm();
 void triangletestvtm2();
+void triangletestvtm3();
+void quadvtmtest();
 
 int main(int argc, char *argv[])
 {
@@ -25,6 +27,7 @@ int main(int argc, char *argv[])
 	//triangletest1();
 	//quadtlmtest();
 	triangletestvtm2();
+	//triangletestvtm();
 	Plot myplot;
 	myplot.show();
     return a.exec();
@@ -70,6 +73,24 @@ void quadtlmtest(){
 			fem.pmeshnode[i].A *= 0.9;
 		}
 		fem.StaticAxisQ4TLM();
+	}
+}
+void quadvtmtest(){
+	CFastFEMcore fem;
+	//读取工程文件
+	fem.openProject("..\\model\\project1.mag");
+	//读取分网
+	if (fem.LoadQ4MeshCOMSOL("..\\model\\reg1.mphtxt") == 0){
+		qDebug() << "OK";
+		qDebug() << "number of elements:" << fem.num_ele;
+		qDebug() << "number of points:" << fem.num_pts;
+		//先进行一次牛顿求解
+		fem.StaticAxisQ4NR();
+		//设置一个猜测值
+		for (int i = 0; i < fem.num_pts; i++){
+			fem.pmeshnode[i].A *= 0.9;
+		}
+		fem.StaticAxisQ4VTM();
 	}
 }
 void triangletestgroup() {
@@ -146,6 +167,33 @@ void triangletestvtm2() {
 		}
 		t1 = SuperLU_timer_();
 		fem.StaticAxisT3VTM2();
+		t1 = SuperLU_timer_() - t1;
+		qDebug() << "TLM:" << t1;
+		//fem.CalcForce();
+	}
+}
+
+void triangletestvtm3() {
+	CFastFEMcore fem;
+	double t1;
+	qDebug() << "current applicationDirPath: " << QCoreApplication::applicationDirPath();
+	qDebug() << "current currentPath: " << QDir::currentPath();
+
+	fem.openProject("..\\model\\project1.mag");
+
+	if (fem.Load2DMeshCOMSOL("..\\model\\mesh24.mphtxt") == 0) {
+		fem.preCalculation();
+		t1 = SuperLU_timer_();
+		fem.StaticAxisymmetricNR();
+		t1 = SuperLU_timer_() - t1;
+		qDebug() << "NR:" << t1;
+		for (int i = 0; i < fem.num_ele; i++) {
+			if (!fem.pmeshele[i].LinearFlag) {
+				fem.pmeshele[i].miu = 1 * fem.pmeshele[i].miut;
+			}
+		}
+		t1 = SuperLU_timer_();
+		fem.StaticAxisT3VTM3();
 		t1 = SuperLU_timer_() - t1;
 		qDebug() << "TLM:" << t1;
 		//fem.CalcForce();

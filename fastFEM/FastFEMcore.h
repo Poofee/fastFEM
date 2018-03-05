@@ -30,9 +30,11 @@ public:
 	bool StaticAxisT3TLMgroup();//三角形单元看作为整体
     bool StaticAxisQ4NR();//使用NR求解，四边形分网
     bool StaticAxisQ4TLM();//使用TLM求解，四边形分网
+	bool StaticAxisQ4VTM();//使用VTM方法求解四边形问题
 	bool StaticAxisT3NRTLM();//NR迭代的每一步使用TLM求解线性方程组
 	bool StaticAxisT3VTM();//采用VTM方法来求解，单元隔离
 	bool StaticAxisT3VTM2();//采用VTM方法来求解，单元隔离
+	bool StaticAxisT3VTM3();//不采用rA变换的方式进行求解
 	double CalcForce();//电磁力计算函数
 	int openProject(QString proFile);//打开工程文件函数
 	int preCalculation();//预计算函数

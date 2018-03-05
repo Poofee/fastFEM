@@ -63,7 +63,7 @@ public:
 	double Y33;
 };
 typedef struct _Resist4Matrix{
-	double Y[4];
+	double Y[9];
 }Resist4Matrix;
 
 typedef struct _VoltageQ4{
