@@ -1360,10 +1360,7 @@ bool CFastFEMcore::StaticAxisT3VTM2() {
 			colvec x3(2); x3.zeros();
 			double err1 = 0;
 
-			x2(0) = Vs[j].V12;
-			x2(1) = Vs[j].V23;
-			x2(2) = Vs[j].V13;
-			for (int iter = 0; iter < 1; iter++){
+			for (int iter = 0; iter < 20; iter++){
 				//1.初始化电流
 				b(0) = Ie[j].V12;
 				b(1) = Ie[j].V23;								
