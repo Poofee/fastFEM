@@ -1545,36 +1545,44 @@ bool CFastFEMcore::StaticAxisT3VTM3() {
 	double * Ytl = (double*)malloc(D34.size() * 6 * sizeof(double));
 	int nlin = 0;
 	int pos = 0;
-	//轴对称：A'=rA,v'=v/r,
-	for (int i = 0; i < num_ele; i++) {
-		//确定单元的近似半径
-		int flag = 0;
-		for (int f = 0; f < 3; f++)
-			if (pmeshnode[pmeshele[i].n[f]].x < 1e-7)
-				flag++;
-
-		if (flag == 2) {
-			ydot[i] = pmeshele[i].rc;
-		} else {
-			ydot[i] = 1 / (pmeshnode[pmeshele[i].n[0]].x + pmeshnode[pmeshele[i].n[1]].x);
-			ydot[i] += 1 / (pmeshnode[pmeshele[i].n[0]].x + pmeshnode[pmeshele[i].n[2]].x);
-			ydot[i] += 1 / (pmeshnode[pmeshele[i].n[1]].x + pmeshnode[pmeshele[i].n[2]].x);
-			ydot[i] = 1.5 / ydot[i];
-		}
+	//
+	for (int i = 0; i < num_ele; i++) {		
 		//计算单元导纳
-		rm[i].Y11 = pmeshele[i].Q[0] * pmeshele[i].Q[0] + pmeshele[i].P[0] * pmeshele[i].P[0];
-		rm[i].Y12 = pmeshele[i].Q[0] * pmeshele[i].Q[1] + pmeshele[i].P[0] * pmeshele[i].P[1];
-		rm[i].Y13 = pmeshele[i].Q[0] * pmeshele[i].Q[2] + pmeshele[i].P[0] * pmeshele[i].P[2];
-		rm[i].Y22 = pmeshele[i].Q[1] * pmeshele[i].Q[1] + pmeshele[i].P[1] * pmeshele[i].P[1];
-		rm[i].Y23 = pmeshele[i].Q[1] * pmeshele[i].Q[2] + pmeshele[i].P[1] * pmeshele[i].P[2];
-		rm[i].Y33 = pmeshele[i].Q[2] * pmeshele[i].Q[2] + pmeshele[i].P[2] * pmeshele[i].P[2];
+		rm[i].Y12 = pmeshele[i].rc / 4 / pmeshele[i].AREA*(pmeshele[i].P[0] * pmeshele[i].P[1] +
+			pmeshele[i].Q[0] * pmeshele[i].Q[1]);
+		rm[i].Y12 += (pmeshele[i].P[0] + pmeshele[i].P[1]) / 6;
+		rm[i].Y12 += pmeshele[i].AREA / 9 / pmeshele[i].rc;
+		rm[i].Y12 *= 2 * PI;
 
-		rm[i].Y11 /= 4. * pmeshele[i].AREA*ydot[i];//猜测值
-		rm[i].Y12 /= 4. * pmeshele[i].AREA*ydot[i];
-		rm[i].Y13 /= 4. * pmeshele[i].AREA*ydot[i];
-		rm[i].Y22 /= 4. * pmeshele[i].AREA*ydot[i];
-		rm[i].Y23 /= 4. * pmeshele[i].AREA*ydot[i];
-		rm[i].Y33 /= 4. * pmeshele[i].AREA*ydot[i];
+		rm[i].Y23 = pmeshele[i].rc / 4 / pmeshele[i].AREA*(pmeshele[i].P[1] * pmeshele[i].P[2] +
+			pmeshele[i].Q[1] * pmeshele[i].Q[2]);
+		rm[i].Y23 += (pmeshele[i].P[1] + pmeshele[i].P[2]) / 6;
+		rm[i].Y23 += pmeshele[i].AREA / 9 / pmeshele[i].rc;
+		rm[i].Y23 *= 2 * PI;
+
+		rm[i].Y13 = pmeshele[i].rc / 4 / pmeshele[i].AREA*(pmeshele[i].P[2] * pmeshele[i].P[0] +
+			pmeshele[i].Q[2] * pmeshele[i].Q[0]);
+		rm[i].Y13 += (pmeshele[i].P[2] + pmeshele[i].P[0]) / 6;
+		rm[i].Y13 += pmeshele[i].AREA / 9 / pmeshele[i].rc;
+		rm[i].Y13 *= 2 * PI;
+
+		rm[i].Y11 = pmeshele[i].rc / 4 / pmeshele[i].AREA*(pmeshele[i].P[0] * pmeshele[i].P[0] +
+			pmeshele[i].Q[0] * pmeshele[i].Q[0]);
+		rm[i].Y11 += (pmeshele[i].P[0] + pmeshele[i].P[0]) / 6;
+		rm[i].Y11 += pmeshele[i].AREA / 9 / pmeshele[i].rc;
+		rm[i].Y11 *= 2 * PI;
+
+		rm[i].Y22 = pmeshele[i].rc / 4 / pmeshele[i].AREA*(pmeshele[i].P[1] * pmeshele[i].P[1] +
+			pmeshele[i].Q[1] * pmeshele[i].Q[1]);
+		rm[i].Y22 += (pmeshele[i].P[1] + pmeshele[i].P[1]) / 6;
+		rm[i].Y22 += pmeshele[i].AREA / 9 / pmeshele[i].rc;
+		rm[i].Y22 *= 2 * PI;
+
+		rm[i].Y33 = pmeshele[i].rc / 4 / pmeshele[i].AREA*(pmeshele[i].P[2] * pmeshele[i].P[2] +
+			pmeshele[i].Q[2] * pmeshele[i].Q[2]);
+		rm[i].Y33 += (pmeshele[i].P[2] + pmeshele[i].P[2]) / 6;
+		rm[i].Y33 += pmeshele[i].AREA / 9 / pmeshele[i].rc;
+		rm[i].Y33 *= 2 * PI;
 
 		//生成单元矩阵，线性与非线性
 		//因为线性与非线性的差不多，所以不再分开讨论了
@@ -1616,7 +1624,7 @@ bool CFastFEMcore::StaticAxisT3VTM3() {
 			}
 		}
 		//计算电流密度//要注意domain会不会越界
-		double jr = pmeshele[i].AREA*materialList[pmeshele[i].domain - 1].Jr / 3;
+		double jr = 2 * PI*pmeshele[i].rc*pmeshele[i].AREA*materialList[pmeshele[i].domain - 1].Jr / 3;
 		for (int j = 0; j < 3; j++) {
 			bbJz(pmeshele[i].n[j]) += jr;
 			// 计算永磁部分
@@ -1708,7 +1716,7 @@ bool CFastFEMcore::StaticAxisT3VTM3() {
 		sol = (double*)((DNformat*)sluB.Store)->nzval;
 		//取得结果
 		for (int i = 0; i < num_pts - node_bdr; i++) {
-			pmeshnode[node_reorder(i)].A = sol[i];// / pmeshnode[i].x;//the A is r*A_real
+			pmeshnode[node_reorder(i)].A = sol[i];// / pmeshnode[i].x;//the A is A_real
 			A(node_reorder(i)) = sol[i];
 		}
 	}
@@ -1778,20 +1786,26 @@ bool CFastFEMcore::StaticAxisT3VTM3() {
 			INL(m) += Is[j].V23;
 			INL(n) += Is[j].V13;
 			//PART D：牛顿迭代求解小电路，计算电压
-			mat C(2, 2);//单元系数矩阵，为了方便计算
-			C(0, 0) = rm[i].Y11; C(0, 1) = rm[i].Y12;
-			C(1, 0) = rm[i].Y12; C(1, 1) = rm[i].Y22;
-			mat AJ(2, 2);
-			colvec b(2);
+			mat C(3, 3);//单元系数矩阵，为了方便计算
+			C(0, 0) = rm[i].Y11; C(0, 1) = rm[i].Y12; C(0, 2) = rm[i].Y13;
+			C(1, 0) = rm[i].Y12; C(1, 1) = rm[i].Y22; C(1, 2) = rm[i].Y23;
+			C(2, 0) = rm[i].Y13; C(2, 1) = rm[i].Y23; C(2, 2) = rm[i].Y33;
+			mat AJ(3, 3);
+			colvec b(3);
 			colvec x2(3); x2.zeros();
-			colvec x3(2); x3.zeros();
 			double err1 = 0;
 
-			
-			for (int iter = 0; iter < 20; iter++){
+			for (int iter = 0; iter < 20; iter++) {
 				//1.初始化电流
 				b(0) = Ie[j].V12;
 				b(1) = Ie[j].V23;
+				b(2) = Ie[j].V13;
+				//
+				AJ.zeros();
+				double ca[3];//理论上来说，这里的A应当是三个节点的A
+				for (int row = 0; row < 3; row++) {
+					ca[row] = C(row, 0)*x2(0) + C(row, 1)*x2(1) + C(row, 2)*x2(2);
+				}
 				//2.求解单元mu值
 				double bx = 0;
 				double by = 0;
@@ -1804,39 +1818,36 @@ bool CFastFEMcore::StaticAxisT3VTM3() {
 				y[i] = pmeshele[i].miut;
 				//3.计算雅可比矩阵
 				double tmp = materialList[pmeshele[i].domain - 1].getdvdB(pmeshele[i].B);
-				if (pmeshele[i].B > 1e-9){
+				if (pmeshele[i].B > 1e-9) {
 					tmp /= pmeshele[i].B * pmeshele[i].AREA;//B==0?
 					tmp /= ydot[i];
 				}
-				AJ.zeros();
-				double ca[2];//理论上来说，这里的A应当是三个节点的A
-				for (int row = 0; row < 2; row++){
-					ca[row] = C(row, 0)*x3(0) + C(row, 1)*x3(1);
-				}
-				for (int row = 0; row < 2; row++){
-					for (int col = 0; col < 2; col++){
+				for (int row = 0; row < 3; row++) {
+					for (int col = 0; col < 3; col++) {
 						//注意C已经被除了一次ydot了
 						AJ(row, col) = ca[row];
 						AJ(row, col) *= ca[col];
 						AJ(row, col) *= tmp;
-						b(row) += AJ(row, col)*x3(col);
+						b(row) += AJ(row, col)*x2(col);
 						AJ(row, col) += C(row, col) / m_e->miut;
 					}
 				}
 				//4.加上传输线导纳
 				AJ(0, 0) += Ytl[6 * j + 0];
 				AJ(0, 1) += Ytl[6 * j + 1];
+				AJ(0, 2) += Ytl[6 * j + 2];
 				AJ(1, 0) += Ytl[6 * j + 1];
 				AJ(1, 1) += Ytl[6 * j + 3];
+				AJ(1, 2) += Ytl[6 * j + 4];
+				AJ(2, 0) += Ytl[6 * j + 2];
+				AJ(2, 1) += Ytl[6 * j + 4];
+				AJ(2, 2) += Ytl[6 * j + 5];
 				//5.求解电压V
-				bool status = arma::solve(x3, AJ, b);
-				if (!status){
+				bool status = arma::solve(x2, AJ, b);
+				if (!status) {
 					qDebug() << "error: solve !";
 					return false;
 				}
-				x2(0) = x3(0) + Vs[j].V13;
-				x2(1) = x3(1) + Vs[j].V13;
-				x2(2) = Vs[j].V13;
 			}
 
 			//qDebug() << x2(0) << x2(1) << x2(2);
