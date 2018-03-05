@@ -5051,6 +5051,11 @@ bool CFastFEMcore::StaticAxisQ4VTM(){
 			colvec x2(4); x2.zeros();
 			double err1 = 0;
 
+
+			pmeshnode[n1].A = Vs[j].V[0];
+			pmeshnode[n2].A = Vs[j].V[1];
+			pmeshnode[n3].A = Vs[j].V[2];
+			pmeshnode[n4].A = Vs[j].V[3];
 			for (int iter = 0; iter < 10; iter++){
 				//1.初始化电流
 				b(0) = Ie[j].V[0];
@@ -5060,7 +5065,11 @@ bool CFastFEMcore::StaticAxisQ4VTM(){
 				//2.牛顿迭代
 				for (int row = 0; row < 4; row++){
 					for (int col = 0; col < 4; col++){
-						AJ(row, col) = getLocal4Matrix(row, col, i) + getDij(row, col, i);
+						if (row > col){
+							AJ(row, col) = AJ(col, row);
+						} else{
+							AJ(row, col) = getLocal4Matrix(row, col, i) + getDij(row, col, i);
+						}						
 						b(row) += getDij(row, col, i)*pmeshnode[m_e->n[col]].A;
 					}
 				}
@@ -5095,11 +5104,11 @@ bool CFastFEMcore::StaticAxisQ4VTM(){
 					qDebug() << "error: solve !";
 					return false;
 				}				
-				//判断收敛
+				//判断收敛，x2比较小，要用相对误差比较！
 				double error1 = x2(0) + x2(1) + x2(2) + x2(3);
 				error1 -= pmeshnode[n1].A + pmeshnode[n2].A + pmeshnode[n3].A + pmeshnode[n4].A;
 				error1 /= 4;
-				if (abs(error1) < 1e-5) break;
+				//if (abs(error1) < 1e-5) break;
 			}
 			//计算电压
 			Ve[j].V[0] = x2(0);
