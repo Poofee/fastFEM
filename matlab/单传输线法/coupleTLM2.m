@@ -42,7 +42,7 @@ R6c = 60;
 YTL = [1/R3c+1/R4c,        -1/R3c,             -1/R4c;
           -1/R3c,                1/R3c+1/R6c,     -1/R6c;
           -1/R4c,                -1/R6c,              1/R6c+1/R4c;]; 
-YTL = 0.5* YTL;
+YTL = 0.7* YTL;
 Y(2:4,2:4) = Y(2:4,2:4) + YTL;
 % ÓÒ±ßµÄµ¼ÄÉ¾ØÕó
 Y2 = [1/R3+1/R4,        -1/R3,             -1/R4;
@@ -80,8 +80,8 @@ for i=1:50
     plot(i,U1(2),'ro');hold on;
     plot(i,U1(3),'bo');hold on;
     plot(i,U1(4),'go');hold on;
-    plot(i,U2(1),'ro');hold on;
-    plot(i,U2(2),'bo');hold on;
+    plot(i,U2(1),'r.');hold on;
+    plot(i,U2(2),'b.');hold on;
     plot(i,V(2),'r*');hold on;
     plot(i,V(3),'b*');hold on;
     plot(i,V(4),'g*');hold on;

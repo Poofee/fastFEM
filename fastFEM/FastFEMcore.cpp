@@ -1151,13 +1151,13 @@ bool CFastFEMcore::StaticAxisT3VTM2() {
 
 		//生成单元矩阵，线性与非线性
 		//因为线性与非线性的差不多，所以不再分开讨论了
-		ce[0][1] = rm[i].Y12 / pmeshele[i].miut;
-		ce[0][2] = rm[i].Y13 / pmeshele[i].miut;
-		ce[1][2] = rm[i].Y23 / pmeshele[i].miut;
+		ce[0][1] = rm[i].Y12 / pmeshele[i].miu;
+		ce[0][2] = rm[i].Y13 / pmeshele[i].miu;
+		ce[1][2] = rm[i].Y23 / pmeshele[i].miu;
 
-		ce[0][0] = rm[i].Y11 / pmeshele[i].miut;
-		ce[1][1] = rm[i].Y22 / pmeshele[i].miut;
-		ce[2][2] = rm[i].Y33 / pmeshele[i].miut;
+		ce[0][0] = rm[i].Y11 / pmeshele[i].miu;
+		ce[1][1] = rm[i].Y22 / pmeshele[i].miu;
+		ce[2][2] = rm[i].Y33 / pmeshele[i].miu;
 
 		//非线性区，计算传输线导纳矩阵
 		if (!pmeshele[i].LinearFlag) {
@@ -1288,7 +1288,7 @@ bool CFastFEMcore::StaticAxisT3VTM2() {
 	time[tt++] = SuperLU_timer_();
 	//---------------------superLU--end----------------------------------
 	//-----------绘图----------------------------------------
-	QVector<double> x(num_ele), y(num_ele);
+	QVector<double> x(num_ele), y(num_ele),y1(num_ele);
 	for (int i = 0; i < num_ele; ++i) {
 		x[i] = i;
 	}
@@ -1298,6 +1298,10 @@ bool CFastFEMcore::StaticAxisT3VTM2() {
 	graph1->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, QPen(Qt::black, 1.5), QBrush(Qt::black), 3));
 	graph1->setPen(QPen(QColor(120, 120, 120), 2));
 	graph1->setLineStyle(QCPGraph::lsNone);
+	QCPGraph *graph2 = customplot->addGraph();
+	graph2->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, QPen(Qt::red, 1.5), QBrush(Qt::red), 3));
+	graph2->setPen(QPen(QColor(120, 120, 120), 2));
+	graph2->setLineStyle(QCPGraph::lsNone);
 	customplot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
 	customplot->xAxis->setLabel("x");
 	customplot->xAxis->setRange(0, num_ele);
@@ -1334,10 +1338,7 @@ bool CFastFEMcore::StaticAxisT3VTM2() {
 			Vlast[0] = Ie[j].V12;
 			Vlast[1] = Ie[j].V23;
 			Vlast[2] = Ie[j].V13;
-			//计算电压
-			Vs[j].V12 = pmeshnode[k].A - 0;
-			Vs[j].V23 = pmeshnode[m].A - 0;
-			Vs[j].V13 = pmeshnode[n].A - 0;
+			
 
 			Ie[j].V12 = 2 * (Ytl[6 * j + 0] * Vs[j].V12 + Ytl[6 * j + 1] * Vs[j].V23 + Ytl[6 * j + 2] * Vs[j].V13) - Is[j].V12;
 			Ie[j].V23 = 2 * (Ytl[6 * j + 1] * Vs[j].V12 + Ytl[6 * j + 3] * Vs[j].V23 + Ytl[6 * j + 4] * Vs[j].V13) - Is[j].V23;
@@ -1373,7 +1374,8 @@ bool CFastFEMcore::StaticAxisT3VTM2() {
 				}
 				pmeshele[i].B = sqrt(bx*bx + by*by) / 2. / pmeshele[i].AREA / ydot[i];
 				pmeshele[i].miut = materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B);
-				y[i] = pmeshele[i].miut;
+				y[i] = Ve[j].V23 - Vs[j].V23;
+				//y1[i] = Vs[j].V13;
 				//3.计算雅可比矩阵
 				double tmp = materialList[pmeshele[i].domain - 1].getdvdB(pmeshele[i].B);
 				if (pmeshele[i].B > 1e-9){
@@ -1415,6 +1417,11 @@ bool CFastFEMcore::StaticAxisT3VTM2() {
 			Ve[j].V12 = x2(0);
 			Ve[j].V23 = x2(1);
 			Ve[j].V13 = x2(2);
+
+			//计算电压
+			Vs[j].V12 = pmeshnode[k].A - 0;
+			Vs[j].V23 = pmeshnode[m].A - 0;
+			Vs[j].V13 = pmeshnode[n].A - 0;
 		}
 		INL += bbJz;
 		for (int i = 0; i < num_pts - node_bdr; i++) {
@@ -1449,6 +1456,7 @@ bool CFastFEMcore::StaticAxisT3VTM2() {
 
 		//绘制计算结果
 		graph1->setData(x, y);
+		//graph2->setData(x, y1);
 		customplot->rescaleAxes(true);
 		//customplot->xAxis->setRange(0, 0.09);
 		//customplot->yAxis->setRange(-0.04, 0.04);
@@ -3941,9 +3949,9 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 		bn.zeros();
 		pos = 0;
 
-		graph1->setData(x, y);
-		customplot->rescaleAxes(true);
-		customplot->replot();
+		//graph1->setData(x, y);
+		//customplot->rescaleAxes(true);
+		//customplot->replot();
 	}
 	time[tt++] = clock();
 	for (int i = 1; i < tt; i++){
