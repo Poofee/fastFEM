@@ -2026,25 +2026,34 @@ bool CFastFEMcore::StaticAxisT3VTM() {
 		rm[i].Y33 /= 4. * pmeshele[i].AREA*ydot[i];
 
 		//生成单元矩阵，线性与非线性
-		//因为线性与非线性的差不多，所以不再分开讨论了
-		ce[0][1] = rm[i].Y12 / pmeshele[i].miut;
-		ce[0][2] = rm[i].Y13 / pmeshele[i].miut;
-		ce[1][2] = rm[i].Y23 / pmeshele[i].miut;
-
-		ce[0][0] = rm[i].Y11 / pmeshele[i].miut;
-		ce[1][1] = rm[i].Y22 / pmeshele[i].miut;
-		ce[2][2] = rm[i].Y33 / pmeshele[i].miut;
+		//因为线性与非线性的差不多，所以不再分开讨论了	
 
 		//非线性区，计算传输线导纳矩阵
 		double delta = 1e-3;//接地导纳
 		if (!pmeshele[i].LinearFlag) {
+			ce[0][1] = rm[i].Y12 / pmeshele[i].miu;
+			ce[0][2] = rm[i].Y13 / pmeshele[i].miu;
+			ce[1][2] = rm[i].Y23 / pmeshele[i].miu;
+
+			ce[0][0] = rm[i].Y11 / pmeshele[i].miu;
+			ce[1][1] = rm[i].Y22 / pmeshele[i].miu;
+			ce[2][2] = rm[i].Y33 / pmeshele[i].miu*(1 + delta);
+
 			Ytl[6 * nlin + 0] = ce[0][0];
 			Ytl[6 * nlin + 1] = ce[0][1];
 			Ytl[6 * nlin + 2] = ce[0][2];
 			Ytl[6 * nlin + 3] = ce[1][1];
 			Ytl[6 * nlin + 4] = ce[1][2];
-			Ytl[6 * nlin + 5] = ce[2][2]*(1 + delta);
+			Ytl[6 * nlin + 5] = ce[2][2];
 			nlin++;
+		} else{
+			ce[0][1] = rm[i].Y12 / pmeshele[i].miu;
+			ce[0][2] = rm[i].Y13 / pmeshele[i].miu;
+			ce[1][2] = rm[i].Y23 / pmeshele[i].miu;
+
+			ce[0][0] = rm[i].Y11 / pmeshele[i].miu;
+			ce[1][1] = rm[i].Y22 / pmeshele[i].miu;
+			ce[2][2] = rm[i].Y33 / pmeshele[i].miu;
 		}
 		ce[1][0] = ce[0][1];
 		ce[2][0] = ce[0][2];

@@ -28,7 +28,7 @@ int main(int argc, char *argv[])
 	//triangletest1();
 	//quadtlmtest();
 	//triangletestvtm2();
-	//triangletestvtm();
+	triangletestvtm();
 	T3NRtest();
 	//quadvtmtest();
 	Plot myplot;
