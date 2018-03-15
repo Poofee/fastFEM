@@ -78,6 +78,7 @@ Domain3 = find(Domain==3);
 Domain4 = find(Domain==4);
 Domain34 = [Domain3;Domain4];
 steps = 20;
+tol = 1e-10;%收敛误差
 for count = 1:steps
 %     装配
     for i=1:num_elements
@@ -100,7 +101,13 @@ for count = 1:steps
             F1(NL(i,row)) = F1(NL(i,row)) + J(i)*AREA(i)/3;            
         end        
     end
+    A_old = A;
     A(freenodes) = S(freenodes,freenodes)\F1(freenodes);
+    % 判断误差
+    error = norm((A_old - A))/norm(A);
+    if error < tol
+        break;
+    end
 %     下一步迭代初始化  
     S = S - S;
     F1 = F1 - F1;
