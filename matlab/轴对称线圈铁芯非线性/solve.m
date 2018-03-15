@@ -65,7 +65,7 @@ freenodes = find(abs(X)>1e-8 & sqrt(X.^2+Y.^2)<0.05-1e-3);
 ydot = zeros(num_elements,1);
 for i=1:num_elements
     %两个点在坐标轴上,注意P59页公式是错误的，应当为x
-    if XL(i,1)+XL(i,2)==0 || XL(i,2)+XL(i,3)==0 || XL(i,1)+XL(i,3)==0
+    if XL(i,1)+XL(i,2)<1e-10 || XL(i,2)+XL(i,3)<1e-10 || XL(i,1)+XL(i,3)<1e-10
         ydot(i) = mean(XL(i,:));
     else
         ydot(i) = 1.5/(1/(XL(i,1)+XL(i,2))+1/(XL(i,1)+XL(i,3))+1/(XL(i,2)+XL(i,3)));
