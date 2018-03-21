@@ -17,6 +17,7 @@ void triangletestvtm2();
 void triangletestvtm3();
 void quadvtmtest();
 void T3NRtest();
+void T3NRTLMtest();
 
 int main(int argc, char *argv[])
 {
@@ -28,9 +29,10 @@ int main(int argc, char *argv[])
 	//triangletest1();
 	//quadtlmtest();
 	//triangletestvtm2();
-	triangletestvtm();
-	T3NRtest();
+	//triangletestvtm();
+	//T3NRtest();
 	//quadvtmtest();
+	T3NRTLMtest();
 	Plot myplot;
 	myplot.show();
     return a.exec();
@@ -73,7 +75,7 @@ void quadtlmtest(){
 		fem.StaticAxisQ4NR();
 		//设置一个猜测值
 		for (int i = 0; i < fem.num_pts; i++){
-			fem.pmeshnode[i].A *= 0.9;
+			fem.pmeshnode[i].A *= 1;
 		}
 		fem.StaticAxisQ4TLM();
 	}
@@ -106,7 +108,7 @@ void T3NRtest() {
 
 	fem.openProject("..\\model\\project1.mag");
 
-	if (fem.Load2DMeshCOMSOL("..\\model\\mesh24.mphtxt") == 0) {
+	if (fem.Load2DMeshCOMSOL("..\\model\\mesh04.mphtxt") == 0) {
 		fem.preCalculation();
 		t1 = SuperLU_timer_();
 		fem.StaticAxisymmetricNR();
@@ -114,7 +116,7 @@ void T3NRtest() {
 		qDebug() << "NR:" << t1;
 		for (int i = 0; i < fem.num_ele; i++) {
 			if (!fem.pmeshele[i].LinearFlag) {
-				fem.pmeshele[i].miu = 0.9*fem.pmeshele[i].miut;
+				fem.pmeshele[i].miut = 0.9*fem.pmeshele[i].miut;
 			}
 		}
 		t1 = SuperLU_timer_();
@@ -281,4 +283,30 @@ void triangletest(){
         qDebug() << "TLM:" << t1;
         //fem.CalcForce();
     }
+}
+void T3NRTLMtest(){
+	CFastFEMcore fem;
+	double t1;
+	qDebug() << "current applicationDirPath: " << QCoreApplication::applicationDirPath();
+	qDebug() << "current currentPath: " << QDir::currentPath();
+
+	fem.openProject("..\\model\\project1.mag");
+
+	if (fem.Load2DMeshCOMSOL("..\\model\\mesh04.mphtxt") == 0) {
+		fem.preCalculation();
+		t1 = SuperLU_timer_();
+		fem.StaticAxisymmetricNR();
+		t1 = SuperLU_timer_() - t1;
+		qDebug() << "NR:" << t1;
+		for (int i = 0; i < fem.num_ele; i++) {
+			if (!fem.pmeshele[i].LinearFlag) {
+				fem.pmeshele[i].miut = 0.9*fem.pmeshele[i].miut;
+			}
+		}
+		t1 = SuperLU_timer_();
+		fem.StaticAxisT3NRTLM();
+		t1 = SuperLU_timer_() - t1;
+		qDebug() << "NR:" << t1;
+		//fem.CalcForce();
+	}
 }

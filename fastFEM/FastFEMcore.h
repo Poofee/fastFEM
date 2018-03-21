@@ -35,6 +35,7 @@ public:
 	bool StaticAxisT3VTM();//采用VTM方法来求解，单元隔离
 	bool StaticAxisT3VTM2();//采用VTM方法来求解，单元隔离
 	bool StaticAxisT3VTM3();//不采用rA变换的方式进行求解
+	bool StaticAxisT3NRVTM();//使用VTM方法求解NR的每一迭代步
 	double CalcForce();//电磁力计算函数
 	int openProject(QString proFile);//打开工程文件函数
 	int preCalculation();//预计算函数

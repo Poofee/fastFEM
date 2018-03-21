@@ -3726,6 +3726,368 @@ void CFastFEMcore::readBHElement(QXmlStreamReader &reader, int i) {
 }
 //非线性迭代采用NR方法，每一步的线性方程组求解采用TLM迭代
 bool CFastFEMcore::StaticAxisT3NRTLM(){
+	clock_t time[10];
+	int tt = 0;
+	time[tt++] = clock();
+	//所需要的变量
+	umat locs(2, 9 * num_ele);
+	locs.zeros();
+	mat vals(1, 9 * num_ele);
+	double ce[3][3] = { 0 };
+	double cn[3][3] = { 0 };//用于牛顿迭代
+	vec bbJz = zeros<vec>(num_pts);
+	uvec node_reorder = zeros<uvec>(num_pts);
+	uvec node_pos = zeros<uvec>(num_pts);
+	vec bn = zeros<vec>(num_pts);
+	vec INL = zeros<vec>(num_pts);
+	vec A = zeros<vec>(num_pts);
+	vec A_old = A;
+	vec A_tlm = A;//用来保存tlm迭代中的值
+	double * ydot = (double*)malloc(num_ele*sizeof(double));
+	ResistMarix *rm = (ResistMarix*)malloc(num_ele * sizeof(ResistMarix));
+
+	//绘图的一些变量
+	QVector<double> x(num_ele);
+	QVector<double> y(num_ele);
+	QCustomPlot * customplot;
+	customplot = thePlot->getQcustomPlot();
+	QCPGraph *graph1 = customplot->addGraph();
+	graph1->setScatterStyle(QCPScatterStyle(QCPScatterStyle::ssCircle, QPen(Qt::red, 1.5), QBrush(Qt::black), 3));
+	graph1->setPen(QPen(QColor(120, 120, 120), 2));
+	graph1->setLineStyle(QCPGraph::lsNone);
+	customplot->setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
+	customplot->xAxis->setLabel("x");
+	customplot->xAxis->setRange(0, num_ele);
+	//customplot->xAxis->setAutoTickStep(false);
+	//customplot->xAxis->setTicks(false);
+	customplot->yAxis->setLabel("y");
+	customplot->yAxis->setRange(0, 4);
+	//customplot->xAxis2->setTicks(false);
+	//customplot->yAxis->setScaleRatio(ui->widget->xAxis, 1.0);
+	for (int i = 0; i < num_ele; i++) {
+		x[i] = i;
+	}
+	//重新对节点进行编号，将边界点分离
+	int node_bdr = 0;
+	for (int i = 0; i < num_pts; i++) {
+		if (pmeshnode[i].bdr == 3) {
+			node_bdr++;
+			node_reorder(num_pts - node_bdr) = i;
+			node_pos(i) = num_pts - node_bdr;
+			pmeshnode[i].A = 0;
+			A(i) = 0;
+		} else {
+			node_reorder(i - node_bdr) = i;
+			node_pos(i) = i - node_bdr;
+		}
+	}
+	//寻找非线性单元编号
+	std::vector <int> D34;
+	D34.empty();
+	for (int i = 0; i < num_ele; i++) {
+		if (!pmeshele[i].LinearFlag) {
+			D34.push_back(i);
+		}
+	}
+	//装配传输线导纳稀疏矩阵，原则在于不添加传输线区域的，矩阵不变，
+	//添加传输线的，导纳要大于零
+	int pos = 0;
+	for (int i = 0; i < num_ele; i++) {
+		//这部分只需计算一次即可		
+		int flag = 0;
+		for (int f = 0; f < 3; f++) {
+			if (pmeshnode[pmeshele[i].n[f]].x < 1e-7) {
+				flag++;
+			}
+		}
+		//计算三角形重心半径
+		if (flag == 2) {
+			ydot[i] = pmeshele[i].rc;
+		} else {
+			ydot[i] = 1 / (pmeshnode[pmeshele[i].n[0]].x + pmeshnode[pmeshele[i].n[1]].x);
+			ydot[i] += 1 / (pmeshnode[pmeshele[i].n[0]].x + pmeshnode[pmeshele[i].n[2]].x);
+			ydot[i] += 1 / (pmeshnode[pmeshele[i].n[1]].x + pmeshnode[pmeshele[i].n[2]].x);
+			ydot[i] = 1.5 / ydot[i];
+		}
+		//计算上三角矩阵，这些系数在求解过程当中是不变的
+		rm[i].Y11 = pmeshele[i].Q[0] * pmeshele[i].Q[0] + pmeshele[i].P[0] * pmeshele[i].P[0];
+		rm[i].Y12 = pmeshele[i].Q[0] * pmeshele[i].Q[1] + pmeshele[i].P[0] * pmeshele[i].P[1];
+		rm[i].Y13 = pmeshele[i].Q[0] * pmeshele[i].Q[2] + pmeshele[i].P[0] * pmeshele[i].P[2];
+		rm[i].Y22 = pmeshele[i].Q[1] * pmeshele[i].Q[1] + pmeshele[i].P[1] * pmeshele[i].P[1];
+		rm[i].Y23 = pmeshele[i].Q[1] * pmeshele[i].Q[2] + pmeshele[i].P[1] * pmeshele[i].P[2];
+		rm[i].Y33 = pmeshele[i].Q[2] * pmeshele[i].Q[2] + pmeshele[i].P[2] * pmeshele[i].P[2];
+
+		rm[i].Y11 /= 4. * pmeshele[i].AREA / pmeshele[i].miut / ydot[i];
+		rm[i].Y12 /= 4. * pmeshele[i].AREA / pmeshele[i].miut / ydot[i];
+		rm[i].Y13 /= 4. * pmeshele[i].AREA / pmeshele[i].miut / ydot[i];
+		rm[i].Y22 /= 4. * pmeshele[i].AREA / pmeshele[i].miut / ydot[i];
+		rm[i].Y23 /= 4. * pmeshele[i].AREA / pmeshele[i].miut / ydot[i];
+		rm[i].Y33 /= 4. * pmeshele[i].AREA / pmeshele[i].miut / ydot[i];
+
+		//计算电流密度//要注意domain会不会越界
+		double jr = pmeshele[i].AREA*materialList[pmeshele[i].domain - 1].Jr / 3;
+		for (int j = 0; j < 3; j++) {
+			bbJz(pmeshele[i].n[j]) += jr;
+			// 计算永磁部分
+			bbJz(pmeshele[i].n[j]) -= materialList[pmeshele[i].domain - 1].H_c / 2.*pmeshele[i].Q[j];
+		}
+		//主要求解结果不要漏掉miu0
+
+		ce[0][0] = rm[i].Y11 ;
+		ce[1][1] = rm[i].Y22 ;
+		ce[2][2] = rm[i].Y33 ;
+
+		ce[0][1] = rm[i].Y12 ;
+		ce[0][2] = rm[i].Y13 ;
+		ce[1][2] = rm[i].Y23 ;
+
+		//计算牛顿迭代部分的单元矩阵项,如果是第一次迭代的话，A=0，
+		//所以就不计算了，参见颜威利书P56
+		//double v[3];
+
+		/*v[0] = rm[i].Y11*A(pmeshele[i].n[0]) +
+			rm[i].Y12*A(pmeshele[i].n[1]) +
+			rm[i].Y13*A(pmeshele[i].n[2]);
+		v[1] = rm[i].Y12*A(pmeshele[i].n[0]) +
+			rm[i].Y22*A(pmeshele[i].n[1]) +
+			rm[i].Y23*A(pmeshele[i].n[2]);
+		v[2] = rm[i].Y13*A(pmeshele[i].n[0]) +
+			rm[i].Y23*A(pmeshele[i].n[1]) +
+			rm[i].Y33*A(pmeshele[i].n[2]);*/
+
+		//if (iter != 0) {
+		//	double tmp;
+		//	if (pmeshele[i].LinearFlag) {
+		//		tmp = 0;
+		//	} else {
+		//		tmp = materialList[pmeshele[i].domain - 1].getdvdB(pmeshele[i].B);
+		//		if (pmeshele[i].B > 1e-9){
+		//			tmp /= pmeshele[i].B * pmeshele[i].AREA;//B==0?
+		//			tmp /= ydot[i] * ydot[i] * ydot[i];
+		//		}
+
+		//	}
+		//	cn[0][0] = v[0] * v[0] * tmp;
+		//	cn[1][1] = v[1] * v[1] * tmp;
+		//	cn[2][2] = v[2] * v[2] * tmp;
+
+		//	cn[0][1] = v[0] * v[1] * tmp;
+		//	cn[0][2] = v[0] * v[2] * tmp;
+		//	cn[1][2] = v[1] * v[2] * tmp;
+
+		//	cn[1][0] = cn[0][1];
+		//	cn[2][0] = cn[0][2];
+		//	cn[2][1] = cn[1][2];
+		//}
+		//ce[0][0] += cn[0][0];
+		//ce[1][1] += cn[1][1];
+		//ce[2][2] += cn[2][2];
+
+		//ce[0][1] += cn[0][1];
+		//ce[0][2] += cn[0][2];
+		//ce[1][2] += cn[1][2];
+
+		//ce[1][0] = ce[0][1];
+		//ce[2][0] = ce[0][2];
+		//ce[2][1] = ce[1][2];
+
+		for (int row = 0; row < 3; row++) {
+			for (int col = 0; col < 3; col++) {
+				//判断节点是否在未知节点内
+				//得到排序之后的编号
+				int n_row = node_pos(pmeshele[i].n[row]);
+				int n_col = node_pos(pmeshele[i].n[col]);
+				if (n_row < num_pts - node_bdr && n_col < num_pts - node_bdr) {
+					locs(0, pos) = n_row;
+					locs(1, pos) = n_col;
+					vals(0, pos) = ce[row][col];
+					pos++;
+				}
+				//bn的顺序并没有改
+				//bn(pmeshele[i].n[row]) += cn[row][col] * A(pmeshele[i].n[col]);
+			}
+		}
+	}//end of elememt iteration
+
+	locs.reshape(2, pos);
+	vals.reshape(1, pos);
+	//使用构造函数来生成稀疏矩阵
+	sp_mat X(true, locs, vals, num_pts - node_bdr, num_pts - node_bdr, true, true);
+	double* unknown_b = (double*)calloc(num_pts - node_bdr, sizeof(double));
+	//bn += bbJz;
+	for (int i = 0; i < num_pts - node_bdr; i++) {
+		unknown_b[i] = bn(node_reorder(i));
+	}
+	//第一次求解，主要是完成LU分解
+	CSuperLU_MT superlumt(num_pts - node_bdr, X, unknown_b);
+	if (superlumt.solve1() == 1) {
+		qDebug() << "Error: superlumt.slove";
+		//qDebug() << "info: " << superlumt.info;
+	} else {
+		double *sol = NULL;
+		sol = superlumt.get1Result();
+		//取得结果
+		for (int i = 0; i < num_pts - node_bdr; i++) {
+			pmeshnode[node_reorder(i)].A = sol[i];// / pmeshnode[i].x;//the A is r*A_real
+			A(node_reorder(i)) = pmeshnode[node_reorder(i)].A;
+		}
+	}
+	//牛顿迭代法	
+	int iter = 0;//迭代步数	
+	double tlm_tol = 1e-7;//TLM迭代精度
+	Voltage *Vr = (Voltage*)calloc(D34.size(), sizeof(Voltage));
+	Voltage *Vi = (Voltage*)calloc(D34.size(), sizeof(Voltage));
+	while (1) {
+		//PART A:迭代开始，更新非线性区域的导纳矩阵，以及电流矩阵
+		//保存上一步的A
+		A_old = A;
+		for (int iter_tlm = 0; iter_tlm < 100; iter_tlm++){
+			//非线性区域计算
+			for (int j = 0; j < D34.size(); j++){
+				int i = D34[j];
+				CElement * m_e = pmeshele + i;
+				int k, m, n;
+				k = m_e->n[0];
+				m = m_e->n[1];
+				n = m_e->n[2];
+				
+				//计算非线性导纳
+				double Y11, Y12, Y22, Y23, Y13, Y33;
+				Y11 = m_e->Q[0] * m_e->Q[0] + m_e->P[0] * m_e->P[0];
+				Y12 = m_e->Q[0] * m_e->Q[1] + m_e->P[0] * m_e->P[1];
+				Y13 = m_e->Q[0] * m_e->Q[2] + m_e->P[0] * m_e->P[2];
+				Y22 = m_e->Q[1] * m_e->Q[1] + m_e->P[1] * m_e->P[1];
+				Y23 = m_e->Q[1] * m_e->Q[2] + m_e->P[1] * m_e->P[2];
+				Y33 = m_e->Q[2] * m_e->Q[2] + m_e->P[2] * m_e->P[2];
+
+				Y11 /= 4. * m_e->AREA;
+				Y12 /= 4. * m_e->AREA;
+				Y13 /= 4. * m_e->AREA;
+				Y22 /= 4. * m_e->AREA;
+				Y23 /= 4. * m_e->AREA;
+				Y33 /= 4. * m_e->AREA;
+
+				double v[3];
+				v[0] = Y11*A_old(k) + Y12*A_old(m) + Y13*A_old(n);
+				v[1] = Y12*A_old(k) + Y22*A_old(m) + Y23*A_old(n);
+				v[2] = Y13*A_old(k) + Y23*A_old(m) + Y33*A_old(n);
+
+				Y11 /= m_e->miut * ydot[i];
+				Y12 /= m_e->miut * ydot[i];
+				Y13 /= m_e->miut * ydot[i];
+				Y22 /= m_e->miut * ydot[i];
+				Y23 /= m_e->miut * ydot[i];
+				Y33 /= m_e->miut * ydot[i];
+
+				//计算偏导数
+				double tmp;
+				tmp = materialList[m_e->domain - 1].getdvdB(m_e->B);
+				if (m_e->B > 1e-9){
+					tmp /= m_e->B * m_e->AREA;//B==0?
+					tmp /= ydot[i] * ydot[i] * ydot[i];
+				}
+				Y12 += v[0] * v[1] * tmp;//注意使用的时候要取负号
+				Y23 += v[1] * v[2] * tmp;
+				Y13 += v[0] * v[2] * tmp;
+				//计算牛顿迭代产生的电流
+				bn(k) += v[0] * v[0] * tmp*A_old(k) + v[0] * v[1] * tmp*A_old(m) + v[0] * v[2] * tmp*A_old(n);
+				bn(m) += v[1] * v[0] * tmp*A_old(k) + v[1] * v[1] * tmp*A_old(m) + v[1] * v[2] * tmp*A_old(n);
+				bn(n) += v[2] * v[0] * tmp*A_old(k) + v[2] * v[1] * tmp*A_old(m) + v[2] * v[2] * tmp*A_old(n);
+				
+				//计算从线性系统反射回电压
+				Vr[j].V12 = (A(k) - A(m)) - Vi[j].V12;
+				Vr[j].V23 = (A(m) - A(n)) - Vi[j].V23;
+				Vr[j].V13 = (A(n) - A(k)) - Vi[j].V13;
+				//计算入射向线性系统的电压
+				Vi[j].V12 = Vr[j].V12*(abs(rm[i].Y12) + Y12) / (abs(rm[i].Y12) - Y12);
+				Vi[j].V23 = Vr[j].V23*(abs(rm[i].Y12) + Y23) / (abs(rm[i].Y23) - Y23);
+				Vi[j].V13 = Vr[j].V13*(abs(rm[i].Y12) + Y13) / (abs(rm[i].Y13) - Y13);
+				//计算电流
+				INL(k) += 2 * Vi[j].V12*abs(rm[i].Y12);
+				INL(m) -= 2 * Vi[j].V12*abs(rm[i].Y12);
+
+				INL(m) += 2 * Vi[j].V23*abs(rm[i].Y23);
+				INL(n) -= 2 * Vi[j].V23*abs(rm[i].Y23);
+
+				INL(n) += 2 * Vi[j].V13*abs(rm[i].Y13);
+				INL(k) -= 2 * Vi[j].V13*abs(rm[i].Y13);
+			}
+			//更新电流
+			bn += bbJz;
+			bn += INL;
+			for (int i = 0; i < num_pts - node_bdr; i++) {
+				unknown_b[i] = bn(node_reorder(i));
+			}
+			
+			
+			//使用superLU_MT进行三角求解线性系统
+			if (superlumt.triangleSolve() == 1) {
+				qDebug() << "Error: superlumt.slove";
+				qDebug() << "info: " << superlumt.info;
+				break;
+			} else {
+				double *sol = NULL;
+				A_tlm = A;//保存上一步的求解值
+				sol = superlumt.getResult();
+
+				for (int i = 0; i < num_pts - node_bdr; i++) {
+					//pmeshnode[node_reorder(i)].A = sol[i];// / pmeshnode[i].x;//the A is r*A_real
+					A(node_reorder(i)) = sol[i];
+				}
+			}
+			//判断收敛
+			double inner_error = norm((A_tlm - A), 2) / norm(A, 2);
+			qDebug() << inner_error;
+			if (inner_error < tlm_tol && iter_tlm>5) {
+				qDebug() << "TLM steps: " << iter_tlm << " in " << iter << "th NR steps";
+				break;
+			}
+			//重置电流
+			bn.zeros();
+			INL.zeros();
+		}		
+		
+		//有必要更新所有单元的B值
+		for (int i = 0; i < num_ele; i++) {
+			double bx = 0;
+			double by = 0;
+			for (int j = 0; j < 3; j++) {
+				bx += pmeshele[i].Q[j] * A(pmeshele[i].n[j]);
+				by += pmeshele[i].P[j] * A(pmeshele[i].n[j]);
+			}
+			pmeshele[i].B = sqrt(bx*bx + by*by) / 2. / pmeshele[i].AREA / ydot[i];
+			pmeshele[i].miut = materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B);
+
+			y[i] = pmeshele[i].miut;
+		}
+		//计算牛顿迭代误差
+		double error = norm((A_old - A), 2) / norm(A, 2);
+		iter++;
+		qDebug() << "iter: " << iter;
+		qDebug() << "error: " << error;
+		if (error < Precision || iter > 20) {
+			//A.save("NRA.txt", arma::arma_ascii, false);
+			break;
+		}
+		bn.zeros();
+		pos = 0;
+
+		//graph1->setData(x, y);
+		//customplot->rescaleAxes(true);
+		//customplot->replot();
+	}
+	//信息输出
+	time[tt++] = clock();
+	for (int i = 1; i < tt; i++){
+		qDebug() << time[i] - time[i - 1];
+	}
+	qDebug() << "NR steps: " << iter;
+
+	//空间回收
+	if (rm != NULL) free(rm);
+	if (ydot != NULL) free(ydot);
+	if (unknown_b != NULL) free(unknown_b);
+
 	return true;
 }
 //使用牛顿迭代实现非线性求解，是真的牛顿迭代而不是松弛迭代
@@ -4731,7 +5093,7 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 		//取得结果
 		for (int i = 0; i < num_pts - node_bdr; i++) {
 			//pmeshnode[node_reorder(i)].A = sol[i];// / pmeshnode[i].x;//the A is r*A_real
-			A(node_reorder(i)) = sol[i];
+			A(node_reorder(i)) = pmeshnode[node_reorder(i)].A;
 		}
 	}
 	time[tt++] = SuperLU_timer_();
@@ -4740,7 +5102,7 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 	double error;
 	VoltageQ4 *Vr = (VoltageQ4*)calloc(D34.size(), sizeof(VoltageQ4));
 	VoltageQ4 *Vi = (VoltageQ4*)calloc(D34.size(), sizeof(VoltageQ4));
-	for (count = 0; count < 50; count++){
+	for (count = 0; count < 100; count++){
 		//反射到单个非线性单元进行迭代
 		for (int j = 0; j < D34.size(); j++){
 			int i = D34[j];
@@ -5175,5 +5537,12 @@ bool CFastFEMcore::StaticAxisQ4VTM(){
 	qDebug() << "Single step time of TLM: " << (time[tt - 1] - time[tt - 2]) / count;
 	qDebug() << "Total time of TLM: " << (time[tt - 1] - time[tt - 2]);
 	//
+	return true;
+}
+//2018-03-12
+//by Poofee
+//本函数实现用VTM方法来求解NR每一迭代步的线性方程组
+bool CFastFEMcore::StaticAxisT3NRVTM(){
+	
 	return true;
 }
