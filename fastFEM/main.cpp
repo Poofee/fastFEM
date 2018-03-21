@@ -300,8 +300,9 @@ void T3NRTLMtest(){
 		qDebug() << "NR:" << t1;
 		for (int i = 0; i < fem.num_ele; i++) {
 			if (!fem.pmeshele[i].LinearFlag) {
-				fem.pmeshele[i].miut = 0.9*fem.pmeshele[i].miut;
+				fem.pmeshele[i].miut = 1*fem.pmeshele[i].miut;
 			}
+			fem.pmeshele[i].B = 0;
 		}
 		t1 = SuperLU_timer_();
 		fem.StaticAxisT3NRTLM();

@@ -3817,12 +3817,13 @@ bool CFastFEMcore::StaticAxisT3NRTLM(){
 		rm[i].Y23 = pmeshele[i].Q[1] * pmeshele[i].Q[2] + pmeshele[i].P[1] * pmeshele[i].P[2];
 		rm[i].Y33 = pmeshele[i].Q[2] * pmeshele[i].Q[2] + pmeshele[i].P[2] * pmeshele[i].P[2];
 
-		rm[i].Y11 /= 4. * pmeshele[i].AREA / pmeshele[i].miut / ydot[i];
-		rm[i].Y12 /= 4. * pmeshele[i].AREA / pmeshele[i].miut / ydot[i];
-		rm[i].Y13 /= 4. * pmeshele[i].AREA / pmeshele[i].miut / ydot[i];
-		rm[i].Y22 /= 4. * pmeshele[i].AREA / pmeshele[i].miut / ydot[i];
-		rm[i].Y23 /= 4. * pmeshele[i].AREA / pmeshele[i].miut / ydot[i];
-		rm[i].Y33 /= 4. * pmeshele[i].AREA / pmeshele[i].miut / ydot[i];
+		// /=容易出错
+		rm[i].Y11 /= 4. * pmeshele[i].AREA * pmeshele[i].miut * ydot[i]/1.5;
+		rm[i].Y12 /= 4. * pmeshele[i].AREA * pmeshele[i].miut * ydot[i]/1.5;
+		rm[i].Y13 /= 4. * pmeshele[i].AREA * pmeshele[i].miut * ydot[i]/1.5;
+		rm[i].Y22 /= 4. * pmeshele[i].AREA * pmeshele[i].miut * ydot[i]/1.5;
+		rm[i].Y23 /= 4. * pmeshele[i].AREA * pmeshele[i].miut * ydot[i]/1.5;
+		rm[i].Y33 /= 4. * pmeshele[i].AREA * pmeshele[i].miut * ydot[i]/1.5;
 
 		//计算电流密度//要注意domain会不会越界
 		double jr = pmeshele[i].AREA*materialList[pmeshele[i].domain - 1].Jr / 3;
@@ -3832,14 +3833,24 @@ bool CFastFEMcore::StaticAxisT3NRTLM(){
 			bbJz(pmeshele[i].n[j]) -= materialList[pmeshele[i].domain - 1].H_c / 2.*pmeshele[i].Q[j];
 		}
 		//主要求解结果不要漏掉miu0
+		if (pmeshele[i].LinearFlag){
+			ce[0][0] = rm[i].Y11/1.5 ;
+			ce[1][1] = rm[i].Y22/1.5 ;
+			ce[2][2] = rm[i].Y33/1.5 ;
 
-		ce[0][0] = rm[i].Y11 ;
-		ce[1][1] = rm[i].Y22 ;
-		ce[2][2] = rm[i].Y33 ;
+			ce[0][1] = rm[i].Y12/1.5 ;
+			ce[0][2] = rm[i].Y13/1.5 ;
+			ce[1][2] = rm[i].Y23/1.5 ;
+		} else{
+			ce[0][1] = -abs(rm[i].Y12);
+			ce[0][2] = -abs(rm[i].Y13);
+			ce[1][2] = -abs(rm[i].Y23);
 
-		ce[0][1] = rm[i].Y12 ;
-		ce[0][2] = rm[i].Y13 ;
-		ce[1][2] = rm[i].Y23 ;
+			ce[0][0] = -ce[0][1] - ce[0][2];
+			ce[1][1] = -ce[0][1] - ce[1][2];
+			ce[2][2] = -ce[1][2] - ce[0][2];
+		}
+		
 
 		//计算牛顿迭代部分的单元矩阵项,如果是第一次迭代的话，A=0，
 		//所以就不计算了，参见颜威利书P56
@@ -3887,9 +3898,9 @@ bool CFastFEMcore::StaticAxisT3NRTLM(){
 		//ce[0][2] += cn[0][2];
 		//ce[1][2] += cn[1][2];
 
-		//ce[1][0] = ce[0][1];
-		//ce[2][0] = ce[0][2];
-		//ce[2][1] = ce[1][2];
+		ce[1][0] = ce[0][1];
+		ce[2][0] = ce[0][2];
+		ce[2][1] = ce[1][2];
 
 		for (int row = 0; row < 3; row++) {
 			for (int col = 0; col < 3; col++) {
@@ -3914,7 +3925,8 @@ bool CFastFEMcore::StaticAxisT3NRTLM(){
 	//使用构造函数来生成稀疏矩阵
 	sp_mat X(true, locs, vals, num_pts - node_bdr, num_pts - node_bdr, true, true);
 	double* unknown_b = (double*)calloc(num_pts - node_bdr, sizeof(double));
-	//bn += bbJz;
+	bn += bbJz;
+	bn.save("bn.txt", arma::arma_ascii, false);
 	for (int i = 0; i < num_pts - node_bdr; i++) {
 		unknown_b[i] = bn(node_reorder(i));
 	}
@@ -3980,7 +3992,7 @@ bool CFastFEMcore::StaticAxisT3NRTLM(){
 				Y33 /= m_e->miut * ydot[i];
 
 				//计算偏导数
-				double tmp;
+				double tmp=0;
 				tmp = materialList[m_e->domain - 1].getdvdB(m_e->B);
 				if (m_e->B > 1e-9){
 					tmp /= m_e->B * m_e->AREA;//B==0?
@@ -3989,19 +4001,28 @@ bool CFastFEMcore::StaticAxisT3NRTLM(){
 				Y12 += v[0] * v[1] * tmp;//注意使用的时候要取负号
 				Y23 += v[1] * v[2] * tmp;
 				Y13 += v[0] * v[2] * tmp;
+				 
 				//计算牛顿迭代产生的电流
-				bn(k) += v[0] * v[0] * tmp*A_old(k) + v[0] * v[1] * tmp*A_old(m) + v[0] * v[2] * tmp*A_old(n);
-				bn(m) += v[1] * v[0] * tmp*A_old(k) + v[1] * v[1] * tmp*A_old(m) + v[1] * v[2] * tmp*A_old(n);
-				bn(n) += v[2] * v[0] * tmp*A_old(k) + v[2] * v[1] * tmp*A_old(m) + v[2] * v[2] * tmp*A_old(n);
-				
+				INL(k) += v[0] * v[0] * tmp*A_old(k) + v[0] * v[1] * tmp*A_old(m) + v[0] * v[2] * tmp*A_old(n);
+				INL(m) += v[1] * v[0] * tmp*A_old(k) + v[1] * v[1] * tmp*A_old(m) + v[1] * v[2] * tmp*A_old(n);
+				INL(n) += v[2] * v[0] * tmp*A_old(k) + v[2] * v[1] * tmp*A_old(m) + v[2] * v[2] * tmp*A_old(n);
 				//计算从线性系统反射回电压
 				Vr[j].V12 = (A(k) - A(m)) - Vi[j].V12;
 				Vr[j].V23 = (A(m) - A(n)) - Vi[j].V23;
 				Vr[j].V13 = (A(n) - A(k)) - Vi[j].V13;
-				//计算入射向线性系统的电压
+				//计算入射向线性系统的电压，如果电阻为负，则可能出错
 				Vi[j].V12 = Vr[j].V12*(abs(rm[i].Y12) + Y12) / (abs(rm[i].Y12) - Y12);
-				Vi[j].V23 = Vr[j].V23*(abs(rm[i].Y12) + Y23) / (abs(rm[i].Y23) - Y23);
-				Vi[j].V13 = Vr[j].V13*(abs(rm[i].Y12) + Y13) / (abs(rm[i].Y13) - Y13);
+				Vi[j].V23 = Vr[j].V23*(abs(rm[i].Y23) + Y23) / (abs(rm[i].Y23) - Y23);
+				Vi[j].V13 = Vr[j].V13*(abs(rm[i].Y13) + Y13) / (abs(rm[i].Y13) - Y13);
+				if (Vi[j].V23 > 1e10){
+					int err = 1;
+				}
+				if (Vi[j].V12 > 1e10){
+					int err = 1;
+				}
+				if (Vi[j].V13 > 1e10){
+					int err = 1;
+				}
 				//计算电流
 				INL(k) += 2 * Vi[j].V12*abs(rm[i].Y12);
 				INL(m) -= 2 * Vi[j].V12*abs(rm[i].Y12);
@@ -4013,12 +4034,11 @@ bool CFastFEMcore::StaticAxisT3NRTLM(){
 				INL(k) -= 2 * Vi[j].V13*abs(rm[i].Y13);
 			}
 			//更新电流
-			bn += bbJz;
-			bn += INL;
+			INL += bbJz;
+			INL.save("INL.txt", arma::arma_ascii, false);
 			for (int i = 0; i < num_pts - node_bdr; i++) {
-				unknown_b[i] = bn(node_reorder(i));
-			}
-			
+				unknown_b[i] = INL(node_reorder(i));
+			}			
 			
 			//使用superLU_MT进行三角求解线性系统
 			if (superlumt.triangleSolve() == 1) {
@@ -4028,20 +4048,24 @@ bool CFastFEMcore::StaticAxisT3NRTLM(){
 			} else {
 				double *sol = NULL;
 				A_tlm = A;//保存上一步的求解值
-				sol = superlumt.getResult();
+				sol = superlumt.get1Result();
 
 				for (int i = 0; i < num_pts - node_bdr; i++) {
 					//pmeshnode[node_reorder(i)].A = sol[i];// / pmeshnode[i].x;//the A is r*A_real
 					A(node_reorder(i)) = sol[i];
 				}
 			}
+			A.save("NRA.txt", arma::arma_ascii, false);
 			//判断收敛
 			double inner_error = norm((A_tlm - A), 2) / norm(A, 2);
+			qDebug() << iter_tlm;
 			qDebug() << inner_error;
-			if (inner_error < tlm_tol && iter_tlm>5) {
-				qDebug() << "TLM steps: " << iter_tlm << " in " << iter << "th NR steps";
-				break;
-			}
+			//if (inner_error < tlm_tol && iter_tlm>5) {
+			//	//A.save("NRA.txt", arma::arma_ascii, false);
+			//	//A_tlm.save("A_tlmNRA.txt", arma::arma_ascii, false);
+			//	qDebug() << "TLM steps: " << iter_tlm << " in " << iter << "th NR steps";
+			//	break;
+			//}
 			//重置电流
 			bn.zeros();
 			INL.zeros();
