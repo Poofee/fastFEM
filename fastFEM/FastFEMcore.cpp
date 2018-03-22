@@ -3926,7 +3926,7 @@ bool CFastFEMcore::StaticAxisT3NRTLM(){
 	sp_mat X(true, locs, vals, num_pts - node_bdr, num_pts - node_bdr, true, true);
 	double* unknown_b = (double*)calloc(num_pts - node_bdr, sizeof(double));
 	bn += bbJz;
-	bn.save("bn.txt", arma::arma_ascii, false);
+	//bn.save("bn.txt", arma::arma_ascii, false);
 	for (int i = 0; i < num_pts - node_bdr; i++) {
 		unknown_b[i] = bn(node_reorder(i));
 	}
@@ -3946,14 +3946,14 @@ bool CFastFEMcore::StaticAxisT3NRTLM(){
 	}
 	//牛顿迭代法	
 	int iter = 0;//迭代步数	
-	double tlm_tol = 1e-7;//TLM迭代精度
+	double tlm_tol = 1e-10;//TLM迭代精度
 	Voltage *Vr = (Voltage*)calloc(D34.size(), sizeof(Voltage));
 	Voltage *Vi = (Voltage*)calloc(D34.size(), sizeof(Voltage));
 	while (1) {
 		//PART A:迭代开始，更新非线性区域的导纳矩阵，以及电流矩阵
 		//保存上一步的A
 		A_old = A;
-		for (int iter_tlm = 0; iter_tlm < 100; iter_tlm++){
+		for (int iter_tlm = 0; iter_tlm < 10000; iter_tlm++){
 			//非线性区域计算
 			for (int j = 0; j < D34.size(); j++){
 				int i = D34[j];
@@ -4011,18 +4011,9 @@ bool CFastFEMcore::StaticAxisT3NRTLM(){
 				Vr[j].V23 = (A(m) - A(n)) - Vi[j].V23;
 				Vr[j].V13 = (A(n) - A(k)) - Vi[j].V13;
 				//计算入射向线性系统的电压，如果电阻为负，则可能出错
-				Vi[j].V12 = Vr[j].V12*(abs(rm[i].Y12) + Y12) / (abs(rm[i].Y12) - Y12);
-				Vi[j].V23 = Vr[j].V23*(abs(rm[i].Y23) + Y23) / (abs(rm[i].Y23) - Y23);
-				Vi[j].V13 = Vr[j].V13*(abs(rm[i].Y13) + Y13) / (abs(rm[i].Y13) - Y13);
-				if (Vi[j].V23 > 1e10){
-					int err = 1;
-				}
-				if (Vi[j].V12 > 1e10){
-					int err = 1;
-				}
-				if (Vi[j].V13 > 1e10){
-					int err = 1;
-				}
+				Vi[j].V12 = Vr[j].V12*(abs(rm[i].Y12) - abs(Y12)) / (abs(rm[i].Y12) + abs(Y12));
+				Vi[j].V23 = Vr[j].V23*(abs(rm[i].Y23) - abs(Y23)) / (abs(rm[i].Y23) + abs(Y23));
+				Vi[j].V13 = Vr[j].V13*(abs(rm[i].Y13) - abs(Y13)) / (abs(rm[i].Y13) + abs(Y13));
 				//计算电流
 				INL(k) += 2 * Vi[j].V12*abs(rm[i].Y12);
 				INL(m) -= 2 * Vi[j].V12*abs(rm[i].Y12);
@@ -4035,7 +4026,7 @@ bool CFastFEMcore::StaticAxisT3NRTLM(){
 			}
 			//更新电流
 			INL += bbJz;
-			INL.save("INL.txt", arma::arma_ascii, false);
+			//INL.save("INL.txt", arma::arma_ascii, false);
 			for (int i = 0; i < num_pts - node_bdr; i++) {
 				unknown_b[i] = INL(node_reorder(i));
 			}			
@@ -4055,17 +4046,16 @@ bool CFastFEMcore::StaticAxisT3NRTLM(){
 					A(node_reorder(i)) = sol[i];
 				}
 			}
-			A.save("NRA.txt", arma::arma_ascii, false);
+			//A.save("NRA.txt", arma::arma_ascii, false);
 			//判断收敛
 			double inner_error = norm((A_tlm - A), 2) / norm(A, 2);
-			qDebug() << iter_tlm;
-			qDebug() << inner_error;
-			//if (inner_error < tlm_tol && iter_tlm>5) {
-			//	//A.save("NRA.txt", arma::arma_ascii, false);
-			//	//A_tlm.save("A_tlmNRA.txt", arma::arma_ascii, false);
-			//	qDebug() << "TLM steps: " << iter_tlm << " in " << iter << "th NR steps";
-			//	break;
-			//}
+			
+			if (inner_error < tlm_tol && iter_tlm>5) {
+				//A.save("NRA.txt", arma::arma_ascii, false);
+				//A_tlm.save("A_tlmNRA.txt", arma::arma_ascii, false);
+				qDebug() << "TLM steps: " << iter_tlm << " in " << iter << "th NR steps";
+				break;
+			}
 			//重置电流
 			bn.zeros();
 			INL.zeros();
@@ -4335,8 +4325,8 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 		}
 		double error = norm((A_old - A), 2) / norm(A, 2);
 		iter++;
-		//qDebug() << "iter: " << iter;
-		//qDebug() << "error: " << error;
+		qDebug() << "iter: " << iter;
+		qDebug() << "error: " << error;
 		if (error < Precision || iter > 20) {
 			//A.save("NRA.txt", arma::arma_ascii, false);
 			break;
