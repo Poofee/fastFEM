@@ -39,17 +39,17 @@ Y = [1/R1+1/R2,    -1/R2,  0,           0;
 R3c = 30;
 R4c = 40;
 R6c = 60;
-YTL = [1/R3c+1/R4c,        -1/R3c,             -1/R4c;
-          -1/R3c,                1/R3c+1/R6c,     -1/R6c;
-          -1/R4c,                -1/R6c,              1/R6c+1/R4c;]; 
-YTL = 0.7* YTL;
+YTL = [1/R3c+1/R4c*1,        -1/R3c*1,             -1/R4c;
+          -1/R3c*1,                1/R3c+1/R6c*1,     -1/R6c;
+          -1/R4c,                -1/R6c,              1/R6c+1/R4c*1;]; 
+YTL = 0.6* YTL;
 Y(2:4,2:4) = Y(2:4,2:4) + YTL;
 % 右边的导纳矩阵
 Y2 = [1/R3+1/R4,        -1/R3,             -1/R4;
           -1/R3,                1/R3+1/R6,     -1/R6;
           -1/R4,                -1/R6,              1/R6+1/R4;];   
 Y2 = Y2 + YTL;
-for i=1:50
+for i=1:100
 %     左边的电流源电流
 %     a(1) = U2(1)/Z1-i2(1);
 %     a(2) = U2(2)/Z2-i2(2);
@@ -67,8 +67,8 @@ for i=1:50
     I2 = b;
     U1 = Y\IL;
     U2(1:2) = Y2(1:2,1:2)\I2(1:2);%右边的电路跟左边的地不一样，降阶矩阵    
-    U2(3) = 0;
-    U2 = U2 + U1(4);
+%     U2(3) = 0;
+%     U2 = U2 + U1(4);
 %     i1(1) = a(1)-U1(1)/Z1;
 %     i1(2) = a(2)-U1(2)/Z2;
 %     i1 = a - YTL*U1(2:4);
@@ -78,12 +78,12 @@ for i=1:50
 %     i2 = b - YTL*U2;
     
     plot(i,U1(2),'ro');hold on;
-    plot(i,U1(3),'bo');hold on;
-    plot(i,U1(4),'go');hold on;
-    plot(i,U2(1),'r.');hold on;
+    plot(i,U1(3),'ro');hold on;
+    plot(i,U1(4),'ro');hold on;
+    plot(i,U2(1),'b.');hold on;
     plot(i,U2(2),'b.');hold on;
-    plot(i,V(2),'r*');hold on;
-    plot(i,V(3),'b*');hold on;
+    plot(i,V(2),'g*');hold on;
+    plot(i,V(3),'g*');hold on;
     plot(i,V(4),'g*');hold on;
     if abs(U1-V) > 1e-3
         i

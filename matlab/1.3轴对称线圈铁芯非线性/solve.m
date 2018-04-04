@@ -122,13 +122,13 @@ end
 A(freenodes) = A(freenodes) ./ X(freenodes);
 
 
-F = scatteredInterpolant(X,Y,A);
+FF = scatteredInterpolant(X,Y,A);
 % figure
 % F = scatteredInterpolant(X,Y,A(1:num_nodes));
 tx = 0:1e-4:0.025;
 ty = -0.012:1e-4:0.012;
 [qx,qy] = meshgrid(tx,ty);
-qz = F(qx,qy);
+qz = FF(qx,qy);
 % mesh(qx,qy,qz);
 % surf(qx,qy,qz);
 figure
