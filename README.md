@@ -13,18 +13,18 @@
 
 ## 3.目录说明
 
-├── armadillo	**<u>armadillo库文件</u>**
-├── fastFEM		**<u>主工程</u>**
-├── LICENSE		**<u>LICENSE</u>**
-├── matlab		**<u>MATLAB测试程序</u>**
-├── model		**<u>分网文件</u>**
-├── openblas	**<u>openblas在Linux下库文件</u>**
-├── OpenBLAS-v0.2.15-Win64-int32	**<u>win64下openblas库文件</u>**
-├── qcustomplot		**<u>qcustomplot库文件</u>**
-├── README.md		**<u>本文档</u>**
-├── spral			**<u>spral库文件</u>**
-├── SuperLU_MT_3.1		**<u>superluMT源代码</u>**
-├── SuperLU_MT_test	**<u>superLUMT测试项目</u>**
-├── tree.txt				**<u>文件树</u>**
-├── triangle				**<u>triangle库文件</u>**
+├── armadillo	**<u>armadillo库文件</u>**  
+├── fastFEM		**<u>主工程</u>**  
+├── LICENSE		**<u>LICENSE</u>**  
+├── matlab		**<u>MATLAB测试程序</u>**  
+├── model		**<u>分网文件</u>**  
+├── openblas	**<u>openblas在Linux下库文件</u>**  
+├── OpenBLAS-v0.2.15-Win64-int32	**<u>win64下openblas库文件</u>**  
+├── qcustomplot		**<u>qcustomplot库文件</u>**  
+├── README.md		**<u>本文档</u>**  
+├── spral			**<u>spral库文件</u>**  
+├── SuperLU_MT_3.1		**<u>superluMT源代码</u>**  
+├── SuperLU_MT_test	**<u>superLUMT测试项目</u>**  
+├── tree.txt				**<u>文件树</u>**  
+├── triangle				**<u>triangle库文件</u>**  
 └── x64					**<u>生成目录</u>**
