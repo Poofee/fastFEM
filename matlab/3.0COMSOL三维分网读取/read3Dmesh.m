@@ -1,7 +1,7 @@
-function [num_nodes,nodes,number_elements,nodes_ele,domain] = read3Dmesh(fname)
+function [num_nodes,nodes,number_elements,nodes_ele,domain,vtx,vtx_entity,edge,tri] = read3Dmesh(fname)
 %READ3DMESH 此处显示有关此函数的摘要
 %   此处显示详细说明
-fp = fopen(fname 'r');
+fp = fopen(fname,'r');
 %-------------读取文件头
 for i=1:1:18
     tline = fgets(fp);
@@ -16,7 +16,7 @@ xyz = xyz';
 X = xyz(:,1);
 Y = xyz(:,2);
 Z = xyz(:,3); 
-nodes = [X;Y;Z];
+nodes = [X,Y,Z];
 %--------------vertex
 for i=1:7
     fgets(fp);
