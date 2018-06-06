@@ -76,7 +76,9 @@ qz = FF(qx,qy);
 % surf(qx,qy,qz);
 figure
 subplot(1,2,2);hold on
-title('MATLAB');
+title('MATLAB','FontName','Times New Roman','FontSize',15);
+set(gca,'FontName','Times New Roman','FontSize',15);
+set(gca,'FontName','Times New Roman','FontSize',15);
 contourf(qx,qy,qz,20);colorbar
 axis equal
 
@@ -102,6 +104,8 @@ qz = F(qx,qy);
 % surf(qx,qy,qz);
 subplot(1,2,1);
 contourf(qx,qy,qz,20);colorbar
-title('COMSOL');
+title('COMSOL','FontName','Times New Roman','FontSize',15);
+set(gca,'FontName','Times New Roman','FontSize',15);
+set(gca,'FontName','Times New Roman','FontSize',15);
 hold on
 axis equal

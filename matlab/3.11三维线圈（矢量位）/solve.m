@@ -2,19 +2,24 @@
 % by Poofee
 % This program is a test for 3D magnetistaic FEM code.
 % The model in this code is simple coil.
-% å‚è€ƒé¢œå¨åˆ©æ•™æã€Šç”µå™¨æ•°å€¼åˆ†æã€‹ç¬¬é¡µ
-% è¯»å–åˆ†ç½‘æ–‡ä»¶
-fname = ['']
+% ²Î¿¼ÑÕÍşÀû½Ì²Ä¡¶µçÆø¹¤³Ìµç´Å³¡ÊıÖµ·ÖÎö¡·µÚ89-108Ò³
+% ¶ÁÈ¡·ÖÍøÎÄ¼ş0
+close all
+clear all
+fname = 'mesh.mphtxt';
 [num_nodes,nodes,number_elements,nodes_ele,domain] = read3Dmesh(fname);
 
-%-----------è®¡ç®—ä¸€äº›è¾…åŠ©å˜é‡
-%-----------å•å…ƒä½“ç§¯
+X = nodes(:,1);
+Y = nodes(:,2);
+Z = nodes(:,3);
+%-----------¼ÆËãÒ»Ğ©¸¨Öú±äÁ¿
+%-----------µ¥ÔªÌå»ı
 volume = zeros(length(nodes_ele),1);
 for i = 1:length(nodes_ele)
    v_tmp = [ones(4,1),X(nodes_ele(i,:)),Y(nodes_ele(i,:)),Z(nodes_ele(i,:))]; 
    volume(i) = det(v_tmp) / 6;
 end
-%-----------è®¡ç®— pK pM pN pL
+%-----------¼ÆËã pK pM pN pL
 p = zeros(length(nodes_ele),4);
 for i = 1:length(nodes_ele)
    pK = [X(nodes_ele(i,[2 3 4])),Y(nodes_ele(i,[2 3 4])),Z(nodes_ele(i,[2 3 4]))]; 
@@ -23,7 +28,7 @@ for i = 1:length(nodes_ele)
    pL = -[X(nodes_ele(i,[1 2 3])),Y(nodes_ele(i,[1 2 3])),Z(nodes_ele(i,[1 2 3]))];
    p(i,:) = [det(pK),det(pM),det(pN),det(pL)];
 end
-%-----------è®¡ç®— qK qM qN qL
+%-----------¼ÆËã qK qM qN qL
 q = zeros(length(nodes_ele),4);
 for i = 1:length(nodes_ele)
    qK = -[ones(3,1),Y(nodes_ele(i,[2 3 4])),Z(nodes_ele(i,[2 3 4]))]; 
@@ -32,7 +37,7 @@ for i = 1:length(nodes_ele)
    qL = [ones(3,1),Y(nodes_ele(i,[1 2 3])),Z(nodes_ele(i,[1 2 3]))];
    q(i,:) = [det(qK),det(qM),det(qN),det(qL)];
 end
-%-----------è®¡ç®— rK rM rN rL
+%-----------¼ÆËã rK rM rN rL
 r = zeros(length(nodes_ele),4);
 for i = 1:length(nodes_ele)
    rK = -[X(nodes_ele(i,[2 3 4])),ones(3,1),Z(nodes_ele(i,[2 3 4]))]; 
@@ -41,7 +46,7 @@ for i = 1:length(nodes_ele)
    rL = [X(nodes_ele(i,[1 2 3])),ones(3,1),Z(nodes_ele(i,[1 2 3]))];
    r(i,:) = [det(rK),det(rM),det(rN),det(rL)];
 end
-%-----------è®¡ç®— sK sM sN sL
+%-----------¼ÆËã sK sM sN sL
 s = zeros(length(nodes_ele),4);
 for i = 1:length(nodes_ele)
    sK = -[X(nodes_ele(i,[2 3 4])),Y(nodes_ele(i,[2 3 4])),ones(3,1)]; 
@@ -51,38 +56,38 @@ for i = 1:length(nodes_ele)
    s(i,:) = [det(sK),det(sM),det(sN),det(sL)];
 end
 
-% è®¡ç®—æœ‰é™å…ƒå¤§çŸ©é˜µ
-% éœ€è¦æ³¨æ„çš„æ˜¯ï¼Œåœ¨è¿™é‡Œæ˜¯çŸ¢é‡æ³•ï¼ŒçŸ©é˜µçš„ç»´åº¦æ˜¯3n
+% ¼ÆËãÓĞÏŞÔª´ó¾ØÕó
+% ĞèÒª×¢ÒâµÄÊÇ£¬ÔÚÕâÀïÊÇÊ¸Á¿·¨£¬¾ØÕóµÄÎ¬¶ÈÊÇ3n
 
-% è¯»å–è¾¹ç•Œ
+% ¶ÁÈ¡±ß½ç
 
 S = zeros(3*num_nodes,3*num_nodes);
 eS = zeros(3,3);
 
-% æœ‰é™å…ƒè£…é…
-for i = 1:number_elements
-    for j = 1:4
-    	IR = nodes_ele(i,j);
-        IR = find(arrangenode==IR);
-        for k = 1:4
-        	IN = nodes_ele(i,k);
-            IN = find(arrangenode==IN);
-            
-            eS(1,1) = ï¼ˆr(i,j)*r(i,k)+s(i,j)*s(i,k)*mu/36/volume(i);
-            eS(1,2) = -(r(i,j)*q(i,k))*mu/36/volume(i);
-            eS(1,3) = -(s(i,j)*q(i,k))*mu/36/volume(i);
-
-            eS(2,1) = -(q(i,j)*r(i,k))*mu/36/volume(i);
-            eS(2,2) = (q(i,j)*q(i,k)+s(i,j)*s(i,k)*mu/36/volume(i);
-            eS(2,3) = -(s(i,j)*r(i,k))*mu/36/volume(i);
-
-            eS(3,1) = -(q(i,j)*s(i,k))*mu/36/volume(i);
-            eS(3,2) = -(r(i,j)*s(i,k))*mu/36/volume(i);
-            eS(3,3) = (q(i,j)*q(i,k)+r(i,j)*r(i,k)*mu/36/volume(i);
-
-            S(IR,IN) = S(IR,IN) + eS(j,k);
-        end
-
-    end
-end
+% ÓĞÏŞÔª×°Åä
+% for i = 1:number_elements
+%     for j = 1:4
+%     	IR = nodes_ele(i,j);
+%         IR = find(arrangenode==IR);
+%         for k = 1:4
+%         	IN = nodes_ele(i,k);
+%             IN = find(arrangenode==IN);
+%             
+%             eS(1,1) = (r(i,j)*r(i,k)+s(i,j)*s(i,k)*mu/36/volume(i);
+%             eS(1,2) = -(r(i,j)*q(i,k))*mu/36/volume(i);
+%             eS(1,3) = -(s(i,j)*q(i,k))*mu/36/volume(i);
+% 
+%             eS(2,1) = -(q(i,j)*r(i,k))*mu/36/volume(i);
+%             eS(2,2) = (q(i,j)*q(i,k)+s(i,j)*s(i,k)*mu/36/volume(i);
+%             eS(2,3) = -(s(i,j)*r(i,k))*mu/36/volume(i);
+% 
+%             eS(3,1) = -(q(i,j)*s(i,k))*mu/36/volume(i);
+%             eS(3,2) = -(r(i,j)*s(i,k))*mu/36/volume(i);
+%             eS(3,3) = (q(i,j)*q(i,k)+r(i,j)*r(i,k)*mu/36/volume(i);
+% 
+%             S(IR,IN) = S(IR,IN) + eS(j,k);
+%         end
+% 
+%     end
+% end
 

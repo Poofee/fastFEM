@@ -2,7 +2,7 @@
 % by Poofee
 % 验证单传输线法
 % 寻找最优猜测值
-close all
+% close all
 I = 10;%A
 R1 = 10;
 R2 = 40;
@@ -12,7 +12,8 @@ Y = [1/R1+1/R2+1/R4   -1/R2-1/R4;
    -1/R2-1/R4   1/R3+1/R2+1/R4];
 I = [I;0];
 V = Y\I;
-Z1 = 40;
+Z1 = 100;
+Z2 =100;
 Vi = [0;0];
 Vr = [0;0];
 for i=1:50
@@ -28,9 +29,9 @@ for i=1:50
     I2 = 2*Vr.*[1/Z1;1/Z2];
     V2 = Y2\I2;
     Vi = V2 - Vr;
-    plot(i,Vi(1),'ro');hold on;
-    plot(i,Vi(2),'bo');hold on;
-    plot(i,Vr(1),'r*');hold on;
-    plot(i,Vr(2),'b*');hold on;
+    plot(i,V1(1),'ro');hold on;
+    plot(i,V1(2),'bo');hold on;
+    plot(i,V2(1),'r*');hold on;
+    plot(i,V2(2),'b*');hold on;
 end
 V1
