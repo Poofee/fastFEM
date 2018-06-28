@@ -26,7 +26,8 @@ SOURCES += \
     material.cpp \
     plot.cpp \
     SuperLU_MT.cpp \
-    ../qcustomplot/qcustomplot.cpp
+    ../qcustomplot/qcustomplot.cpp \
+    mesh/meshtype.cpp
 
 
 #.ui file lists
@@ -39,7 +40,8 @@ HEADERS += \
     plot.h \
     spline.h \
     SuperLU_MT.h \
-    ../qcustomplot/qcustomplot.h
+    ../qcustomplot/qcustomplot.h \
+    mesh/meshtype.h
 
 
 unix {
