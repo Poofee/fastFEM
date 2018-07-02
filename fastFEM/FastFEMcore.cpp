@@ -2418,6 +2418,7 @@ bool CFastFEMcore::StaticAxisT3TLMgroup() {
 			D34.push_back(i);
 		}
 	}
+	qDebug() << "D34 size:" << D34.size();
 	uvec node_reorder = zeros<uvec>(num_pts);
 	uvec node_pos = zeros<uvec>(num_pts);
 	//------------build C Matrix-----------------------------
@@ -2498,8 +2499,11 @@ bool CFastFEMcore::StaticAxisT3TLMgroup() {
 			ce[0][1] = 0;
 			ce[0][2] = 0;
 			ce[1][2] = 0;
-
-			y10[nlin] = rm[i].Y11*pmeshnode[pmeshele[i].n[0]].A +
+			int a = 800;
+			y10[nlin] = a * rm[i].Y11 / pmeshele[i].miu + a * rm[i].Y22 / pmeshele[i].miu + a * rm[i].Y33 / pmeshele[i].miu;
+			y20[nlin] = a * rm[i].Y11 / pmeshele[i].miu + a * rm[i].Y22 / pmeshele[i].miu + a * rm[i].Y33 / pmeshele[i].miu;
+			y30[nlin] = a * rm[i].Y11 / pmeshele[i].miu + a * rm[i].Y22 / pmeshele[i].miu + a * rm[i].Y33 / pmeshele[i].miu;
+			/*y10[nlin] = rm[i].Y11*pmeshnode[pmeshele[i].n[0]].A +
 				rm[i].Y12*pmeshnode[pmeshele[i].n[1]].A +
 				rm[i].Y13*pmeshnode[pmeshele[i].n[2]].A;
 			y10[nlin] /= pmeshele[i].miu;
@@ -2522,7 +2526,7 @@ bool CFastFEMcore::StaticAxisT3TLMgroup() {
 		    y30[nlin] /= pmeshnode[pmeshele[i].n[2]].A;
 			if (std::isinf(y30[nlin])){
 				y30[nlin] = abs(rm[i].Y13) / pmeshele[i].miu;
-			}
+			}*/
 			
 			ce[0][0] = abs(y10[nlin]);
 			ce[1][1] = abs(y20[nlin]);
@@ -2641,7 +2645,7 @@ bool CFastFEMcore::StaticAxisT3TLMgroup() {
 		sol = (double*)((DNformat*)sluB.Store)->nzval;
 		//取得结果
 		for (int i = 0; i < num_pts - node_bdr; i++) {
-			pmeshnode[node_reorder(i)].A *= sol[i];// / pmeshnode[i].x;//the A is r*A_real
+			pmeshnode[node_reorder(i)].A *= 1.;// / pmeshnode[i].x;//the A is r*A_real
 			A(node_reorder(i)) = sol[i];
 		}
 	}
@@ -2669,11 +2673,43 @@ bool CFastFEMcore::StaticAxisT3TLMgroup() {
 	//customplot->xAxis2->setTicks(false);
 	//customplot->yAxis->setScaleRatio(customplot->xAxis, 1.0);
 	//---------the main loop---------------------------------
-	int steps = 1000;
+	int steps = 3000;
 	int count;
 	double alpha = 1;
 	Voltage *Vr = (Voltage*)calloc(D34.size(), sizeof(Voltage));
 	Voltage *Vi = (Voltage*)calloc(D34.size(), sizeof(Voltage));
+	//根据粗糙结果反过来计算出每一个单元当中的入射电压
+	for (int j = 0; j < D34.size(); j++){
+		int i = D34[j];
+		CElement *m_e = pmeshele + i;
+		int k, m, n;
+		k = m_e->n[0];
+		m = m_e->n[1];
+		n = m_e->n[2];
+		
+		//计算磁导率
+		double bx = 0;
+		double by = 0;
+		bx = pmeshele[i].Q[0] * pmeshnode[k].A+
+			pmeshele[i].Q[1] * pmeshnode[m].A+
+			pmeshele[i].Q[2] * pmeshnode[n].A;
+		by = pmeshele[i].P[0] * pmeshnode[k].A +
+			pmeshele[i].P[1] * pmeshnode[m].A +
+			pmeshele[i].P[2] * pmeshnode[n].A;
+		pmeshele[i].B = sqrt(bx*bx + by*by) / 2. / pmeshele[i].AREA / ydot[i];
+		pmeshele[i].miut = materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B);
+		mat C(3, 3);//单元系数矩阵，为了方便计算
+		C(0, 0) = rm[i].Y11 / pmeshele[i].miut; C(0, 1) = rm[i].Y12 / pmeshele[i].miut; C(0, 2) = rm[i].Y13 / pmeshele[i].miut;
+		C(1, 0) = rm[i].Y12 / pmeshele[i].miut; C(1, 1) = rm[i].Y22 / pmeshele[i].miut; C(1, 2) = rm[i].Y23 / pmeshele[i].miut;
+		C(2, 0) = rm[i].Y13 / pmeshele[i].miut; C(2, 1) = rm[i].Y23 / pmeshele[i].miut; C(2, 2) = rm[i].Y33 / pmeshele[i].miut;
+
+		Vr[j].V12 = (abs(y10[j])+C(0, 0))*pmeshnode[k].A + C(0, 1)*pmeshnode[m].A + C(0, 2)*pmeshnode[n].A;
+		Vr[j].V12 /=  2 * abs(y10[j]);
+		Vr[j].V23 = C(1, 0)*pmeshnode[k].A + (abs(y20[j])+C(1, 1))*pmeshnode[m].A + C(1, 2)*pmeshnode[n].A;
+		Vr[j].V23 /=  2 * abs(y20[j]);
+		Vr[j].V13 = C(2, 0)*pmeshnode[k].A + C(2, 1)*pmeshnode[m].A + (abs(y30[j])+C(2, 2))*pmeshnode[n].A;
+		Vr[j].V13 /=  2 * abs(y30[j]);
+	}
 	time[tt++] = SuperLU_timer_();
 	for (count = 0; count < steps; count++) {
 		//------update miu----------------
@@ -2698,9 +2734,12 @@ bool CFastFEMcore::StaticAxisT3TLMgroup() {
 			m = m_e->n[1];
 			n = m_e->n[2];
 			//计算反射电压
-			Vr[j].V12 = (pmeshnode[k].A - 0) - Vi[j].V12;
-			Vr[j].V23 = (pmeshnode[m].A - 0) - Vi[j].V23;
-			Vr[j].V13 = (pmeshnode[n].A - 0) - Vi[j].V13;
+			if (count != 0){
+				Vr[j].V12 = (pmeshnode[k].A - 0) - Vi[j].V12;
+				Vr[j].V23 = (pmeshnode[m].A - 0) - Vi[j].V23;
+				Vr[j].V13 = (pmeshnode[n].A - 0) - Vi[j].V13;
+			}
+			
 			//求解小电路，计算入射电压
 			//采用线性代入不收敛，遂尝试牛顿迭代
 			mat C(3, 3);//单元系数矩阵，为了方便计算
@@ -2765,7 +2804,7 @@ bool CFastFEMcore::StaticAxisT3TLMgroup() {
 				if (iter > 2){
 					double err = norm(x2old - x2) / norm(x2old);
 					//qDebug() << err;
-					if (err < 1e-7){
+					if (err < 1e-6){
 						break;
 					}
 				}
@@ -2786,6 +2825,10 @@ bool CFastFEMcore::StaticAxisT3TLMgroup() {
 			unknown_b[i] = INL(node_reorder(i));
 		}
 		//time[tt++] = SuperLU_timer_();
+		/*double a = SuperLU_timer_();
+		if (count == 0){
+			qDebug() << a - time[tt - 1];
+		}*/
 		dgstrs(trans, &L, &U, perm_r, perm_c, &sluB, &Gstat1, &info);
 		//myTriSolve(1, &L, &U, perm_r, perm_c, &sluB, &info);
 		//time[tt++] = SuperLU_timer_();
@@ -2811,9 +2854,6 @@ bool CFastFEMcore::StaticAxisT3TLMgroup() {
 
 		//graph1->setData(x, y);
 		//customplot->rescaleAxes(true);
-		//customplot->xAxis->setRange(0, 0.09);
-		//customplot->yAxis->setRange(-0.04, 0.04);
-		//customplot->yAxis->setScaleRatio(customplot->xAxis, 1.0);
 		//customplot->replot();
 
 
@@ -2821,6 +2861,10 @@ bool CFastFEMcore::StaticAxisT3TLMgroup() {
 			break;
 		}
 		INL.zeros();
+		/*double b = SuperLU_timer_();
+		if (count == 0){
+			qDebug() << b - a;
+		}*/
 	}
 	time[tt++] = SuperLU_timer_();
 	// 求解结束，更新B
@@ -4386,7 +4430,7 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 		iter++;
 		qDebug() << "iter: " << iter;
 		qDebug() << "error: " << error;
-		qDebug() << negY << " in " << iter << "th NR steps";
+		//qDebug() << negY << " in " << iter << "th NR steps";
 		negY = 0;
 		if (error < Precision || iter > 20) {
 			//A.save("NRA.txt", arma::arma_ascii, false);

@@ -70,7 +70,7 @@ void quadtlmtest(){
 	//读取工程文件
 	fem.openProject("..\\model\\project1.mag");
 	//读取分网
-	if (fem.LoadQ4MeshCOMSOL("..\\model\\35928quad.mphtxt") == 0){
+	if (fem.LoadQ4MeshCOMSOL("..\\model\\reg1.mphtxt") == 0){
 		qDebug() << "OK";
 		qDebug() << "number of elements:" << fem.num_ele;
 		qDebug() << "number of points:" << fem.num_pts;
