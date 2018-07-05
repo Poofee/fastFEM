@@ -2499,10 +2499,15 @@ bool CFastFEMcore::StaticAxisT3TLMgroup() {
 			ce[0][1] = 0;
 			ce[0][2] = 0;
 			ce[1][2] = 0;
-			int a = 800;
+			int a = 1000;
+			//y10[nlin] = a * rm[i].Y11 / pmeshele[i].miu ;
+			//y20[nlin] = a * rm[i].Y22 / pmeshele[i].miu;
+			//y30[nlin] = a * rm[i].Y33 / pmeshele[i].miu;
+			
 			y10[nlin] = a * rm[i].Y11 / pmeshele[i].miu + a * rm[i].Y22 / pmeshele[i].miu + a * rm[i].Y33 / pmeshele[i].miu;
 			y20[nlin] = a * rm[i].Y11 / pmeshele[i].miu + a * rm[i].Y22 / pmeshele[i].miu + a * rm[i].Y33 / pmeshele[i].miu;
 			y30[nlin] = a * rm[i].Y11 / pmeshele[i].miu + a * rm[i].Y22 / pmeshele[i].miu + a * rm[i].Y33 / pmeshele[i].miu;
+
 			/*y10[nlin] = rm[i].Y11*pmeshnode[pmeshele[i].n[0]].A +
 				rm[i].Y12*pmeshnode[pmeshele[i].n[1]].A +
 				rm[i].Y13*pmeshnode[pmeshele[i].n[2]].A;
@@ -2645,7 +2650,7 @@ bool CFastFEMcore::StaticAxisT3TLMgroup() {
 		sol = (double*)((DNformat*)sluB.Store)->nzval;
 		//取得结果
 		for (int i = 0; i < num_pts - node_bdr; i++) {
-			pmeshnode[node_reorder(i)].A *= 1.;// / pmeshnode[i].x;//the A is r*A_real
+			pmeshnode[node_reorder(i)].A *= 1;// / pmeshnode[i].x;//the A is r*A_real
 			A(node_reorder(i)) = sol[i];
 		}
 	}
@@ -2696,8 +2701,8 @@ bool CFastFEMcore::StaticAxisT3TLMgroup() {
 		by = pmeshele[i].P[0] * pmeshnode[k].A +
 			pmeshele[i].P[1] * pmeshnode[m].A +
 			pmeshele[i].P[2] * pmeshnode[n].A;
-		pmeshele[i].B = sqrt(bx*bx + by*by) / 2. / pmeshele[i].AREA / ydot[i];
-		pmeshele[i].miut = materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B);
+		//pmeshele[i].B = sqrt(bx*bx + by*by) / 2. / pmeshele[i].AREA / ydot[i];
+		//pmeshele[i].miut = materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B);
 		mat C(3, 3);//单元系数矩阵，为了方便计算
 		C(0, 0) = rm[i].Y11 / pmeshele[i].miut; C(0, 1) = rm[i].Y12 / pmeshele[i].miut; C(0, 2) = rm[i].Y13 / pmeshele[i].miut;
 		C(1, 0) = rm[i].Y12 / pmeshele[i].miut; C(1, 1) = rm[i].Y22 / pmeshele[i].miut; C(1, 2) = rm[i].Y23 / pmeshele[i].miut;
@@ -2857,7 +2862,7 @@ bool CFastFEMcore::StaticAxisT3TLMgroup() {
 		//customplot->replot();
 
 
-		if (error < Precision) {
+		if (error < 1e-5) {
 			break;
 		}
 		INL.zeros();

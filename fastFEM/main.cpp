@@ -137,7 +137,7 @@ void triangletestgroup() {
 
 	fem.openProject("..\\model\\project1.mag");
 
-	if (fem.Load2DMeshCOMSOL("..\\model\\mesh24.mphtxt") == 0) {
+	if (fem.Load2DMeshCOMSOL("..\\model\\mesh46k.mphtxt") == 0) {
 		fem.preCalculation();
 		t1 = SuperLU_timer_();
 		fem.StaticAxisymmetricNR();
