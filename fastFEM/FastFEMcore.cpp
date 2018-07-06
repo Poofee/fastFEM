@@ -2716,6 +2716,7 @@ bool CFastFEMcore::StaticAxisT3TLMgroup() {
 		Vr[j].V13 /=  2 * abs(y30[j]);
 	}
 	time[tt++] = SuperLU_timer_();
+	double a1, a2;
 	for (count = 0; count < steps; count++) {
 		//------update miu----------------
 		//for (int i = 0; i < num_ele; i++) {
@@ -2731,6 +2732,7 @@ bool CFastFEMcore::StaticAxisT3TLMgroup() {
 		//	y[i] = pmeshele[i].miut;
 		//}
 		//#pragma omp parallel for
+		a1 = SuperLU_timer_();
 		for (int j = 0; j < D34.size(); j++) {
 			int i = D34[j];
 			CElement *m_e = pmeshele + i;
@@ -2826,6 +2828,8 @@ bool CFastFEMcore::StaticAxisT3TLMgroup() {
 			INL(n) += 2. * Vi[j].V13*abs(y30[j]);
 		}
 		INL += bbJz;
+		a2 = SuperLU_timer_();
+		qDebug() <<"t1: "<< a2 - a1;
 		for (int i = 0; i < num_pts - node_bdr; i++) {
 			unknown_b[i] = INL(node_reorder(i));
 		}
@@ -2866,6 +2870,8 @@ bool CFastFEMcore::StaticAxisT3TLMgroup() {
 			break;
 		}
 		INL.zeros();
+		a1 = SuperLU_timer_();
+		qDebug() <<"t2: "<< a1 - a2;
 		/*double b = SuperLU_timer_();
 		if (count == 0){
 			qDebug() << b - a;
@@ -2885,6 +2891,7 @@ bool CFastFEMcore::StaticAxisT3TLMgroup() {
 	}
 	for (int i = 0; i < num_pts - node_bdr; i++) {
 		pmeshnode[node_reorder(i)].A /= pmeshnode[node_reorder(i)].x;// / pmeshnode[i].x;//the A is r*A_real
+		//A(node_reorder(i)) /= pmeshnode[node_reorder(i)].x;
 	}
 	//output the time
 	for (int i = 1; i < tt; i++) {
@@ -2899,6 +2906,7 @@ bool CFastFEMcore::StaticAxisT3TLMgroup() {
 	if (Vr != NULL) free(Vr);
 	if (unknown_b != NULL) free(unknown_b);
 
+	A.save("TLM_T3_A.txt", arma::arma_ascii, false);
 	//SUPERLU_FREE(rhs);
 	//SUPERLU_FREE(xact);
 	//SUPERLU_FREE(perm_r);
@@ -4207,7 +4215,7 @@ bool CFastFEMcore::StaticAxisT3NRTLM(){
 int CFastFEMcore::StaticAxisymmetricNR() {
 	clock_t time[10];
 	int tt = 0;
-	time[tt++] = clock();
+	time[tt++] = SuperLU_timer_();
 	//所需要的变量
 	umat locs(2, 9 * num_ele);
 	locs.zeros();
@@ -4438,7 +4446,7 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 		//qDebug() << negY << " in " << iter << "th NR steps";
 		negY = 0;
 		if (error < Precision || iter > 20) {
-			//A.save("NRA.txt", arma::arma_ascii, false);
+			
 			break;
 		}
 		bn.zeros();
@@ -4448,11 +4456,13 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 		//customplot->rescaleAxes(true);
 		//customplot->replot();
 	}
-	time[tt++] = clock();
+	time[tt++] = SuperLU_timer_();
 	for (int i = 1; i < tt; i++){
 		qDebug() << time[i] - time[i - 1];
 	}
+	A.save("NR_T3_A.txt", arma::arma_ascii, false);
 	qDebug() << "NR steps: " << iter;
+	qDebug() << "NR time: " << time[1] - time[1 - 1];
 	if (rm != NULL) free(rm);
 	if (ydot != NULL) free(ydot);
 	if (unknown_b != NULL) free(unknown_b);
@@ -5222,12 +5232,14 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 		}
 	}
 	time[tt++] = SuperLU_timer_();
+	double a1, a2;
 	//迭代
 	int count;//迭代步数
 	double error;
 	VoltageQ4 *Vr = (VoltageQ4*)calloc(D34.size(), sizeof(VoltageQ4));
 	VoltageQ4 *Vi = (VoltageQ4*)calloc(D34.size(), sizeof(VoltageQ4));
 	for (count = 0; count < 500; count++){
+		a1 = SuperLU_timer_();
 		//反射到单个非线性单元进行迭代
 		for (int j = 0; j < D34.size(); j++){
 			int i = D34[j];
@@ -5248,7 +5260,7 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 			colvec x2(4); x2.zeros();
 			double err1 = 0;
 
-			for (int iter = 0; iter < 10; iter++){
+			for (int iter = 0; iter < 5; iter++){
 				//流向节点的电流源
 				b(0) = 2 * Vr[j].V[0] * rm[j].Y[0];
 				b(1) = 2 * Vr[j].V[1] * rm[j].Y[1];
@@ -5299,6 +5311,8 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 			INL(n3) += 2 * Vi[j].V[2] * rm[j].Y[2];
 			INL(n4) += 2 * Vi[j].V[3] * rm[j].Y[3];
 		}
+		a2 = SuperLU_timer_();
+		qDebug() << "t1: " << a2 - a1;
 		//入射到线性网络过程
 		INL += bbJz;
 		for (int i = 0; i < num_pts - node_bdr; i++) {
@@ -5334,6 +5348,8 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 			break;
 		}
 		INL.zeros();
+		a1 = SuperLU_timer_();
+		qDebug() << "t2: " << a1 - a2;
 	}
 	time[tt++] = SuperLU_timer_();
 	qDebug() << "steps: " << count;

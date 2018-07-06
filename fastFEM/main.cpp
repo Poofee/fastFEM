@@ -28,14 +28,14 @@ int main(int argc, char *argv[])
 
 	//armatest();
 	//triangletest1();
-	//quadtlmtest();
+	quadtlmtest();
 	//triangletestvtm2();
 	//triangletestvtm();
 	//triangletestvtmsingle();
 	//T3NRtest();
 	//quadvtmtest();
 	//T3NRTLMtest();
-	triangletestgroup();
+	//triangletestgroup();
 	Plot myplot;
 	myplot.show();
     return a.exec();
@@ -122,10 +122,10 @@ void T3NRtest() {
 				fem.pmeshele[i].miut = 0.9*fem.pmeshele[i].miut;
 			}
 		}
-		t1 = SuperLU_timer_();
+		//t1 = SuperLU_timer_();
 		fem.StaticAxisymmetricNR();
-		t1 = SuperLU_timer_() - t1;
-		qDebug() << "NR:" << t1;
+		//t1 = SuperLU_timer_() - t1;
+		//qDebug() << "NR:" << t1;
 		//fem.CalcForce();
 	}
 }
