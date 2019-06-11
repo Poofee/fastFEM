@@ -24,6 +24,7 @@ QMAKE_CXXFLAGS += /openmp
 
 CONFIG += debug_and_release
 
+include($$PWD/../gmsh/qtgmsh.pri)
 #source file lists
 SOURCES += \
     datatype.cpp \
@@ -69,7 +70,7 @@ LIBS += \
     -L../SuperLU_MT_3.1 -lsuperlu_mt_OPENMP \
     -lgomp\
     -lpthread \
-    ../armadillo//lib/libarmadillo.so \
+    ../armadillo/lib/libarmadillo.so \
     ../openblas/lib/libopenblas.so
 
 #additional include path
