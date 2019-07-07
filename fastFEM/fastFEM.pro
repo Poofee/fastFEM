@@ -14,6 +14,12 @@ TARGET = fastFEM
 #project type:app lib vcapp vclib
 TEMPLATE = app
 
+QMAKE_CXXFLAGS += /wd"4819"
+
+DEFINES += _CRT_SECURE_NO_WARNINGS
+
+DESTDIR = $$PWD/../bin
+
 QMAKE_CXXFLAGS += /openmp
 
 CONFIG += debug_and_release
@@ -43,15 +49,20 @@ HEADERS += \
     ../qcustomplot/qcustomplot.h \
     mesh/meshtype.h
 
+!debug_and_release|build_pass {
+    CONFIG(debug, debug|release) {
+        TARGET = $$member(TARGET, 0)d
+    }
+}
 
 unix {
 
 CONFIG(debug,debug|release){
 #output directory
-DESTDIR = ../x64/Linux/debug
+#DESTDIR = ../x64/Linux/debug
 }else{
 #output directory
-DESTDIR = ../x64/Linux/release
+#DESTDIR = ../x64/Linux/release
 }
 #librarys
 LIBS += \
@@ -71,10 +82,10 @@ INCLUDEPATH += \
 win32 {
 CONFIG(debug,debug|release){
 #output directory
-DESTDIR = ../x64/Debug
+#DESTDIR = ../x64/Debug
 }else{
 #output directory
-DESTDIR = ../x64/Release
+#DESTDIR = ../x64/Release
 }
 #librarys
 LIBS += \

@@ -4427,6 +4427,7 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 			}
 		}
 		//有必要求出所有单元的B值
+		FILE *fp1 = fopen("B_T3_NR.txt", "w");
 		for (int i = 0; i < num_ele; i++) {
 			double bx = 0;
 			double by = 0;
@@ -4435,10 +4436,13 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 				by += pmeshele[i].P[j] * A(pmeshele[i].n[j]);
 			}
 			pmeshele[i].B = sqrt(bx*bx + by*by) / 2. / pmeshele[i].AREA / ydot[i];
+			pmeshele[i].Bx = bx / 2. / pmeshele[i].AREA / ydot[i] ;
+			pmeshele[i].By = by / 2. / pmeshele[i].AREA / ydot[i];
 			pmeshele[i].miut = materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B);
-
+			fprintf(fp1, "%lf \t %lf \t %lf \t %lf \t %lf\n", pmeshele[i].rc, pmeshele[i].zc, pmeshele[i].Bx, pmeshele[i].By, pmeshele[i].B);
 			y[i] = pmeshele[i].miut;
 		}
+		fclose(fp1);
 		double error = norm((A_old - A), 2) / norm(A, 2);
 		iter++;
 		qDebug() << "iter: " << iter;
@@ -4456,6 +4460,7 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 		//customplot->rescaleAxes(true);
 		//customplot->replot();
 	}
+	//write B resluts
 	time[tt++] = SuperLU_timer_();
 	for (int i = 1; i < tt; i++){
 		qDebug() << time[i] - time[i - 1];
@@ -5786,7 +5791,7 @@ bool CFastFEMcore::StaticAxisT3VTMsingle(){
 
 			ce[0][0] = rm[i].Y11 / pmeshele[i].miu;
 			ce[1][1] = rm[i].Y22 / pmeshele[i].miu;
-			ce[2][2] = rm[i].Y33 / pmeshele[i].miu*(1 + delta);
+			ce[2][2] = rm[i].Y33 / pmeshele[i].miu;
 
 			if (ce[0][1] > 0){
 				int a = 1;
@@ -5997,9 +6002,13 @@ bool CFastFEMcore::StaticAxisT3VTMsingle(){
 			INL(n) += Is[j].V13;
 			//PART D：牛顿迭代求解小电路，计算电压
 			mat C(3, 3);//单元系数矩阵，为了方便计算
-			C(0, 0) = rm[i].Y11; C(0, 1) = rm[i].Y12; C(0, 2) = rm[i].Y13;
-			C(1, 0) = rm[i].Y12; C(1, 1) = rm[i].Y22; C(1, 2) = rm[i].Y23;
-			C(2, 0) = rm[i].Y13; C(2, 1) = rm[i].Y23; C(2, 2) = rm[i].Y33;
+			C(0, 0) = -rm[i].Y12; C(0, 1) = rm[i].Y12; C(0, 2) = 0;
+			C(1, 0) = 0; C(1, 1) = -rm[i].Y23; C(1, 2) = rm[i].Y23;
+			C(2, 0) = rm[i].Y13; C(2, 1) = 0; C(2, 2) = -rm[i].Y13;
+			mat D(3, 3);//单元系数矩阵，为了方便计算
+			D(0, 0) = rm[i].Y11; D(0, 1) = rm[i].Y12; D(0, 2) = rm[i].Y13;
+			D(1, 0) = rm[i].Y12; D(1, 1) = rm[i].Y22; D(1, 2) = rm[i].Y23;
+			D(2, 0) = rm[i].Y13; D(2, 1) = rm[i].Y23; D(2, 2) = rm[i].Y33;
 			mat AJ(3, 3);
 			colvec b(3);
 			colvec x2(3); x2.zeros();
@@ -6013,8 +6022,10 @@ bool CFastFEMcore::StaticAxisT3VTMsingle(){
 				//
 				AJ.zeros();
 				double ca[3];//理论上来说，这里的A应当是三个节点的A
+				double cb[3];
 				for (int row = 0; row < 3; row++){
 					ca[row] = C(row, 0)*x2(0) + C(row, 1)*x2(1) + C(row, 2)*x2(2);
+					cb[row] = D(row, 0)*x2(0) + D(row, 1)*x2(1) + D(row, 2)*x2(2);
 				}
 				//2.求解单元mu值
 				double bx = 0;
@@ -6036,22 +6047,22 @@ bool CFastFEMcore::StaticAxisT3VTMsingle(){
 					for (int col = 0; col < 3; col++){
 						//注意C已经被除了一次ydot了
 						AJ(row, col) = ca[row];
-						AJ(row, col) *= ca[col];
+						AJ(row, col) *= cb[col];
 						AJ(row, col) *= tmp;
 						b(row) += AJ(row, col)*x2(col);
 						AJ(row, col) += C(row, col) / m_e->miut;
 					}
 				}
 				//4.加上传输线导纳
-				AJ(0, 0) += Ytl[6 * j + 0];
+				AJ(0, 0) += -Ytl[6 * j + 1];
 				AJ(0, 1) += Ytl[6 * j + 1];
-				AJ(0, 2) += Ytl[6 * j + 2];
-				AJ(1, 0) += Ytl[6 * j + 1];
-				AJ(1, 1) += Ytl[6 * j + 3];
+				//AJ(0, 2) += Ytl[6 * j + 2];
+				//AJ(1, 0) += Ytl[6 * j + 1];
+				AJ(1, 1) += -Ytl[6 * j + 4];
 				AJ(1, 2) += Ytl[6 * j + 4];
 				AJ(2, 0) += Ytl[6 * j + 2];
-				AJ(2, 1) += Ytl[6 * j + 4];
-				AJ(2, 2) += Ytl[6 * j + 5];
+				//AJ(2, 1) += Ytl[6 * j + 4];
+				AJ(2, 2) += -Ytl[6 * j + 2];
 				//5.求解电压V
 				bool status = arma::solve(x2, AJ, b);
 				if (!status){
@@ -6146,5 +6157,71 @@ bool CFastFEMcore::StaticAxisT3VTMsingle(){
 	//Destroy_SuperNode_SCP(&L);
 	//Destroy_CompCol_NCP(&U);
 	//StatFree(&Gstat1);
+	return true;
+}
+
+bool CFastFEMcore::transientCaseNDDR(){
+
+	return true;
+}
+
+bool CFastFEMcore::transientCaseTLM(){
+
+	return true;
+}
+
+//2018-12-03
+//by Poofee
+//solve 2D transient electro-mechnical-circuit 
+bool CFastFEMcore::transientCaseNR(){
+	//define some variables
+	double current_time = 0;//total time from simualation
+	double current_position = 0;//the moving distance of mover
+	double dtime;//time step length
+	double MIN_TIME=0, MAX_TIME;//time constraint
+	int total_time_step = 0;//number of time discretization
+	int current_time_step = 0;//current time step
+
+	double m;// the mass of the moving body
+	double Fr;//the resistant mechanical force acting on the body
+
+	QVector<double> time_list;//store time length per step
+	QVector<double> position_list;//store mover's position per step
+	QVector<double> Fem_list;//store the electromagnetic force acting on the body per step
+	QVector<double> velocity_list;//store mover's velocity per step
+
+	/////--------------start time loop resolution--------------////////
+	//genertate discretized time list
+
+	//begin time loop	
+
+	//call mesh generator triangle.exe to remesh the geometry
+
+	//where is the dB/dt???
+
+
+	////----start to solve magnetostatic field-----//////
+	//begin nonlinear loop
+
+	//end nonlinear loop
+
+	//update force, acceleration, velocity and new position
+	//1.calcualte electromagnetic force
+
+	//2.calculate acceleration
+
+	//3.calculate new velocity
+
+	//4.calculate new position of mover at netx time step
+
+	//move the mover to new position
+	//1.read the initial CAD file
+
+	//2.create new CAD file with mover at new position
+
+	//end time loop
+
+	//output solution
+
 	return true;
 }

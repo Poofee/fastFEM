@@ -37,6 +37,9 @@ public:
 	bool StaticAxisT3VTM3();//不采用rA变换的方式进行求解
 	bool StaticAxisT3NRVTM();//使用VTM方法求解NR的每一迭代步
 	bool StaticAxisT3VTMsingle();//采用VTM方法，单个电阻
+	bool transientCaseNDDR();//using NDDR
+	bool transientCaseTLM();//using TLM
+	bool transientCaseNR();//using NR
 	double CalcForce();//电磁力计算函数
 	int openProject(QString proFile);//打开工程文件函数
 	int preCalculation();//预计算函数

@@ -28,14 +28,15 @@ int main(int argc, char *argv[])
 
 	//armatest();
 	//triangletest1();
-	quadtlmtest();
+	//quadtlmtest();
 	//triangletestvtm2();
 	//triangletestvtm();
-	//triangletestvtmsingle();
+	triangletestvtmsingle();
 	//T3NRtest();
 	//quadvtmtest();
 	//T3NRTLMtest();
 	//triangletestgroup();
+	//quadtest();
 	Plot myplot;
 	myplot.show();
     return a.exec();
@@ -268,10 +269,10 @@ void triangletest1() {
 
 	fem.openProject("..\\model\\project1.mag");
 
-	if (fem.Load2DMeshCOMSOL("..\\model\\mesh24.mphtxt") == 0) {
+	if (fem.Load2DMeshCOMSOL("..\\model\\mesh26k.mphtxt") == 0) {
 		fem.preCalculation();
 		t1 = SuperLU_timer_();
-		//fem.StaticAxisymmetricNR();
+		fem.StaticAxisymmetricNR();
 		t1 = SuperLU_timer_() - t1;
 		qDebug() << "NR:" << t1;
 		for (int i = 0; i < fem.num_ele; i++) {
@@ -280,7 +281,7 @@ void triangletest1() {
 			}
 		}
 		t1 = SuperLU_timer_();
-		fem.StaticAxisTLMNR();
+		//fem.StaticAxisTLMNR();
 		t1 = SuperLU_timer_() - t1;
 		qDebug() << "TLM:" << t1;
 		//fem.CalcForce();
