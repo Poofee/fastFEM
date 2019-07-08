@@ -36,7 +36,8 @@ current = zeros(length(time),1);% 电流
 % B-H曲线
 H = 0:1:100000;
 B = arrayfun(@getB,H);
-% plot(H,B);
+figure
+plot(H,B);
 % 电路参数
 U = 28;
 Rcoil = 3;
@@ -49,13 +50,23 @@ m = 0.25;
 cur_disp = 0;
 % 进行时间步循环
 for t=1:length(time)
+    disp('-----------------------------');
+    disp([num2str(t),'-th step, time is ',num2str(time(t)),'s']);
     % 分网
+    disp('mesh of domain......');
     cmd = ['gmsh.exe -setnumber disp ', num2str(cur_disp),' -2 -format msh2 model.geo '];
-    system(cmd);
-    
-    pause(10);
+    [status,cmdout] = system(cmd);    
+    % pause(1);
     mesh = load_gmsh2('model.msh');
+    disp(['mesh done. ',num2str(mesh.nbNod),' nodes, ',num2str(mesh.nbTriangles),' triangles elements.']);
     % 求解瞬态磁场
+    disp('start solve transient magnetic field......');
+    
+    disp('start nonlinear Newton iteration......');
+    
+    disp('calculate electromagnetic force on moving body......');
+    
+    disp('calculate mechanical variables......');
     
     
 end
