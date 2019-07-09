@@ -9,13 +9,14 @@
 MAG_CIR = [1,3,4];% 磁路
 COIL = [2];% 线圈
 AIR = [7];% 空气
-MOBIL_AIR = [6];% 随衔铁运动的空气
+MOBILE_AIR = [6];% 随衔铁运动的空气
 CORE = [5];% 衔铁
 INFINITE = [8];% 无穷远区域
 
-mindisp = 0;% 最小位移
-maxdisp = 6e-3;% 最大位移
-step = 1e-3;
+% 物理区域
+COMPRESSIBLE_PART = [AIR,INFINITE];% 可压缩区域
+FIXED_PART = [MAG_CIR,COIL,MOBILE_AIR];% 不可移动区域
+MOBILE_PART = [CORE];% 可移动区域
 
 close all;
 
@@ -36,37 +37,46 @@ current = zeros(length(time),1);% 电流
 % B-H曲线
 H = 0:1:100000;
 B = arrayfun(@getB,H);
+sigma = 2e-7;% ohm*m
+
 figure
 plot(H,B);
+xlabel('H(A/m)');
+ylabel('B(T)');
+title('铁磁材料的B-H曲线');
+drawnow;
 % 电路参数
 U = 28;
 Rcoil = 3;
 CoilTurn = 225;
 
 % 机械参数
-m = 0.25;
-
+m = 0.25;% 衔铁质量
+mindisp = 0;% 最小位移
+maxdisp = 6e-3;% 最大位移
 
 cur_disp = 0;
 % 进行时间步循环
 for t=1:length(time)
     disp('-----------------------------');
-    disp([num2str(t),'-th step, time is ',num2str(time(t)),'s']);
+    disp(['开始第 ',num2str(t),' 步迭代, 时间为 ',num2str(time(t)),' 秒']);
     % 分网
-    disp('mesh of domain......');
+    disp('开始分网......');
     cmd = ['gmsh.exe -setnumber disp ', num2str(cur_disp),' -2 -format msh2 model.geo '];
     [status,cmdout] = system(cmd);    
     % pause(1);
     mesh = load_gmsh2('model.msh');
-    disp(['mesh done. ',num2str(mesh.nbNod),' nodes, ',num2str(mesh.nbTriangles),' triangles elements.']);
+    disp(['分网结束. 共 ',num2str(mesh.nbNod),' 个节点, ',num2str(mesh.nbTriangles),' 个三角单元.']);
     % 求解瞬态磁场
-    disp('start solve transient magnetic field......');
+    disp('开始求解瞬态磁场......');
     
-    disp('start nonlinear Newton iteration......');
+    disp('开始非线性牛顿迭代......');
     
-    disp('calculate electromagnetic force on moving body......');
+    disp('开始计算衔铁上的电磁吸力......');
     
-    disp('calculate mechanical variables......');
+    disp('开始计算机械变量......');
     
     
 end
+
+disp('开始绘制结果......');
