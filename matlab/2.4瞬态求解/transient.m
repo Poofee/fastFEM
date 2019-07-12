@@ -33,6 +33,7 @@ velocity = zeros(length(time),1);% 速度
 acceleration = zeros(length(time),1);% 加速度
 yForce = zeros(length(time),1);% 电磁力
 current = zeros(length(time),1);% 电流
+phicoil = zeros(length(time),1);% 线圈的磁通
 
 % B-H曲线
 H = 0:1:100000;
@@ -69,8 +70,9 @@ for t=1:length(time)
     disp(['分网结束. 共 ',num2str(mesh.nbNod),' 个节点, ',num2str(mesh.nbTriangles),' 个三角单元.']);
     % 求解瞬态磁场
     disp('开始求解瞬态磁场......');
+    A = magsolve(mesh);
     
-    disp('开始非线性牛顿迭代......');
+    disp('开始计算感应电流......');
     
     disp('开始计算衔铁上的电磁吸力......');
     
