@@ -17,10 +17,11 @@ INFINITE = [8];% 无穷远区域
 COMPRESSIBLE_PART = [AIR,INFINITE];% 可压缩区域
 FIXED_PART = [MAG_CIR,COIL,MOBILE_AIR];% 不可移动区域
 MOBILE_PART = [CORE];% 可移动区域
+FIXED_MESH = [MAG_CIR,COIL,CORE];
 
 close all;
 
-time = [0:1e-3:15e-3,...
+time = [0,0:1e-3:15e-3,...
     (15e-3+1e-4):1e-4:15.5e-3,...
     (15.5e-3+1e-3):1e-3:17e-3,...
     (17e-3+1e-4):1e-4:17.5e-3,...
@@ -50,6 +51,8 @@ drawnow;
 U = 28;
 Rcoil = 3;
 CoilTurn = 225;
+Scoil = 0.36e-3;
+tau = CoilTurn/Scoil;
 
 % 机械参数
 m = 0.25;% 衔铁质量
@@ -57,10 +60,13 @@ mindisp = 0;% 最小位移
 maxdisp = 6e-3;% 最大位移
 
 cur_disp = 0;
+Ak = 0;
+Ak1 = 0;
+FixNL = 0;
 % 进行时间步循环
-for t=1:length(time)
+for t=2:length(time)
     disp('-----------------------------');
-    disp(['开始第 ',num2str(t),' 步迭代, 时间为 ',num2str(time(t)),' 秒']);
+    disp(['开始第 ',num2str(t-1),' 步迭代, 时间为 ',num2str(time(t)),' 秒']);
     % 分网
     disp('开始分网......');
     cmd = ['gmsh.exe -setnumber disp ', num2str(cur_disp),' -2 -format msh2 model.geo '];
@@ -70,7 +76,9 @@ for t=1:length(time)
     disp(['分网结束. 共 ',num2str(mesh.nbNod),' 个节点, ',num2str(mesh.nbTriangles),' 个三角单元.']);
     % 求解瞬态磁场
     disp('开始求解瞬态磁场......');
-    A = magsolve(mesh);
+    Ak = Ak1;
+    FixNLk = FixNL;
+    [Ak1,FixNL] = magsolve(mesh,time(t)-time(t-1),Ak,t,FixNLk);
     
     disp('开始计算感应电流......');
     

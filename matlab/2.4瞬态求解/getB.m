@@ -4,4 +4,7 @@ mur = 500;
 Js = 1.9;
 
 B = mu0*H+2*Js/pi*atan(pi*(mur-1)*mu0*H/2/Js);
+if B > 3
+    B = 3;
+end
 end
