@@ -78,9 +78,19 @@ for t=2:length(time)
     disp('开始求解瞬态磁场......');
     Ak = Ak1;
     FixNLk = FixNL;
-    [Ak1,FixNL] = magsolve(mesh,time(t)-time(t-1),Ak,t,FixNLk);
+    [Ak1,FixNL,AREA] = magsolve(mesh,time(t)-time(t-1),Ak,t,FixNLk);
     
     disp('开始计算感应电流......');
+    coilphi = 0;
+    for j=1:mesh.nbTriangles
+        if(find(COIL == mesh.ELE_TAGS(mesh.nbElm-mesh.nbTriangles+j,2)))
+            n = mesh.TRIANGLES(j,1:3);
+            coilphi = coilphi + sum(Ak1(n))*AREA(j)/3;
+        end
+    end
+    coilphi = coilphi * tau;
+    phicoil(t) = coilphi;
+    disp(['线圈磁通为 ',num2str(coilphi)]);
     
     disp('开始计算衔铁上的电磁吸力......');
     
@@ -90,3 +100,28 @@ for t=2:length(time)
 end
 
 disp('开始绘制结果......');
+figure
+subplot(2,3,1);
+plot(time,displacement);
+title('位移');
+hold on
+subplot(2,3,2);
+plot(time,velocity);
+title('速度');
+subplot(2,3,3);
+plot(time,yForce);
+title('电磁吸力');
+subplot(2,3,4);
+plot(time,current);
+title('电流');
+subplot(2,3,5);
+plot(time,phicoil);
+title('磁通');
+subplot(2,3,6);
+plot(time,acceleration);
+title('加速度');
+h=gcf;
+size = get(0,'ScreenSize');
+width = size(3);
+height = size(4);
+set(h,'Position',[0.05*width 2 0.9*width 0.8*height]);

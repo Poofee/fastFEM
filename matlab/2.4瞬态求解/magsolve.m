@@ -1,4 +1,4 @@
-function [A,FixNL] = magsolve(mesh,deltat,Ak,step,FixNLk)
+function [A,FixNL,AREA] = magsolve(mesh,deltat,Ak,step,FixNLk)
 % 区域编号
 MAG_CIR = [1,3,4];% 磁路
 COIL = [2];% 线圈
@@ -33,6 +33,7 @@ num_elements = mesh.nbTriangles;
 CE = zeros(3,3);      % CE --- 用来存储每个单元的系数矩阵
 D = zeros(3,3);
 M = zeros(3,3);
+bbT = zeros(3,3);
 S = zeros(num_nodes,num_nodes);%全局矩阵
 F1 = zeros(num_nodes,1);
 
@@ -130,21 +131,22 @@ for count = 1:steps
                 CE(row,col) = D(row,col) + (R(i,row)*R(i,col)+Q(i,row)*Q(i,col))/4/AREA(i)/mu(i)/ydot(i);
                 
                 M(row,col) = sigma*AREA(i)*(1/12+(row==col)*1/12)/deltat;
+                bbT(row,col) = (tau*AREA(i)/3)^2*Ys(i)/deltat;
                 
-                S(NL(i,row),NL(i,col)) = S(NL(i,row),NL(i,col)) + CE(row,col) + M(row,col);
+                S(NL(i,row),NL(i,col)) = S(NL(i,row),NL(i,col)) + CE(row,col) + M(row,col) - bbT(row,col);
                 F1(NL(i,row)) = F1(NL(i,row)) + D(row,col)*A(NL(i,col));
             end
             
             if find(FIXED_MESH == Domain(i))
                 % 涡流，上一步的A，M应当为铁磁区域的，其余区域为0，可以合写
-                F1(NL(i,row)) = F1(NL(i,row)) + sum(M(row,:).*Ak(FixNLk(count_fix,:))')/deltat;
+                F1(NL(i,row)) = F1(NL(i,row)) + sum(M(row,:).*Ak(FixNLk(count_fix,:))');
                 % 线圈感应电流，这部分是线圈区域的，这里把其他区域的电阻设为了0，合写了
-                F1(NL(i,row)) = F1(NL(i,row)) - (tau*AREA(i)/3)^2*Ys(i)/deltat*Ak(FixNLk(count_fix,row));
+                F1(NL(i,row)) = F1(NL(i,row)) - sum(bbT(row,:).*Ak(FixNLk(count_fix,:))');
                 % 传导电流
                 F1(NL(i,row)) = F1(NL(i,row)) + J(i)*AREA(i)/3;
             end
             
-            S(NL(i,row),NL(i,row)) = S(NL(i,row),NL(i,row))-(tau*AREA(i)/3)^2*Ys(i)/deltat;
+%             S(NL(i,row),NL(i,row)) = S(NL(i,row),NL(i,row))-(tau*AREA(i)/3)^2*Ys(i)/deltat;
         end
     end
     A_old = A;
@@ -182,7 +184,7 @@ for count = 1:steps
     contourf(qx,qy,qz,20);colorbar
     axis equal
     h = gcf;
-    set(h,'position',[474 59 658 798]);
+    set(h,'position',[474 48 593 675]);
     drawnow
 end
 
