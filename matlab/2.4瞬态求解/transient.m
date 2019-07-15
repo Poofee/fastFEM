@@ -88,7 +88,7 @@ for t=2:length(time)
             coilphi = coilphi + sum(Ak1(n))*AREA(j)/3;
         end
     end
-    coilphi = coilphi * tau;
+    coilphi = coilphi * 2 * pi * tau;
     phicoil(t) = coilphi;
     disp(['ÏßÈ¦´ÅÍ¨Îª ',num2str(coilphi)]);
     
@@ -124,4 +124,4 @@ h=gcf;
 size = get(0,'ScreenSize');
 width = size(3);
 height = size(4);
-set(h,'Position',[0.05*width 2 0.9*width 0.8*height]);
+set(h,'Position',[0.05*width 0.1*height 0.9*width 0.8*height]);

@@ -130,7 +130,7 @@ for count = 1:steps
                 D(row,col) = D(row,col)* sum((R(i,col)*R(i,:)+Q(i,col)*Q(i,:)).*A(NL(i,:))')/4/AREA(i);
                 CE(row,col) = D(row,col) + (R(i,row)*R(i,col)+Q(i,row)*Q(i,col))/4/AREA(i)/mu(i)/ydot(i);
                 
-                M(row,col) = sigma*AREA(i)*(1/12+(row==col)*1/12)/deltat;
+                M(row,col) = sigma/ydot(i)*AREA(i)*(1/12+(row==col)*1/12)/deltat;
                 bbT(row,col) = (tau*AREA(i)/3)^2*Ys(i)/deltat;
                 
                 S(NL(i,row),NL(i,col)) = S(NL(i,row),NL(i,col)) + CE(row,col) + M(row,col) - bbT(row,col);
@@ -146,7 +146,7 @@ for count = 1:steps
                 F1(NL(i,row)) = F1(NL(i,row)) + J(i)*AREA(i)/3;
             end
             
-%             S(NL(i,row),NL(i,row)) = S(NL(i,row),NL(i,row))-(tau*AREA(i)/3)^2*Ys(i)/deltat;
+            %             S(NL(i,row),NL(i,row)) = S(NL(i,row),NL(i,row))-(tau*AREA(i)/3)^2*Ys(i)/deltat;
         end
     end
     A_old = A;
@@ -184,7 +184,10 @@ for count = 1:steps
     contourf(qx,qy,qz,20);colorbar
     axis equal
     h = gcf;
-    set(h,'position',[474 48 593 675]);
+    size = get(0,'ScreenSize');
+    width = size(3);
+    height = size(4);
+    set(h,'position',[(width-0.8*height*0.7)/2 48 0.8*height*0.7 0.8*height]);
     drawnow
 end
 
