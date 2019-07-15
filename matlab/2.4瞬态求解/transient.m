@@ -78,7 +78,7 @@ for t=2:length(time)
     disp('开始求解瞬态磁场......');
     Ak = Ak1;
     FixNLk = FixNL;
-    [Ak1,FixNL,AREA] = magsolve(mesh,time(t)-time(t-1),Ak,t,FixNLk);
+    [Ak1,FixNL,AREA] = magsolve(mesh,time(t)-time(t-1),Ak,t,FixNLk,current(t-1),phicoil(t-1));
     
     disp('开始计算感应电流......');
     coilphi = 0;
@@ -100,7 +100,7 @@ for t=2:length(time)
 end
 
 disp('开始绘制结果......');
-figure
+h=figure;
 subplot(2,3,1);
 plot(time,displacement);
 title('位移');
@@ -120,8 +120,6 @@ title('磁通');
 subplot(2,3,6);
 plot(time,acceleration);
 title('加速度');
-h=gcf;
-size = get(0,'ScreenSize');
-width = size(3);
-height = size(4);
-set(h,'Position',[0.05*width 0.1*height 0.9*width 0.8*height]);
+drawnow
+set(h,'Position',[0 0 1 0.85],'Units','normalized');
+set(h,'Position',[0 0 1 0.85],'Units','normalized');

@@ -1,4 +1,4 @@
-function [A,FixNL,AREA] = magsolve(mesh,deltat,Ak,step,FixNLk)
+function [A,FixNL,AREA] = magsolve(mesh,deltat,Ak,step,FixNLk,ik,phik)
 % 区域编号
 MAG_CIR = [1,3,4];% 磁路
 COIL = [2];% 线圈
@@ -68,7 +68,7 @@ coildomain = find(Domain == 2);%寻找线圈区域的单元
 CoilTurn = 225;
 Scoil = 0.36e-3;
 tau = CoilTurn/Scoil;
-J(coildomain) = tau*24/3;%设置线圈区域的电流密度，其他其余为0
+J(coildomain) = ik;%设置线圈区域的电流密度，其他其余为0
 Ys(coildomain) = 1/3;
 
 mu0 = 4*pi*1e-7;%空气磁导率
@@ -107,88 +107,107 @@ tol = 1e-6;%收敛误差
 if step == 2
     return;
 end
-
-for count = 1:steps
-    disp(['开始第 ',num2str(count),' 步非线性迭代']);
-    count_fix = 0;
-    %     装配
-    for i=1:num_elements
-        if find([1,3,4,5] == Domain(i))% 铁磁区域
-            dvdB = getdvdB(B(i));
-            sigma = 2e-7;
-        else%线性区域
-            dvdB = 0;
-            sigma = 0;% 除了铁磁区域其余不考虑
-        end
-        if find(FIXED_MESH == Domain(i))
-            count_fix = count_fix + 1;
-        end
-        for row = 1:3
-            for col = 1:3
-                D(row,col) = dvdB/ydot(i)/ydot(i)/ydot(i)/AREA(i);
-                D(row,col) = D(row,col)* sum((R(i,row)*R(i,:)+Q(i,row)*Q(i,:)).*A(NL(i,:))')/4/AREA(i);
-                D(row,col) = D(row,col)* sum((R(i,col)*R(i,:)+Q(i,col)*Q(i,:)).*A(NL(i,:))')/4/AREA(i);
-                CE(row,col) = D(row,col) + (R(i,row)*R(i,col)+Q(i,row)*Q(i,col))/4/AREA(i)/mu(i)/ydot(i);
-                
-                M(row,col) = sigma/ydot(i)*AREA(i)*(1/12+(row==col)*1/12)/deltat;
-                bbT(row,col) = (tau*AREA(i)/3)^2*Ys(i)/deltat;
-                
-                S(NL(i,row),NL(i,col)) = S(NL(i,row),NL(i,col)) + CE(row,col) + M(row,col) - bbT(row,col);
-                F1(NL(i,row)) = F1(NL(i,row)) + D(row,col)*A(NL(i,col));
-            end
-            
-            if find(FIXED_MESH == Domain(i))
-                % 涡流，上一步的A，M应当为铁磁区域的，其余区域为0，可以合写
-                F1(NL(i,row)) = F1(NL(i,row)) + sum(M(row,:).*Ak(FixNLk(count_fix,:))');
-                % 线圈感应电流，这部分是线圈区域的，这里把其他区域的电阻设为了0，合写了
-                F1(NL(i,row)) = F1(NL(i,row)) - sum(bbT(row,:).*Ak(FixNLk(count_fix,:))');
-                % 传导电流
-                F1(NL(i,row)) = F1(NL(i,row)) + J(i)*AREA(i)/3;
-            end
-            
-            %             S(NL(i,row),NL(i,row)) = S(NL(i,row),NL(i,row))-(tau*AREA(i)/3)^2*Ys(i)/deltat;
+% 磁场与电路的耦合迭代
+for couple_iteration=1:10
+    % 求解电路，得到新的电流
+    % 计算这一步的线圈磁通
+    coilphi = 0;
+    for j=1:mesh.nbTriangles
+        if(find(COIL == mesh.ELE_TAGS(mesh.nbElm-mesh.nbTriangles+j,2)))
+            n = mesh.TRIANGLES(j,1:3);
+            coilphi = coilphi + sum(A(n))*AREA(j)/3;
         end
     end
-    A_old = A;
-    A(freenodes) = S(freenodes,freenodes)\F1(freenodes);
-    % 判断误差
-    error = norm((A_old - A))/norm(A);
-    disp(['迭代误差： ',num2str(error)]);
-    if error < tol
-        break;
-    end
-    %     下一步迭代初始化
-    S = S - S;
-    F1 = F1 - F1;
-    %更新B
-    Bx = sum(R.*A(NL),2)./AREA./ydot/2;
-    By = sum(Q.*A(NL),2)./AREA./ydot/2;
-    B = sqrt(Bx.*Bx + By.*By);
-    %更新mu，只更新非线性区域
-    mu(DomainNL) = B(DomainNL)./arrayfun(@getH,B(DomainNL));
+    coilphi = coilphi * 2 * pi * tau;
     
-    FF = scatteredInterpolant(X,Y,A);
-    % figure
-    % F = scatteredInterpolant(X,Y,A(1:num_nodes));
-    tx = 0:1e-4:0.035;
-    ty = -0.040:1e-4:0.050;
-    [qx,qy] = meshgrid(tx,ty);
-    qz = FF(qx,qy);
-    % mesh(qx,qy,qz);
-    % surf(qx,qy,qz);
-    clf
-    hold on
-    title('A','FontName','Times New Roman','FontSize',15);
-    set(gca,'FontName','Times New Roman','FontSize',15);
-    set(gca,'FontName','Times New Roman','FontSize',15);
-    contourf(qx,qy,qz,20);colorbar
-    axis equal
-    h = gcf;
-    size = get(0,'ScreenSize');
-    width = size(3);
-    height = size(4);
-    set(h,'position',[(width-0.8*height*0.7)/2 48 0.8*height*0.7 0.8*height]);
-    drawnow
+    ik1 = 1/3*(24 + (coilphi - phik)/deltat);
+    disp(['电流值 ',num2str(ik1),' A']);
+    J(coildomain) = ik1;
+    % 磁场部分的迭代
+    for count = 1:steps
+        disp(['开始第 ',num2str(count),' 步非线性迭代']);
+        count_fix = 0;
+        %     装配
+        for i=1:num_elements
+            if find([1,3,4,5] == Domain(i))% 铁磁区域
+                dvdB = getdvdB(B(i));
+                sigma = 2e-7;
+            else%线性区域
+                dvdB = 0;
+                sigma = 0;% 除了铁磁区域其余不考虑
+            end
+            if find(FIXED_MESH == Domain(i))
+                count_fix = count_fix + 1;
+            end
+            for row = 1:3
+                for col = 1:3
+                    D(row,col) = dvdB/ydot(i)/ydot(i)/ydot(i)/AREA(i);
+                    D(row,col) = D(row,col)* sum((R(i,row)*R(i,:)+Q(i,row)*Q(i,:)).*A(NL(i,:))')/4/AREA(i);
+                    D(row,col) = D(row,col)* sum((R(i,col)*R(i,:)+Q(i,col)*Q(i,:)).*A(NL(i,:))')/4/AREA(i);
+                    CE(row,col) = D(row,col) + (R(i,row)*R(i,col)+Q(i,row)*Q(i,col))/4/AREA(i)/mu(i)/ydot(i);
+                    
+                    M(row,col) = sigma/ydot(i)*AREA(i)*(1/12+(row==col)*1/12)/deltat;
+%                     bbT(row,col) = (tau*AREA(i)/3)^2*Ys(i)/deltat;
+                    
+                    S(NL(i,row),NL(i,col)) = S(NL(i,row),NL(i,col)) + CE(row,col) + M(row,col);
+                    F1(NL(i,row)) = F1(NL(i,row)) + D(row,col)*A(NL(i,col));
+                end
+                
+                if find(FIXED_MESH == Domain(i))
+                    % 涡流，上一步的A，M应当为铁磁区域的，其余区域为0，可以合写
+                    F1(NL(i,row)) = F1(NL(i,row)) + sum(M(row,:).*Ak(FixNLk(count_fix,:))');
+                    % 线圈感应电流，这部分是线圈区域的，这里把其他区域的电阻设为了0，合写了
+%                     F1(NL(i,row)) = F1(NL(i,row)) - sum(bbT(row,:).*Ak(FixNLk(count_fix,:))');
+                    % 传导电流
+                    F1(NL(i,row)) = F1(NL(i,row)) + J(i)*tau*AREA(i)/3;
+                end
+                
+                %             S(NL(i,row),NL(i,row)) = S(NL(i,row),NL(i,row))-(tau*AREA(i)/3)^2*Ys(i)/deltat;
+            end
+        end
+        A_old = A;
+        A(freenodes) = S(freenodes,freenodes)\F1(freenodes);
+        % 判断误差
+        error = norm((A_old - A))/norm(A);
+        disp(['迭代误差： ',num2str(error)]);
+        if error < tol
+            break;
+        end
+        %     下一步迭代初始化
+        S = S - S;
+        F1 = F1 - F1;
+        %更新B
+        Bx = sum(R.*A(NL),2)./AREA./ydot/2;
+        By = sum(Q.*A(NL),2)./AREA./ydot/2;
+        B = sqrt(Bx.*Bx + By.*By);
+        %更新mu，只更新非线性区域
+        mu(DomainNL) = B(DomainNL)./arrayfun(@getH,B(DomainNL));
+        
+        FF = scatteredInterpolant(X,Y,A);
+        % figure
+        % F = scatteredInterpolant(X,Y,A(1:num_nodes));
+        tx = 0:1e-4:0.035;
+        ty = -0.040:1e-4:0.050;
+        [qx,qy] = meshgrid(tx,ty);
+        qz = FF(qx,qy);
+        % mesh(qx,qy,qz);
+        % surf(qx,qy,qz);
+        clf
+        hold on
+        title('A','FontName','Times New Roman','FontSize',15);
+        set(gca,'FontName','Times New Roman','FontSize',15);
+        set(gca,'FontName','Times New Roman','FontSize',15);
+        contourf(qx,qy,qz,20);colorbar
+        axis equal
+        h = gcf;
+        size = get(0,'ScreenSize');
+        width = size(3);
+        height = size(4);
+        set(h,'Position',[(width-0.8*height*0.7)/2 48 0.8*height*0.7 0.8*height]);
+        drawnow
+    end
+    
 end
+
 
 end
