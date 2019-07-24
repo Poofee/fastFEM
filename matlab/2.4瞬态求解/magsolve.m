@@ -66,7 +66,7 @@ Ys = zeros(num_elements,1);
 coildomain = find(Domain == 2);%寻找线圈区域的单元
 
 CoilTurn = 225;
-Scoil = 0.36e-3;
+Scoil = 8e-3*45e-3;
 tau = CoilTurn/Scoil;
 J(coildomain) = ik(t-1);%设置线圈区域的电流密度，其他其余为0
 Ys(coildomain) = 1/3;
@@ -111,7 +111,7 @@ if step == 2
 end
 % 磁场与电路的耦合迭代
 
-for couple_iteration=1:1000
+for couple_iteration=1:10000
     % 求解电路，得到新的电流
     % 计算这一步的线圈磁通
     coilphi = 0;
@@ -127,18 +127,18 @@ for couple_iteration=1:1000
     end
     iktmp = ik1;
     ik1 = 1/3*(24)+ 1/3*((phik - coilphi)/(time(t)-time(t-1)));
-    alpha1 = 0.1;
+    alpha1 = 1e-3;
     if t > 16
-        alpha1 = 1e-2;
+        alpha1 = 1e-4;
     end
     if t > 28
-        alpha1 = 1e-3;
+        alpha1 = 1e-5;
     end
     ik1 = iktmp - alpha1*(iktmp-ik1);
     disp(['第 ',num2str(couple_iteration),' 步电流值 ',num2str(ik1),' A',' 磁通 ',num2str(coilphi)]);
     J(coildomain) = ik1;
     ik(t) = ik1;
-    if abs(ik1 - iktmp)/ik1 < 1e-4
+    if abs(ik1 - iktmp)/iktmp < 1e-6
         break;
     end
     % 磁场部分的迭代
@@ -149,7 +149,7 @@ for couple_iteration=1:1000
         for i=1:num_elements
             if find([1,3,4,5] == Domain(i))% 铁磁区域
                 dvdB = getdvdB(B(i));
-                sigma = 2e-7;
+                sigma = 1/2e-7;
             else%线性区域
                 dvdB = 0;
                 sigma = 0;% 除了铁磁区域其余不考虑
@@ -183,12 +183,7 @@ for couple_iteration=1:1000
         end
         A_old = A;
         A(freenodes) = S(freenodes,freenodes)\F1(freenodes);
-        % 判断误差
-        error = norm((A_old - A))/norm(A);
-%         disp(['迭代误差： ',num2str(error)]);
-        if error < tol
-            break;
-        end
+        
         %     下一步迭代初始化
         S = S - S;
         F1 = F1 - F1;
@@ -221,6 +216,13 @@ for couple_iteration=1:1000
         height = size(4);
         set(h,'Position',[(width-0.8*height*0.7)/2 48 0.8*height*0.7 0.8*height]);
         drawnow
+        
+        % 判断误差
+        error = norm((A_old - A))/norm(A);
+%         disp(['迭代误差： ',num2str(error)]);
+        if error < tol
+            break;
+        end
     end
     
 end
