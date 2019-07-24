@@ -1,4 +1,4 @@
-function [A,FixNL,AREA] = magsolve(mesh,deltat,Ak,step,FixNLk,ik,phik)
+function [A,FixNL,AREA,ik1] = magsolve(t,mesh,time,Ak,step,FixNLk,ik,phik)
 % 区域编号
 MAG_CIR = [1,3,4];% 磁路
 COIL = [2];% 线圈
@@ -68,7 +68,7 @@ coildomain = find(Domain == 2);%寻找线圈区域的单元
 CoilTurn = 225;
 Scoil = 0.36e-3;
 tau = CoilTurn/Scoil;
-J(coildomain) = ik;%设置线圈区域的电流密度，其他其余为0
+J(coildomain) = ik(t-1);%设置线圈区域的电流密度，其他其余为0
 Ys(coildomain) = 1/3;
 
 mu0 = 4*pi*1e-7;%空气磁导率
@@ -104,11 +104,14 @@ end
 steps = 20;
 tol = 1e-6;%收敛误差
 
+ik1 = ik(t-1);
+
 if step == 2
     return;
 end
 % 磁场与电路的耦合迭代
-for couple_iteration=1:10
+
+for couple_iteration=1:1000
     % 求解电路，得到新的电流
     % 计算这一步的线圈磁通
     coilphi = 0;
@@ -118,11 +121,26 @@ for couple_iteration=1:10
             coilphi = coilphi + sum(A(n))*AREA(j)/3;
         end
     end
-    coilphi = coilphi * 2 * pi * tau;
-    
-    ik1 = 1/3*(24 + (coilphi - phik)/deltat);
-    disp(['电流值 ',num2str(ik1),' A']);
+    coilphi = abs(coilphi * 2 * pi * tau);
+    if couple_iteration == 1
+        coilphi = phik;
+    end
+    iktmp = ik1;
+    ik1 = 1/3*(24)+ 1/3*((phik - coilphi)/(time(t)-time(t-1)));
+    alpha1 = 0.1;
+    if t > 16
+        alpha1 = 1e-2;
+    end
+    if t > 28
+        alpha1 = 1e-3;
+    end
+    ik1 = iktmp - alpha1*(iktmp-ik1);
+    disp(['第 ',num2str(couple_iteration),' 步电流值 ',num2str(ik1),' A',' 磁通 ',num2str(coilphi)]);
     J(coildomain) = ik1;
+    ik(t) = ik1;
+    if abs(ik1 - iktmp)/ik1 < 1e-4
+        break;
+    end
     % 磁场部分的迭代
     for count = 1:steps
         disp(['开始第 ',num2str(count),' 步非线性迭代']);
@@ -146,7 +164,7 @@ for couple_iteration=1:10
                     D(row,col) = D(row,col)* sum((R(i,col)*R(i,:)+Q(i,col)*Q(i,:)).*A(NL(i,:))')/4/AREA(i);
                     CE(row,col) = D(row,col) + (R(i,row)*R(i,col)+Q(i,row)*Q(i,col))/4/AREA(i)/mu(i)/ydot(i);
                     
-                    M(row,col) = sigma/ydot(i)*AREA(i)*(1/12+(row==col)*1/12)/deltat;
+                    M(row,col) = sigma/ydot(i)*AREA(i)*(1/12+(row==col)*1/12)/(time(t)-time(t-1));
 %                     bbT(row,col) = (tau*AREA(i)/3)^2*Ys(i)/deltat;
                     
                     S(NL(i,row),NL(i,col)) = S(NL(i,row),NL(i,col)) + CE(row,col) + M(row,col);
@@ -161,15 +179,13 @@ for couple_iteration=1:10
                     % 传导电流
                     F1(NL(i,row)) = F1(NL(i,row)) + J(i)*tau*AREA(i)/3;
                 end
-                
-                %             S(NL(i,row),NL(i,row)) = S(NL(i,row),NL(i,row))-(tau*AREA(i)/3)^2*Ys(i)/deltat;
             end
         end
         A_old = A;
         A(freenodes) = S(freenodes,freenodes)\F1(freenodes);
         % 判断误差
         error = norm((A_old - A))/norm(A);
-        disp(['迭代误差： ',num2str(error)]);
+%         disp(['迭代误差： ',num2str(error)]);
         if error < tol
             break;
         end
@@ -194,7 +210,7 @@ for couple_iteration=1:10
         % surf(qx,qy,qz);
         clf
         hold on
-        title('A','FontName','Times New Roman','FontSize',15);
+        title(['A,',num2str(time(t)),'s,',num2str(t),',',num2str(couple_iteration),',',num2str(count)],'FontName','Times New Roman','FontSize',15);
         set(gca,'FontName','Times New Roman','FontSize',15);
         set(gca,'FontName','Times New Roman','FontSize',15);
         contourf(qx,qy,qz,20);colorbar

@@ -59,6 +59,7 @@ m = 0.25;% 衔铁质量
 mindisp = 0;% 最小位移
 maxdisp = 6e-3;% 最大位移
 
+position_flux = [0,-5.24642361495153e-06,-2.68101213531427e-05,-7.76591015679292e-05,-0.000170930856806491,-0.000319240672326960,-0.000534628907106191,-0.000828518596095625,-0.00121214520184128,-0.00169682271387370,-0.00229491542355361,-0.00302092126264144,-0.00389287031998499,-0.00493527738685913,-0.00618519707416504,-0.00631293055523800,-0.00644349837490657,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000];
 cur_disp = 0;
 Ak = 0;
 Ak1 = 0;
@@ -69,7 +70,7 @@ for t=2:length(time)
     disp(['开始第 ',num2str(t-1),' 步迭代, 时间为 ',num2str(time(t)),' 秒']);
     % 分网
     disp('开始分网......');
-    cmd = ['gmsh.exe -setnumber disp ', num2str(cur_disp),' -2 -format msh2 model.geo '];
+    cmd = ['gmsh.exe -setnumber disp ', num2str(-position_flux(t-1)),' -2 -format msh2 model.geo '];
     [status,cmdout] = system(cmd);    
     % pause(1);
     mesh = load_gmsh2('model.msh');
@@ -78,7 +79,7 @@ for t=2:length(time)
     disp('开始求解瞬态磁场......');
     Ak = Ak1;
     FixNLk = FixNL;
-    [Ak1,FixNL,AREA] = magsolve(mesh,time(t)-time(t-1),Ak,t,FixNLk,current(t-1),phicoil(t-1));
+    [Ak1,FixNL,AREA,currentt] = magsolve(t,mesh,time,Ak,t,FixNLk,current,phicoil(t-1));
     
     disp('开始计算感应电流......');
     coilphi = 0;
@@ -90,7 +91,8 @@ for t=2:length(time)
     end
     coilphi = coilphi * 2 * pi * tau;
     phicoil(t) = coilphi;
-    disp(['线圈磁通为 ',num2str(coilphi)]);
+    current(t) = currentt;%1/3*(24 + (phicoil(t-1) - phicoil(t))/(time(t) - time(t-1)));
+    disp(['线圈磁通为 ',num2str(coilphi),' 电流为 ',num2str(current(t)),' A']);
     
     disp('开始计算衔铁上的电磁吸力......');
     
@@ -100,26 +102,30 @@ for t=2:length(time)
 end
 
 disp('开始绘制结果......');
-h=figure;
+h_result=figure;
 subplot(2,3,1);
-plot(time,displacement);
+plot(time,displacement,'*-');
 title('位移');
 hold on
 subplot(2,3,2);
-plot(time,velocity);
+plot(time,velocity,'*-');
 title('速度');
 subplot(2,3,3);
-plot(time,yForce);
+plot(time,yForce,'*-');
 title('电磁吸力');
 subplot(2,3,4);
-plot(time,current);
+plot(time,current,'*-');
 title('电流');
 subplot(2,3,5);
-plot(time,phicoil);
+plot(time,phicoil,'*-');
 title('磁通');
 subplot(2,3,6);
-plot(time,acceleration);
+plot(time,acceleration,'*-');
 title('加速度');
+
+fluxresult(h_result);
+
+set(h_result,'Position',[0 0 1 0.85],'Units','normalized');
+set(h_result,'Position',[0 0 1 0.85],'Units','normalized');
 drawnow
-set(h,'Position',[0 0 1 0.85],'Units','normalized');
-set(h,'Position',[0 0 1 0.85],'Units','normalized');
+save(datestr(now,'yyyymmddHHMM'))
