@@ -42,12 +42,12 @@ H = 0:1:100000;
 B = arrayfun(@getB,H);
 sigma = 1/2e-7;% ohm*m
 
-% figure
-% plot(H,B);
-% xlabel('H(A/m)');
-% ylabel('B(T)');
-% title('铁磁材料的B-H曲线');
-% drawnow;
+figure
+plot(H,B);
+xlabel('H(A/m)');
+ylabel('B(T)');
+title('铁磁材料的B-H曲线');
+drawnow;
 % 电路参数
 U = 24;
 Rcoil = 3;

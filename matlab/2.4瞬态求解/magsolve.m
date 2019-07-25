@@ -127,7 +127,7 @@ for couple_iteration=1:10000
     end
     iktmp = ik1;
     ik1 = 1/3*(24)+ 1/3*((phik - coilphi)/(time(t)-time(t-1)));
-    alpha1 = 1e-3;
+    alpha1 = 1e-1;
     if t > 16
         alpha1 = 1e-4;
     end
@@ -193,7 +193,8 @@ for couple_iteration=1:10000
         B = sqrt(Bx.*Bx + By.*By);
         %更新mu，只更新非线性区域
         mu(DomainNL) = B(DomainNL)./arrayfun(@getH,B(DomainNL));
-        
+        [MM,II] = min(mu(DomainNL));
+%         disp(MM);
         FF = scatteredInterpolant(X,Y,A);
         % figure
         % F = scatteredInterpolant(X,Y,A(1:num_nodes));
