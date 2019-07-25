@@ -128,6 +128,9 @@ for couple_iteration=1:10000
     iktmp = ik1;
     ik1 = 1/3*(24)+ 1/3*((phik - coilphi)/(time(t)-time(t-1)));
     alpha1 = 1e-1;
+    if t > 5
+        alpha1 = 1e-2;
+    end
     if t > 16
         alpha1 = 1e-4;
     end

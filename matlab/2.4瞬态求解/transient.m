@@ -71,7 +71,7 @@ for t=2:length(time)
     disp(['开始第 ',num2str(t-1),' 步迭代, 时间为 ',num2str(time(t)),' 秒']);
     % 分网
     disp('开始分网......');
-    cmd = ['gmsh.exe -setnumber disp ', num2str(-position_flux(t-1)),' -2 -format msh2 model.geo '];
+    cmd = ['gmsh.exe -setnumber disp ', num2str(-position_flux( t-1)),' -2 -format msh2 model.geo '];
     [status,cmdout] = system(cmd);    
     % pause(1);
     mesh = load_gmsh2('model.msh');
