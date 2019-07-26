@@ -2,7 +2,7 @@
 /* Tolerance 1e-10: 78 points / 157 curves */
 
 u = 1; 
-lc = 1e-3 ;
+lc = 1e-2 ;
 
 Point (73) = {0.04 *u, 0.025 *u, 0.056 *u, lc} ;
 Point (74) = {0.04 *u, 0.025 *u, -0.056 *u, lc} ;
