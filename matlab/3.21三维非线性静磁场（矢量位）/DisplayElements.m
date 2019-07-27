@@ -42,16 +42,19 @@ for eln = 1:TNEL
     line(X(LineZ3),Y(LineZ3),Z(LineZ3),'Color',[0 0 0]);
     line(X(LineZ4),Y(LineZ4),Z(LineZ4),'Color',[0 0 0]);
     %}
-%     Lines = [1 3 5 7 1 2 5 6 1 2 3 4;...
-%         2 4 6 8 4 3 8 7 5 6 7 8];
-    line(X([1:end,1]),Y([1:end,1]),Z([1:end,1]),'Color',[0 0 0]);
-%     text(...
-%         mean(X),...             % Places text at the average x location
-%         mean(Y),...             % Places text at the average y location
-%         mean(Z),...             % Places text at the average z location
-%         num2str(eln),...
+    Lines = [1 2 3 4 4 1;...
+             2 3 4 1 2 3];
+    line(X(Lines),Y(Lines),Z(Lines),'Color',[0 0 0]);
+    drawnow
+%     for i=1:length(X)
+%        text(...
+%         mean(X(i)),...             % Places text at the average x location
+%         mean(Y(i)),...             % Places text at the average y location
+%         mean(Z(i)),...             % Places text at the average z location
+%         num2str(i),...
 %         'EdgeColor',[0 0 0],...
-%         'FontWeight','bold');
+%         'FontWeight','bold'); 
+%     end
     
     axis equal
 end
