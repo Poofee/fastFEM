@@ -16,4 +16,6 @@ toc
 % »æÖÆ
 % DisplayNodes(mesh.POS);
 
-DisplayElements(mesh.TETS(:,1:4),mesh.POS,mesh.nbTets);
+% DisplayElements(mesh.TETS(:,1:4),mesh.POS,mesh.nbTets);
+
+DisplayEdgeSB(100,mesh.TETS(:,1:4),mesh.POS);

@@ -45,7 +45,7 @@ for eln = 1:TNEL
     Lines = [1 2 3 4 4 1;...
              2 3 4 1 2 3];
     line(X(Lines),Y(Lines),Z(Lines),'Color',[0 0 0]);
-    drawnow
+%     drawnow
 %     for i=1:length(X)
 %        text(...
 %         mean(X(i)),...             % Places text at the average x location
