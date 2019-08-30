@@ -9,7 +9,7 @@ for i=1:6
   L = norm([x(edgeMap(i,1))-x(edgeMap(i,2)),y(edgeMap(i,1))-y(edgeMap(i,2)),z(edgeMap(i,1))-z(edgeMap(i,2))]);
   W(i,:) = TetraNodalBasis(edgeMap(i,1),x,y,z,u,v,w)*dTetraNodalBasis(edgeMap(i,2),x,y,z,u,v,w)...
     -TetraNodalBasis(edgeMap(i,2),x,y,z,u,v,w)*dTetraNodalBasis(edgeMap(i,1),x,y,z,u,v,w);  
-  W(i,:) = W(i,:)/L;
+%   W(i,:) = W(i,:)/L;
 end
 
 end
