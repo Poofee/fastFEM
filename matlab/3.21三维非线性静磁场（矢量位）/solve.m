@@ -18,4 +18,7 @@ toc
 
 % DisplayElements(mesh.TETS(:,1:4),mesh.POS,mesh.nbTets);
 
-DisplayEdgeSB(100,mesh.TETS(:,1:4),mesh.POS);
+% DisplayEdgeSB(100,mesh.TETS(:,1:4),mesh.POS);
+
+verifyJ(2100,mesh.TETS(:,1:4),mesh.POS);
+

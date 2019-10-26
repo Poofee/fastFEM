@@ -10,15 +10,17 @@
 % 线圈高度：46 mm
 close all
 tic
-%% 分网
-fprintf('开始分网......\n');
-cmd = ['gmsh.exe  -3 -format msh2 coil.geo'];
-[status,cmdout] = system(cmd);
-mesh = load_gmsh2('coil.msh');
-fprintf('分网结束. 共 %d 个单元. 包括 %d 个节点, %d 个棱, %d 个三角形, %d 个四面体\n',...
-    mesh.nbElm,mesh.nbPoints,mesh.nbLines,mesh.nbTriangles,mesh.nbTets);
-toc
+%% 调用gmsh分网
+% fprintf('开始分网......\n');
+% cmd = ['gmsh.exe  -3 -format msh2 coil.geo'];
+% [status,cmdout] = system(cmd);
+% mesh = load_gmsh2('coil.msh');
+% fprintf('分网结束. 共 %d 个单元. 包括 %d 个节点, %d 个棱, %d 个三角形, %d 个四面体\n',...
+%     mesh.nbElm,mesh.nbPoints,mesh.nbLines,mesh.nbTriangles,mesh.nbTets);
+% toc
 
+%% 读取COMSOL分网
+mesh = ReadCOMSOL3D('coil.mphtxt');
 %% 绘制
 % DisplayNodes(mesh.POS);
 
@@ -36,25 +38,29 @@ mu0 = 4*pi*1e-7;%空气磁导率
 
 %% 计算单元矩阵
 volume = zeros(mesh.nbTets,1);
+% base = mesh.nbPoints+mesh.nbLines+mesh.nbTriangles;
 for i=1:mesh.nbTets
     X = mesh.POS(mesh.TETS(i,1:4),1);
     Y = mesh.POS(mesh.TETS(i,1:4),2);
     Z = mesh.POS(mesh.TETS(1,1:4),3);
     tmp = [ones(4,1),X,Y,Z];
     a = det(tmp)/6;
+%     if mesh.ELE_TAGS(base+i,2)==80
+%         continue
+%     end
 %     clf
-%     if a < 0
-% %         Lines = [1 2 3 4 4 1;...
-% %              2 3 4 1 2 3];
-% %         line(X(Lines),Y(Lines),Z(Lines),'Color',[0 0 0]);
+    if a < 0
+        Lines = [1 2 3 4 4 1;...
+             2 3 4 1 2 3];
+        line(X(Lines),Y(Lines),Z(Lines),'Color',[0 0 0]);
 %         fill3(X([1,2,3]),Y([1,2,3]),Z([1,2,3]),[0 0 1]);hold on
 %         fill3(X([1,2,4]),Y([1,2,4]),Z([1,2,4]),[0 1 1]);
 %         fill3(X([2,3,4]),Y([2,3,4]),Z([2,3,4]),[0 1 1]);
 %         fill3(X([1,3,4]),Y([1,3,4]),Z([1,3,4]),[0 1 1]);
-% %         text(X,Y,Z,{'1','2','3','4'},'Color',[1 0 0],'FontSize',24);
+%         text(X,Y,Z,{'1','2','3','4'},'Color',[1 0 0],'FontSize',24);
 %         axis equal
 %         drawnow
-%     end
+    end
     volume(i) = a;
 end
 

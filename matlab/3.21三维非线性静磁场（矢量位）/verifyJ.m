@@ -7,19 +7,34 @@
 % 误差取决于点的位置，单元的大小。当posx=100时，误差已经不超过千分之一了。所以，可以
 % 考虑将电流单元划分的越小越好，这样相对z轴就越远，误差越小。研究一下单元的长度，误差
 % 跟距离z轴的距离的大致关系。找出一个最小的理想的值。
-close all;
-posx = 1;
-lengthtet = 1e-2;
-element = [0+posx,0,0;
-           lengthtet+posx,0,0;
-           0+posx,lengthtet,0;
-           0+posx,0,lengthtet];
+% close all;
+function [maxerror] = verifyJ(i,BrickElementConnectivityTable,GlobalNodeNumbering)
+% posx = 1;
+% lengthtet = 1e-2;
+% element = [0+posx-lengthtet,posx-lengthtet,0;
+%            lengthtet+posx,posx-lengthtet,0;
+%            0+posx,posx,0;
+%            0+posx,posx-lengthtet,lengthtet];
+% 旋转
+% beta = 0;
+% rotV = [cos(beta),-sin(beta);sin(beta),cos(beta)];
+% element(:,1:2) = (rotV*element(:,1:2)')';
 % 绘制单元
 Lines = [1 2 3 4 4 1;...
     2 3 4 1 2 3];
-X = element(:,1);
-Y = element(:,2);
-Z = element(:,3);
+% X = element(:,1);
+% Y = element(:,2);
+% Z = element(:,3);
+ElementNodeXYZ = GetElementGlobalCoordinatesXYZ(...
+    i,...
+    BrickElementConnectivityTable,...
+    GlobalNodeNumbering);
+
+X = ElementNodeXYZ(:,1);    % Local node global x coordinates
+Y = ElementNodeXYZ(:,2);    % Local node global y coordinates
+Z = ElementNodeXYZ(:,3);    % Local node global z coordinates
+
+hold on
 line(X(Lines),Y(Lines),Z(Lines),'Color',[0 0 0]);
 axis equal
 hold on
@@ -32,7 +47,7 @@ ymax = max(Y);
 zmin = min(Z);
 zmax = max(Z);
 
-s = 30;
+s = 10;
 [gridx,gridy,gridz] = meshgrid(linspace(xmin,xmax,s),...
     linspace(ymin,ymax,s),...
     linspace(zmin,zmax,s));
@@ -57,17 +72,20 @@ J0 = 1;
 J = zeros(6,1);
 % 计算每一条棱的系数
 edgeMap = [1,2;2,3;3,1;1,4;2,4;3,4];
-edgeMap = fliplr(edgeMap);
+% edgeMap = fliplr(edgeMap);
+lengthtet = 0;
 for i = 1:6
-    x1 = element(edgeMap(i,1),1);
-    y1 = element(edgeMap(i,1),2);
-    z1 = element(edgeMap(i,1),3);
-    x2 = element(edgeMap(i,2),1);
-    y2 = element(edgeMap(i,2),2);
-    z2 = element(edgeMap(i,2),3);
+    x1 = X(edgeMap(i,1));
+    y1 = Y(edgeMap(i,1));
+    z1 = Z(edgeMap(i,1));
+    x2 = X(edgeMap(i,2));
+    y2 = Y(edgeMap(i,2));
+    z2 = Z(edgeMap(i,2));
     xmiddle = 0.5*(x1+x2);
     ymiddle = 0.5*(y1+y2);
     zmiddle = 0.5*(z1+z2);
+    
+    lengthtet = lengthtet + norm([x1 y1 z1]-[x2 y2 z2]);
     
     x = xmiddle + (x2-x1)*0.5.*gausspoints;
     y = ymiddle + (y2-y1)*0.5.*gausspoints;
@@ -88,6 +106,8 @@ for i = 1:6
 %     =\int (-J sintheta * (x2-x1)*0.5 + J costheta * (y2-y1)*0.5) dt
 %     -1<t<1
 end
+lengthtet = lengthtet / 6;
+maxerror = 0;
 for gridi = 1:length(gridx)
     N(1) = TetraNodalBasis(1,X,Y,Z,gridx(gridi),gridy(gridi),gridz(gridi));
     N(2) = TetraNodalBasis(2,X,Y,Z,gridx(gridi),gridy(gridi),gridz(gridi));
@@ -103,9 +123,12 @@ for gridi = 1:length(gridx)
     if abs(sum(abs(N))-1) < 1e-10
 %         A = N(2)*dN(3,:)-N(3)*dN(2,:);
         A = sum(W.*(J*ones(1,3)),1);
-        norm(A)
-        quiver3(gridx(gridi),gridy(gridi),gridz(gridi),A(1),A(2),A(3),0.05);
+        err = abs(norm(A)-1);
+        if err > maxerror
+            maxerror = err;
+        end
+        quiver3(gridx(gridi),gridy(gridi),gridz(gridi),A(1),A(2),A(3),lengthtet/s);
     end
 end
-
+disp(['最大误差：',num2str(maxerror)]);
 axis equal
