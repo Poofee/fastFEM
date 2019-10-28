@@ -43,12 +43,6 @@ CoilTag = 1;
 volume = zeros(mesh.nbTets,1);
 base = mesh.nbPoints+mesh.nbLines+mesh.nbTriangles;
 
-% plot3(mesh.POS(:,1),mesh.POS(:,2),mesh.POS(:,3),'*','MarkerSize',24);
-% for i=1:mesh.nbNod
-%     text(mesh.POS(i,1),mesh.POS(i,2),mesh.POS(i,3),num2str(i),'Color',[1 0 0],'FontSize',20);
-% end
-% axis equal
-% hold on
 for i=1:mesh.nbTets
     X = mesh.POS(mesh.TETS(i,1:4),1);
     Y = mesh.POS(mesh.TETS(i,1:4),2);
@@ -59,18 +53,6 @@ for i=1:mesh.nbTets
        disp(['警告：单元',num2str(i),'编号不规范']) 
     end
     volume(i) = a;
-%     if mesh.ELE_TAGS(base+i,2)==80
-%         Lines = [1 2 3 4 4 1;...
-%              2 3 4 1 2 3];
-%         line(X(Lines),Y(Lines),Z(Lines),'Color',[0 0 0]);
-%         fill3(X([1,2,3]),Y([1,2,3]),Z([1,2,3]),[0 0 1],'facealpha',0.5);hold on
-%         fill3(X([1,2,4]),Y([1,2,4]),Z([1,2,4]),[0 1 1],'facealpha',0.5);
-%         fill3(X([2,3,4]),Y([2,3,4]),Z([2,3,4]),[0 1 1],'facealpha',0.5);
-%         fill3(X([1,3,4]),Y([1,3,4]),Z([1,3,4]),[0 1 1],'facealpha',0.5);
-%         text(X,Y,Z,{'1','2','3','4'},'Color',[1 0 0],'FontSize',24);
-%         axis equal
-%         drawnow
-%     end
 end
 
 

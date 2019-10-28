@@ -20,5 +20,5 @@ toc
 
 % DisplayEdgeSB(100,mesh.TETS(:,1:4),mesh.POS);
 
-verifyJ(2100,mesh.TETS(:,1:4),mesh.POS);
+verifyJ(100,mesh.TETS(:,1:4),mesh.POS);
 

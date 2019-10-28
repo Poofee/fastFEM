@@ -34,6 +34,7 @@ X = ElementNodeXYZ(:,1);    % Local node global x coordinates
 Y = ElementNodeXYZ(:,2);    % Local node global y coordinates
 Z = ElementNodeXYZ(:,3);    % Local node global z coordinates
 
+%% 绘制四面体单元
 hold on
 line(X(Lines),Y(Lines),Z(Lines),'Color',[0 0 0]);
 axis equal
@@ -58,6 +59,7 @@ gridz = reshape(gridz,[numel(gridz),1]);
 N = zeros(4,1);
 dN = zeros(4,3);
 % W = zeros(6,3);
+% 高斯积分点
 ip3 = [-0.7745966692414830,0.5555555555555550;
 0.0000000000000000,0.8888888888888880;
 0.7745966692414830,0.5555555555555550];

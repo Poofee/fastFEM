@@ -45,6 +45,11 @@ for eln = 1:TNEL
     Lines = [1 2 3 4 4 1;...
              2 3 4 1 2 3];
     line(X(Lines),Y(Lines),Z(Lines),'Color',[0 0 0]);
+%         fill3(X([1,2,3]),Y([1,2,3]),Z([1,2,3]),[0 0 1],'facealpha',0.5);hold on
+%         fill3(X([1,2,4]),Y([1,2,4]),Z([1,2,4]),[0 1 1],'facealpha',0.5);
+%         fill3(X([2,3,4]),Y([2,3,4]),Z([2,3,4]),[0 1 1],'facealpha',0.5);
+%         fill3(X([1,3,4]),Y([1,3,4]),Z([1,3,4]),[0 1 1],'facealpha',0.5);
+%         text(X,Y,Z,{'1','2','3','4'},'Color',[1 0 0],'FontSize',24);
     drawnow
 %     for i=1:length(X)
 %        text(...

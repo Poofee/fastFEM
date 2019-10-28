@@ -2,6 +2,9 @@ function [] = DisplayEdgeSB(i,BrickElementConnectivityTable,GlobalNodeNumbering)
 % 20190828
 % by Poofee
 % 绘制四面体内部的棱单元形函数的分布
+% i，第i个四面体单元
+% BrickElementConnectivityTable，每个四面体单元的节点编号
+% GlobalNodeNumbering，节点坐标
 
 ElementNodeXYZ = GetElementGlobalCoordinatesXYZ(...
     i,...
