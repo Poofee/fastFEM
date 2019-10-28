@@ -48,12 +48,17 @@ for i=1:mesh.nbTets
     Y = mesh.POS(mesh.TETS(i,1:4),2);
     Z = mesh.POS(mesh.TETS(i,1:4),3);
     tmp = [ones(4,1),X,Y,Z];
-    a = det(tmp)/6;
-    if a < 0
+    volume(i) = det(tmp)/6;
+    if volume(i) < 0
+       volume(i) = - volume(i);
        disp(['警告：单元',num2str(i),'编号不规范']) 
     end
-    volume(i) = a;
 end
 
+%% 计算右侧向量
+
+%% 施加边界条件
+
+%% 求解
 
 
