@@ -39,6 +39,20 @@ mu0 = 4*pi*1e-7;%空气磁导率
 AirTag = 80;
 CoilTag = 1;
 
+%% 计算棱数目
+NT = size(mesh.TETS,1);
+totalEdge = int32([mesh.TETS(:,[1 2]); mesh.TETS(:,[1 3]); mesh.TETS(:,[1 4]); ...
+                   mesh.TETS(:,[2 3]); mesh.TETS(:,[2 4]); mesh.TETS(:,[3 4])]);
+% 对边进行排序               
+sortedTotalEdge = sort(totalEdge,2);
+% edge，全局的棱，大小NTx2，棱的起始点和结束点
+[edge,i2,j] = unique(sortedTotalEdge,'rows','legacy'); 
+elem2edge = uint32(reshape(j,NT,6));% 每个单元的6条棱的全局编号
+direction = ones(6*NT,1);
+idx = (totalEdge(:,1)>totalEdge(:,2));
+direction(idx) = -1;
+elem2edgeSign = reshape(direction,NT,6);
+
 %% 计算单元矩阵
 volume = zeros(mesh.nbTets,1);
 base = mesh.nbPoints+mesh.nbLines+mesh.nbTriangles;
@@ -48,15 +62,41 @@ for i=1:mesh.nbTets
     Y = mesh.POS(mesh.TETS(i,1:4),2);
     Z = mesh.POS(mesh.TETS(i,1:4),3);
     tmp = [ones(4,1),X,Y,Z];
+    % 计算单元体积
     volume(i) = det(tmp)/6;
     if volume(i) < 0
        volume(i) = - volume(i);
        disp(['警告：单元',num2str(i),'编号不规范']) 
     end
+    gradN = zeros(4,3);
+    gradN(1,:) = dTetraNodalBasis(1,X,Y,Z,0,0,0);
+    gradN(2,:) = dTetraNodalBasis(2,X,Y,Z,0,0,0);
+    gradN(3,:) = dTetraNodalBasis(3,X,Y,Z,0,0,0);
+    gradN(4,:) = dTetraNodalBasis(4,X,Y,Z,0,0,0);
+    % 计算 \nabla \times \mathbf{w}_{i}
+    CurlW = RotWBasis(X,Y,Z,0,0,0);
+    % 棱单元矩阵
+    Ae = CurlW*CurlW'*volume(i)/mu0;
+    % LM算子矩阵
+    Ge = [gradN(2,:)-gradN(1,:);
+          gradN(3,:)-gradN(1,:);
+          gradN(4,:)-gradN(1,:);
+          gradN(3,:)-gradN(2,:);
+          gradN(4,:)-gradN(2,:);
+          gradN(4,:)-gradN(3,:);]*...
+          [gradN(1,:);gradN(2,:);gradN(3,:);gradN(4,:)]'*volume(i)/20;
 end
 
 %% 计算右侧向量
-
+% 高斯积分
+[lambda,w] = quadpts3(2);
+nQuad = size(lambda,1);
+for i=1:mesh.nbTets
+    % 电流区域
+    if mesh.ELE_TAGS(base+i,2) == CoilTag
+        
+    end
+end
 %% 施加边界条件
 
 %% 求解
