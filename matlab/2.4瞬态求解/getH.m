@@ -2,6 +2,10 @@ function [H] = getH(B)
 if B > 3
     B = 3;
 end
+if B == 0
+    H = 0;
+    return;
+end
 % 如果H太小的话，不能用绝对误差，因为H比绝对误差还小
 error = 1e-6;
 

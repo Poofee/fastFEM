@@ -1,11 +1,16 @@
 % 20190708 By Poofee
 % 瞬态特性求解
-% 模型为FLUX例程
+% 模型为FLUX例程，
+% 弹簧压力为0
 
 % 20190707 by Poofee
 % 测试gmsh对不同位移的分网，不可压缩区域是否不变
 
-% 区域编号
+% 参考文献：
+% 1.K. Hollaus, J. Sch?berl, and H. Silm《Transient Finite Element Simulation of Non-Linear Eddy Current
+% Problems with Biot-Savart-Field of Voltage-Driven Coils》
+
+%% 区域编号
 MAG_CIR = [1,3,4];% 磁路
 COIL = [2];% 线圈
 AIR = [7];% 空气
@@ -13,7 +18,7 @@ MOBILE_AIR = [6];% 随衔铁运动的空气
 CORE = [5];% 衔铁
 INFINITE = [8];% 无穷远区域
 
-% 物理区域
+%% 物理区域
 COMPRESSIBLE_PART = [AIR,INFINITE];% 可压缩区域
 FIXED_PART = [MAG_CIR,COIL,MOBILE_AIR];% 不可移动区域
 MOBILE_PART = [CORE];% 可移动区域
@@ -21,7 +26,7 @@ FIXED_MESH = [MAG_CIR,COIL,CORE];
 
 close all;
 
-time = [0,0,0.00100000000000000,0.00200000000000000,0.00300000000000000,0.0040000000000000 0,0.00500000000000000,0.00600000000000000,0.00700000000000000,0.00800000000000000,0.00900000000000000,0.0100000000000000,0.0110000000000000,0.0120000000000000,0.0130000000000000,0.0140000000000000,0.0150000000000000,0.0151000000000000,0.0152000000000000,0.0153000000000000,0.0154000000000000,0.0155000000000000,0.0165000000000000,0.0170000000000000,0.0171000000000000,0.0172000000000000,0.0173000000000000,0.0174000000000000,0.0175000000000000,0.0185000000000000,0.0195000000000000,0.0200000000000000,0.0250000000000000,0.0300000000000000,0.0350000000000000,0.0400000000000000,0.0450000000000000,0.0500000000000000,0.0600000000000000,0.0700000000000000,0.0800000000000000,0.0900000000000000,0.100000000000000];
+time = [0,0.001,0.002,0.003,0.004,0.005,0.006,0.007,0.008,0.009,0.01,0.011,0.012,0.013,0.014,0.015,0.0151000000000000,0.0152000000000000,0.0153000000000000,0.0154000000000000,0.0155000000000000,0.0165000000000000,0.017,0.0171000000000000,0.0172000000000000,0.0173000000000000,0.0174000000000000,0.0175000000000000,0.0185000000000000,0.0195000000000000,0.02,0.025,0.03,0.035,0.04,0.045,0.05,0.06,0.07,0.08,0.09,0.1];
 % time = [0,0:1e-3:15e-3,...
 %     (15e-3+1e-4):1e-4:15.5e-3,...
 %     (15.5e-3+1e-3):1e-3:17e-3,...
@@ -37,35 +42,92 @@ yForce = zeros(length(time),1);% 电磁力
 current = zeros(length(time),1);% 电流
 phicoil = zeros(length(time),1);% 线圈的磁通
 
-% B-H曲线
+%% B-H曲线
 H = 0:1:100000;
 B = arrayfun(@getB,H);
-sigma = 1/2e-7;% ohm*m
+sigma = 1/(2e-7);% ohm*m
 
-figure
-plot(H,B);
-xlabel('H(A/m)');
-ylabel('B(T)');
-title('铁磁材料的B-H曲线');
-drawnow;
-% 电路参数
+% figure(1)
+% plot(H,B);
+% xlabel('H(A/m)');
+% ylabel('B(T)');
+% title('铁磁材料的B-H曲线');
+% drawnow;
+%% 电路参数
 U = 24;
 Rcoil = 3;
 CoilTurn = 225;
 Scoil = 8e-3*45e-3;
 tau = CoilTurn/Scoil;
 
-% 机械参数
+%% 机械参数
 m = 0.25;% 衔铁质量
 mindisp = 0;% 最小位移
 maxdisp = 6e-3;% 最大位移
 
-position_flux = [0,-5.24642361495153e-06,-2.68101213531427e-05,-7.76591015679292e-05,-0.000170930856806491,-0.000319240672326960,-0.000534628907106191,-0.000828518596095625,-0.00121214520184128,-0.00169682271387370,-0.00229491542355361,-0.00302092126264144,-0.00389287031998499,-0.00493527738685913,-0.00618519707416504,-0.00631293055523800,-0.00644349837490657,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000,-0.00650000000000000];
+position_flux = [0,-5.24642361495153e-06,-2.68101213531427e-05,-7.76591015679292e-05,-0.000170930856806491,-0.000319240672326960,-0.000534628907106191,-0.000828518596095625,-0.00121214520184128,-0.00169682271387370,-0.00229491542355361,-0.00302092126264144,-0.00389287031998499,-0.00493527738685913,-0.00618519707416504,-0.00631293055523800,-0.00644349837490657,-0.0065,-0.0065,-0.0065,-0.0065,-0.0065,-0.0065,-0.0065,-0.0065,-0.0065,-0.0065,-0.0065,-0.0065,-0.0065,-0.0065,-0.0065,-0.0065,-0.0065,-0.0065,-0.0065,-0.0065,-0.0065,-0.0065,-0.0065,-0.0065];
 cur_disp = 0;
 Ak = 0;
 Ak1 = 0;
 FixNL = 0;
-% 进行时间步循环
+
+mesh = 0;
+mesh_0 = 0;
+
+AREA = 0;
+AREA_0 = 0;
+
+FixNLIndex = 0;
+
+figure;
+axError = gca;
+axis(axError,'equal');
+title(axError,'误差');
+set(axError,'NextPlot','add');
+axError.YScale = 'log';
+axError.XLim = [0 inf];
+axError.YLim = [0 inf];
+axError.Position = [ 0.1   0.1   0.8    0.8];
+axError.DataAspectRatioMode = 'auto';
+axError.PlotBoxAspectRatioMode = 'auto';
+figure;
+axResult = gca;
+axis(axResult,'equal');
+set(axResult,'NextPlot','add');
+
+plotErrorA = plot(axError,1,1,'-*');
+
+current(1) = 1e-10;%U / Rcoil;
+
+disp('开始绘制结果......');
+h_result=figure;
+ax1 = subplot(2,3,1);set(ax1,'NextPlot','add');
+plot(ax1,time(1),displacement(1),'*-');
+title('位移');
+hold on
+ax2 = subplot(2,3,2);set(ax2,'NextPlot','add');
+plot(ax2,time(1),velocity(1),'*-');
+title('速度');
+ax3 = subplot(2,3,3);set(ax3,'NextPlot','add');
+plot(ax3,time(1),yForce(1),'*-');
+title('电磁吸力');
+ax4 = subplot(2,3,4);set(ax4,'NextPlot','add');
+plot4 = plot(ax4,time(1),current(1),'*-');
+title('电流');
+ax5 = subplot(2,3,5);set(ax5,'NextPlot','add');
+plot5 = plot(ax5,time(1),phicoil(1),'*-');
+title('磁通');
+ax6 = subplot(2,3,6);set(ax6,'NextPlot','add');
+plot(ax6,time(1),acceleration(1),'*-');
+title('加速度');
+resultAxes = [ax1,ax2,ax3,ax4,ax5,ax6];
+fluxresult(ax1,ax2,ax3,ax4,ax5,ax6);
+t=2;
+set(plot4,'XData',time(1:t),'YData',current(1:t));
+set(h_result,'Position',[0 0 1 0.85],'Units','normalized');
+set(h_result,'Position',[0 0 1 0.85],'Units','normalized');
+drawnow
+%% 进行时间步循环
 for t=2:length(time)
     disp('-----------------------------');
     disp(['开始第 ',num2str(t-1),' 步迭代, 时间为 ',num2str(time(t)),' 秒']);
@@ -74,13 +136,29 @@ for t=2:length(time)
     cmd = ['gmsh.exe -setnumber disp ', num2str(-position_flux( t-1)),' -2 -format msh2 model.geo '];
     [status,cmdout] = system(cmd);    
     % pause(1);
+    mesh_0 = mesh;
     mesh = load_gmsh2('model.msh');
     disp(['分网结束. 共 ',num2str(mesh.nbNod),' 个节点, ',num2str(mesh.nbTriangles),' 个三角单元.']);
     % 求解瞬态磁场
     disp('开始求解瞬态磁场......');
+    if t==2
+        Ak1 = zeros(mesh.nbNod,1);
+        NL = mesh.TRIANGLES(:,1:3);
+        Domain = mesh.ELE_TAGS((mesh.nbElm-mesh.nbTriangles+1):end,2);
+        FixNL = NL;
+        % 删掉空气部分，倒着删是为了不改变顺序，方便迭代
+        for idomain=length(Domain):-1:1
+            if Domain(idomain) == 6 || Domain(idomain) == 7 || Domain(idomain) == 8
+                FixNL(idomain,:) = [];
+            end
+        end
+        disp(['一共有 ',num2str(length(FixNL)),' 个固定网格'])
+    end
     Ak = Ak1;
     FixNLk = FixNL;
-    [Ak1,FixNL,AREA,currentt] = magsolve(t,mesh,time,Ak,t,FixNLk,current,phicoil(t-1));
+    AREA_0 = AREA;
+    FixNLIndexk = FixNLIndex;
+    [Ak1,FixNL,AREA,currentt,FixNLIndex] = magsolve(t,mesh,time,Ak,FixNLk,current,AREA_0,FixNLIndexk,axResult,plotErrorA);
     
     disp('开始计算感应电流......');
     coilphi = 0;
@@ -99,34 +177,9 @@ for t=2:length(time)
     
     disp('开始计算机械变量......');
     
-    
+    set(plot4,'XData',time(1:t),'YData',current(1:t));  
+    set(plot5,'XData',time(1:t),'YData',phicoil(1:t));  
+    drawnow
 end
 save(datestr(now,'yyyymmddHHMM'))
 
-disp('开始绘制结果......');
-h_result=figure;
-subplot(2,3,1);
-plot(time,displacement,'*-');
-title('位移');
-hold on
-subplot(2,3,2);
-plot(time,velocity,'*-');
-title('速度');
-subplot(2,3,3);
-plot(time,yForce,'*-');
-title('电磁吸力');
-subplot(2,3,4);
-plot(time,current,'*-');
-title('电流');
-subplot(2,3,5);
-plot(time,phicoil,'*-');
-title('磁通');
-subplot(2,3,6);
-plot(time,acceleration,'*-');
-title('加速度');
-
-fluxresult(h_result);
-
-set(h_result,'Position',[0 0 1 0.85],'Units','normalized');
-set(h_result,'Position',[0 0 1 0.85],'Units','normalized');
-drawnow

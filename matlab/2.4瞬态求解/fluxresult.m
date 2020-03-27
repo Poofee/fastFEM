@@ -1,4 +1,4 @@
-function [] = fluxresult(h)
+function [] = fluxresult(ax1,ax2,ax3,ax4,ax5,ax6)
 % 绘制flux的结果
 flux = [
 0.0	0.0
@@ -316,6 +316,7 @@ rA = [
 0.1	8.307873699045996E-9
 ];
 % FLUX积分是选择integration in the plane
+% 通过创建sensor的方式做。
 rAplane = [
 %     TIME	SENSOR_6
 0.0	0.0
@@ -363,7 +364,7 @@ rAplane = [
 ];
 acc_flux = [
 %     TIME	Mechanical set / Acceleration [MOBILE_PART] (m/s2)
-0.0	NaN
+0.0	0
 0.001	0.0
 0.002	-5.246423614951526
 0.003	-16.31727412323966
@@ -440,22 +441,22 @@ CUR = current(:,2);% FLUX当中导出的电流
 % plot(time,myspeed,'-');
 % legend('反算','FLUX');
 
-subplot(2,3,1);hold on
-plot(time,position(:,2),'*-');legend('MATLAB','FLUX');
+% subplot(2,3,1);hold on
+plot(ax1,time,position(:,2),'*-');legend(ax1,'MATLAB','FLUX');
 % title('位移');
-subplot(2,3,2);hold on
-plot(time,speed(:,2),'*-');legend('MATLAB','FLUX');
+% subplot(2,3,2);hold on
+plot(ax2,time,speed(:,2),'*-');legend(ax2,'MATLAB','FLUX');
 % title('速度');
-subplot(2,3,3);hold on
-plot(time,force(:,2),'*-');legend('MATLAB','FLUX');
+% subplot(2,3,3);hold on
+plot(ax3,time,force(:,2),'*-');legend(ax3,'MATLAB','FLUX');
 % title('电磁吸力');
-subplot(2,3,4);hold on
-plot(time,CUR,'*-');legend('MATLAB','FLUX');
+% subplot(2,3,4);hold on
+plot(ax4,time,CUR,'*-');legend(ax4,'MATLAB','FLUX');
 % title('电流');
-subplot(2,3,5);hold on
-plot(time,FLUX,'*-');legend('MATLAB','FLUX');
+% subplot(2,3,5);hold on
+plot(ax5,time,FLUX,'*-');legend(ax5,'MATLAB','FLUX');
 % title('磁通');
-subplot(2,3,6);hold on
-plot(time,acc_flux(:,2),'*-');legend('MATLAB','FLUX');
+% subplot(2,3,6);hold on
+plot(ax6,time,acc_flux(:,2),'*-');legend(ax6,'MATLAB','FLUX');
 % title('加速度');
 end

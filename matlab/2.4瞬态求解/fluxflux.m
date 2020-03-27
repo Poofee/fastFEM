@@ -393,3 +393,4 @@ for i=2:length(TIME)
 end
 plot(TIME,myspeed,'-');
 legend('反算','FLUX');
+% 验证电磁吸力公式
