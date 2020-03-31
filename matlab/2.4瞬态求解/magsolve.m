@@ -1,4 +1,4 @@
-function [A,FixNL,AREA,ik1,FixNLIndex] = magsolve(t,mesh,time,Ak,FixNLk,ik,AREA_0,FixNLIndexk,axResult,plotErrorA)
+function [A,FixNL,AREA,ik1,FixNLIndex,mu] = magsolve(t,mesh,time,Ak,FixNLk,ik,AREA_0,FixNLIndexk,muk,axResult,plotErrorA)
 % 区域编号
 MAG_CIR = [1,3,4];% 磁路
 COIL = [2];% 线圈
@@ -8,7 +8,7 @@ CORE = [5];% 衔铁
 INFINITE = [8];% 无穷远区域
 
 
-timebeta = 0.5;% 时间离散的beta值
+timebeta = 1;% 时间离散的beta值
 % 物理区域
 COMPRESSIBLE_PART = [AIR,INFINITE];% 可压缩区域
 FIXED_PART = [MAG_CIR,COIL,MOBILE_AIR];% 不可移动区域
@@ -24,7 +24,7 @@ FixNL = NL;
 % 删掉空气部分
 FixNLIndex = 1:1:length(Domain);
 for idomain=length(Domain):-1:1
-    if Domain(idomain) == 6 || Domain(idomain) == 7 || Domain(idomain) == 8
+    if isempty(find(FIXED_MESH==Domain(idomain), 1))
         FixNL(idomain,:) = [];
         FixNLIndex(idomain) = [];
     end
@@ -42,6 +42,7 @@ S = zeros(num_nodes,num_nodes);%全局矩阵
 Jacobi = zeros(num_nodes,num_nodes);
 mT = zeros(num_nodes,num_nodes);
 mS = zeros(num_nodes,num_nodes);
+mS1 = zeros(num_nodes,num_nodes);
 mD = zeros(num_nodes,1);
 F1 = zeros(num_nodes,1);
 B1 = zeros(num_nodes,1);
@@ -141,9 +142,7 @@ AlastFix = zeros(num_nodes,1);
 B = zeros(num_elements,1);
 DomainNL = 1:length(Domain);
 for idomainnl=length(Domain):-1:1
-    if find(NONLINEAR_PART == Domain(idomainnl))
-        ;
-    else
+    if isempty(find(NONLINEAR_PART == Domain(idomainnl), 1))
         DomainNL(idomainnl) = [];
     end
 end
@@ -151,8 +150,9 @@ end
 % 为了保证程序的正确，添加一个检测程序，看看是不是顺序一致。
 % 主要思路是比较面积。
 count_fix = 0;
+mulast = mu;
 for i=1:num_elements
-    if find(FIXED_MESH == Domain(i))
+    if ~isempty(find(FIXED_MESH == Domain(i), 1))
         count_fix = count_fix + 1;
         if t > 2
             if abs(AREA(i)/AREA_0(FixNLIndexk(count_fix))-1) > 1e-10
@@ -162,6 +162,7 @@ for i=1:num_elements
         for row = 1:3
             AlastFix(NL(i,row)) = Ak(FixNLk(count_fix,row)); 
         end
+        mulast(i) = muk(FixNLIndexk(count_fix));
     end
 end
 
@@ -180,27 +181,32 @@ for couple_iteration=1:steps
     mT = mT - mT;
     mD = mD -mD;
     mS = mS - mS;
+    mS1 = mS1 - mS1;
     %     装配
     for i=1:num_elements
-        if find([1,3,4,5] == Domain(i))% 铁磁区域
-            dvdB = getdvdB(B(i));
-            sigma = 1/(2e-7);
-        else%线性区域
+        if isempty(find([1,3,4,5] == Domain(i), 1))%线性区域
             dvdB = 0;
             sigma = 0;% 除了铁磁区域其余不考虑
+        else% 铁磁区域
+            dvdB = getdvdB(B(i));
+            sigma = 1/(2e-7);
         end
         for row = 1:3
             for col = 1:3
                 D(row,col) = dvdB/ydot(i)/ydot(i)/ydot(i)/AREA(i);
                 D(row,col) = D(row,col)* sum((R(i,row)*R(i,:)+Q(i,row)*Q(i,:)).*A(NL(i,:))')/4/AREA(i);
                 D(row,col) = D(row,col)* sum((R(i,col)*R(i,:)+Q(i,col)*Q(i,:)).*A(NL(i,:))')/4/AREA(i);
-                CE(row,col) = (R(i,row)*R(i,col)+Q(i,row)*Q(i,col))/4/AREA(i)/mu(i)/ydot(i);
+                CE(row,col) = (R(i,row)*R(i,col)+Q(i,row)*Q(i,col))/4/AREA(i)/ydot(i);
                 
                 M(row,col) = sigma/ydot(i)*AREA(i)*(1/12+(row==col)*1/12);
                 
-                Jacobi(NL(i,row),NL(i,col)) = Jacobi(NL(i,row),NL(i,col)) + D(row,col) + CE(row,col);
+                Jacobi(NL(i,row),NL(i,col)) = Jacobi(NL(i,row),NL(i,col)) + D(row,col) + CE(row,col)/mu(i);
                 mT(NL(i,row),NL(i,col)) = mT(NL(i,row),NL(i,col)) + M(row,col);
-                mS(NL(i,row),NL(i,col)) = mS(NL(i,row),NL(i,col)) + CE(row,col);
+                mS(NL(i,row),NL(i,col)) = mS(NL(i,row),NL(i,col)) + CE(row,col)/mu(i);
+                % 只计算感应的区域
+                if ~isempty(find(NONLINEAR_PART == Domain(i),1))
+                    mS1(NL(i,row),NL(i,col)) = mS1(NL(i,row),NL(i,col)) + CE(row,col)/mulast(i);
+                end
             end
             
             if Domain(i) == 2
@@ -214,9 +220,9 @@ for couple_iteration=1:steps
         -timebeta*mD', -deltT*timebeta^2/2/pi*3];
     S1 = -[timebeta*mS+mT/deltT, -timebeta*mD;
         -timebeta*mD', -deltT*timebeta^2/2/pi*3;];
-    S2 = [(timebeta-1)*mS+mT/deltT, -(timebeta-1)*mD;
+    S2 = [(timebeta-1)*mS1+mT/deltT, -(timebeta-1)*mD;
         -timebeta*mD', -deltT*timebeta/2/pi*(timebeta-1)*3];
-    F2 = S1*[A;ik1]+S2*[AlastFix;ik(t-1)]+[zeros(num_nodes,1);-deltT*timebeta/2/pi*24];
+    F2 = S1*[A;ik1]+S2*[AlastFix;ik(t-1)]+[zeros(num_nodes,1);-deltT*timebeta/2/pi*24-deltT*(1-timebeta)/2/pi*24];
     A_old = A;
     ik1_old = ik1;
     XX = S([freenodes;end],[freenodes;end])\F2([freenodes;end]);  
@@ -243,12 +249,7 @@ for couple_iteration=1:steps
     set(axResult,'FontName','Times New Roman','FontSize',15);
     set(axResult,'FontName','Times New Roman','FontSize',15);
     contourf(axResult,qx,qy,qz,20);colorbar(axResult);
-%     axis equal
-%     h = gcf;
-%     sizeScreen = get(0,'ScreenSize');
-%     width = sizeScreen(3);
-%     height = sizeScreen(4);
-%     set(h,'Position',[(width-0.8*height*0.7)/2 48 0.8*height*0.7 0.8*height]);
+
     % 绘制各个区域的边界
     for ie=1:size(bdEdgeCoil,1)
         line(axResult,mesh.POS(bdEdgeCoil(ie,:),1),mesh.POS(bdEdgeCoil(ie,:),2),'Color',[1 0 0],'LineStyle','-','Marker','.');
@@ -260,25 +261,18 @@ for couple_iteration=1:steps
     for ie=1:size(bdEdgeCORE,1)
         line(axResult,mesh.POS(bdEdgeCORE(ie,:),1),mesh.POS(bdEdgeCORE(ie,:),2),'Color',[1 0 0],'LineStyle','-','Marker','.');
     end
-%     axis equal
     drawnow
     
     % 判断误差
-    errorA = norm((A_old - A))/norm(A);
-    errorI = norm((ik1_old - ik1))/norm(ik1);
+    errorA = norm(([A_old;ik1_old] - [A;ik1]))/norm([A;ik1]);
     
-    if errorA < tol && errorI < tol
+    if errorA < tol
         break;
     end
     disp(['第 ',num2str(couple_iteration),' 步电流值 ',num2str(ik1),' A',' 磁通 ']);%num2str(coilphi)]
-    disp(['迭代误差： ',num2str(errorA),' ',num2str(errorI)]);
+    disp(['迭代误差： ',num2str(errorA)]);
  
-    xd = get(plotErrorA,'XData');
-    xd = [xd,length(xd)+1];
-    yd = get(plotErrorA,'YData');
-    yd = [yd,errorA];
-    set(plotErrorA,'XData',xd,'YData',yd);
-
+    set(plotErrorA,'XData',[plotErrorA.XData,length(plotErrorA.XData)+1],'YData',[plotErrorA.YData,errorA]);
     drawnow
 end
 
