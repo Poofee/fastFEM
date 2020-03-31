@@ -1,20 +1,24 @@
 function [A,FixNL,AREA,ik1,FixNLIndex,mu] = magsolve(t,mesh,time,Ak,FixNLk,ik,AREA_0,FixNLIndexk,muk,axResult,plotErrorA)
 % 区域编号
 MAG_CIR = [1,3,4];% 磁路
-COIL = [2];% 线圈
-AIR = [7];% 空气
-MOBILE_AIR = [6];% 随衔铁运动的空气
-CORE = [5];% 衔铁
-INFINITE = [8];% 无穷远区域
+COIL = 2;% 线圈
+CORE = 5;% 衔铁
 
-
+% =1的时候是后向欧拉法，目前测试是收敛的；
+% =0.5是CN法，测试是震荡的。
 timebeta = 1;% 时间离散的beta值
 % 物理区域
-COMPRESSIBLE_PART = [AIR,INFINITE];% 可压缩区域
-FIXED_PART = [MAG_CIR,COIL,MOBILE_AIR];% 不可移动区域
-MOBILE_PART = [CORE];% 可移动区域
 FIXED_MESH = [MAG_CIR,COIL,CORE];
 NONLINEAR_PART = [MAG_CIR,CORE];
+
+num_nodes = mesh.nbNod;
+num_elements = mesh.nbTriangles;
+
+ik1 = 0;
+
+A = zeros(num_nodes,1);%每个节点的磁势，轴对称情形下
+mu0 = 4*pi*1e-7;%空气磁导率
+mu = mu0*ones(num_elements,1);%保存每一个单元的磁导率，初始化为空气磁导率
 
 X = mesh.POS(:,1);
 Y = mesh.POS(:,2);
@@ -31,21 +35,15 @@ for idomain=length(Domain):-1:1
 end
 disp(['一共有 ',num2str(length(FixNL)),' 个固定网格'])
 
-num_nodes = mesh.nbNod;
-num_elements = mesh.nbTriangles;
-
 CE = zeros(3,3);      % CE --- 用来存储每个单元的系数矩阵
 D = zeros(3,3);
 M = zeros(3,3);
-bbT = zeros(3,3);
-S = zeros(num_nodes,num_nodes);%全局矩阵
+
 Jacobi = zeros(num_nodes,num_nodes);
 mT = zeros(num_nodes,num_nodes);
 mS = zeros(num_nodes,num_nodes);
 mS1 = zeros(num_nodes,num_nodes);
 mD = zeros(num_nodes,1);
-F1 = zeros(num_nodes,1);
-B1 = zeros(num_nodes,1);
 
 %AREA = zeros(num_elements,1);%三角形面积
 P = zeros(num_elements,3);
@@ -69,10 +67,11 @@ P(:,3) = XL(:,1).*YL(:,2) - XL(:,2).*YL(:,1);
 % 不知道为什么面积默认不是正的
 AREA = 0.5 * abs(Q(:,1).*R(:,2) - Q(:,2).*R(:,1));%三角形面积
 
+% if t == 2
+%     return;
+% end
 %该模型里只有5个域，域1，2为空气，域5为线圈，域3，4为铁芯。
 %这是一个线性问题。
-J = zeros(num_elements,1);%计算电流密度矩阵
-Ys = zeros(num_elements,1);
 coildomain = find(Domain == 2);%寻找线圈区域的单元
 % 注意 | 可以对矩阵进行操作 ||则不可以，会报错
 MAG_CIRdomain = find(Domain == 1 | Domain == 3 | Domain == 4);
@@ -81,11 +80,6 @@ COREdomain = find(Domain == 5);
 CoilTurn = 225;
 Scoil = 8e-3*45e-3;
 tau = CoilTurn/Scoil;
-J(coildomain) = ik(t-1);%设置线圈区域的电流密度，其他其余为0
-Ys(coildomain) = 1/3;
-
-mu0 = 4*pi*1e-7;%空气磁导率
-mu = mu0*ones(num_elements,1);%保存每一个单元的磁导率，初始化为空气磁导率
 
 % 查找非边界上的节点
 % 也就是
@@ -137,7 +131,6 @@ for i=1:num_elements
     end
 end
 % 非线性迭代
-A = zeros(num_nodes,1);%每个节点的磁势，轴对称情形下
 AlastFix = zeros(num_nodes,1);
 B = zeros(num_elements,1);
 DomainNL = 1:length(Domain);
@@ -159,17 +152,19 @@ for i=1:num_elements
                error('Mesh order Not right!'); 
             end
         end
+        % 使用上次的结果作为初值，看能不能加速
         for row = 1:3
             AlastFix(NL(i,row)) = Ak(FixNLk(count_fix,row)); 
+            A(NL(i,row)) = Ak(FixNLk(count_fix,row)); 
         end
         mulast(i) = muk(FixNLIndexk(count_fix));
+        mu(i) = muk(FixNLIndexk(count_fix));
     end
 end
+ik1 = ik(t-1);
 
 steps = 100;
 tol = 1e-6;%收敛误差
-
-ik1 = ik(t-1);
 
 % 磁场与电路的耦合迭代
 deltT = (time(t)-time(t-1));
@@ -265,15 +260,14 @@ for couple_iteration=1:steps
     
     % 判断误差
     errorA = norm(([A_old;ik1_old] - [A;ik1]))/norm([A;ik1]);
-    
-    if errorA < tol
-        break;
-    end
     disp(['第 ',num2str(couple_iteration),' 步电流值 ',num2str(ik1),' A',' 磁通 ']);%num2str(coilphi)]
     disp(['迭代误差： ',num2str(errorA)]);
  
     set(plotErrorA,'XData',[plotErrorA.XData,length(plotErrorA.XData)+1],'YData',[plotErrorA.YData,errorA]);
     drawnow
+    if errorA < tol
+        break;
+    end
 end
 
 end
