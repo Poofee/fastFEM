@@ -1,25 +1,33 @@
 % 20191025 by Poofee
 % 采用矢量棱单元法对三维静磁场进行求解
 % 求解模型为线圈产生的磁场
-
+% 20191110 by Poofee
+% 初步完成程序
 % 线圈的一些参数：
 % 线圈电压：25 V
 % 线圈匝数：1000
 % 线圈内径：16 mm
 % 线圈外径：24 mm
 % 线圈高度：46 mm
+% 20191207 by Poofee
+% 调试寻找原因，目前就是算出来的LM非常大，A非常小，不是很合理。
+% 那是不是f算错了？
 close all
 clear all
-tic
+t0 = cputime;
 %% 调用gmsh分网
 fprintf('开始分网......\n');
 cmd = 'gmsh.exe  -3 -format msh2 coil.geo';
 [status,cmdout] = system(cmd);
+if status == 1
+    fprintf('未找到gmsh，请将gmsh.exe添加到PATH或者放置到当前目录.\n');
+end
 mesh = load_gmsh2('coil.msh');
-fprintf('分网结束. 共 %d 个单元. 包括 %d 个节点, %d 个棱, %d 个三角形, %d 个四面体\n',...
-    mesh.nbElm,mesh.nbPoints,mesh.nbLines,mesh.nbTriangles,mesh.nbTets);
-toc
-
+mesht = cputime;
+fprintf('分网结束. 共 %d 个单元. 包括 %d 个节点, %d 个棱, %d 个三角形, %d 个四面体，用时 %.2f 秒\n',...
+    mesh.nbElm,mesh.nbPoints,mesh.nbLines,mesh.nbTriangles,mesh.nbTets,mesht-t0);
+% 读取domain信息
+Domain = mesh.ELE_TAGS((mesh.nbElm-mesh.nbTets+1):end,2);
 %% 读取COMSOL分网
 % mesh = ReadCOMSOL3D('coil.mphtxt');
 %% 绘制
@@ -30,12 +38,14 @@ toc
 % DisplayEdgeSB(100,mesh.TETS(:,1:4),mesh.POS);
 
 %% 物理参数
-Ucoil = 25;%线圈电压
-Ncoil = 1000;%线圈匝数
-Rc = 10;%线圈电阻
-Scoil = 0.46 * (0.24 - 0.16);%线圈面积
-Js = Ncoil*Ucoil/Rc/Scoil;%线圈电流密度
+disp('设置参数...');
+Ucoil = 20;%线圈电压
+Ncoil = 3000;%线圈匝数
+Rc = 1;%线圈电阻
+Scoil = 0.046 * (0.024 - 0.016);%线圈面积
+mu = 1;
 mu0 = 4*pi*1e-7;%空气磁导率
+Js = Ncoil*Ucoil/Rc/Scoil;%线圈电流密度，乘上mu0是为了方便计算
 AirTag = 80;
 CoilTag = 1;
 
@@ -44,7 +54,7 @@ NT = size(mesh.TETS,1);% 单元数目
 Nn = size(mesh.POS,1);% 节点数目
 % 生成单元中所有的棱，顺序编号按照...
 totalEdge = int32([mesh.TETS(:,[1 2]); mesh.TETS(:,[1 3]); mesh.TETS(:,[1 4]); ...
-                   mesh.TETS(:,[2 3]); mesh.TETS(:,[2 4]); mesh.TETS(:,[3 4])]);
+                   mesh.TETS(:,[2 3]); mesh.TETS(:,[4 2]); mesh.TETS(:,[3 4])]);
 % 对边的节点编号进行处理，从低到高               
 sortedTotalEdge = sort(totalEdge,2);
 % edge，全局的棱，大小NTx2，棱的起始点和结束点
@@ -75,41 +85,63 @@ MM = zeros(24*NT,1);% 保存对应的M值
 % 高斯积分
 [lambda,w] = quadpts3(2);
 nQuad = size(lambda,1);
-locEdge = [1 2;1 3;1 4;2 3;2 4;3 4;];
+% 编号的顺序好像很重要
+locEdge = [1 2;1 3;1 4;2 3;4 2;3 4;];
 bt = zeros(NT,6);
 
 tmpIndex = 0;
+mesh.POS = mesh.POS/1000;% gmsh的数据单位似乎是mm
+fprintf('开始单元矩阵计算...\n');
 for i=1:mesh.nbTets
     X = mesh.POS(mesh.TETS(i,1:4),1);
     Y = mesh.POS(mesh.TETS(i,1:4),2);
     Z = mesh.POS(mesh.TETS(i,1:4),3);
-    tmp = [ones(4,1),X,Y,Z];
+    
     % 计算单元体积
+    tmp = [ones(4,1),X,Y,Z];
     volume(i) = det(tmp)/6;
     if volume(i) < 0
        volume(i) = - volume(i);
-       disp(['警告：单元',num2str(i),'编号不规范']) 
+       fprintf('警告：单元%d编号不规范\n',i);
     end
+    % 展开验证
+    D = - X(1)*Y(2)*Z(3) + X(1)*Y(2)*Z(4) + X(1)*Y(3)*Z(2)...
+        - X(1)*Y(3)*Z(4) - X(1)*Y(4)*Z(2) + X(1)*Y(4)*Z(3)...
+        + X(2)*Y(1)*Z(3) - X(2)*Y(1)*Z(4) - X(2)*Y(3)*Z(1)...
+        + X(2)*Y(3)*Z(4) + X(2)*Y(4)*Z(1) - X(2)*Y(4)*Z(3)...
+        - X(3)*Y(1)*Z(2) + X(3)*Y(1)*Z(4) + X(3)*Y(2)*Z(1)...
+        - X(3)*Y(2)*Z(4) - X(3)*Y(4)*Z(1) + X(3)*Y(4)*Z(2)...
+        + X(4)*Y(1)*Z(2) - X(4)*Y(1)*Z(3) - X(4)*Y(2)*Z(1)...
+        + X(4)*Y(2)*Z(3) + X(4)*Y(3)*Z(1) - X(4)*Y(3)*Z(2) ;
+    edgeVector = [X(locEdge)*[-1;1],Y(locEdge)*[-1;1],Z(locEdge)*[-1;1]];
+    % 另外一种计算体积的方法，利用向量 
+    D1 = dot(cross(edgeVector(1,:),edgeVector(2,:)),edgeVector(3,:));
+    % 计算棱长    
+    eleLen = vecnorm(edgeVector,2,2);
+    % 计算梯度
     gradN = zeros(4,3);
     gradN(1,:) = dTetraNodalBasis(1,X,Y,Z,0,0,0);
     gradN(2,:) = dTetraNodalBasis(2,X,Y,Z,0,0,0);
     gradN(3,:) = dTetraNodalBasis(3,X,Y,Z,0,0,0);
     gradN(4,:) = dTetraNodalBasis(4,X,Y,Z,0,0,0);
+    % 计算梯度方法二：见 https://www.iue.tuwien.ac.at/phd/nentchev/node31.html
+    gradN1 = zeros(4,3);
+    gradN1(1,:) = cross(edgeVector(4,:),edgeVector(5,:))/D;
+    gradN1(2,:) = cross(edgeVector(2,:),edgeVector(3,:))/D;
+    gradN1(3,:) = cross(edgeVector(3,:),edgeVector(1,:))/D;
+    gradN1(4,:) = cross(edgeVector(1,:),edgeVector(2,:))/D;
+ 
     % 计算 \nabla \times \mathbf{w}_{i}
-    CurlW = RotWBasis(X,Y,Z,0,0,0);
+    CurlW = RotWBasis(X,Y,Z,0,0,0).*(eleLen*ones(1,3));
+    % 计算旋度方法二： https://www.iue.tuwien.ac.at/phd/nentchev/node41.html
+    CurlW1 = eleLen*ones(1,3).*edgeVector(end:-1:1,:)*2/D1;
     % 棱单元矩阵，大小为6*6
     Ae = CurlW*CurlW'*volume(i)/mu0;
     % LM算子矩阵，大小为6*4
-    Ge = [gradN(2,:)-gradN(1,:);
-          gradN(3,:)-gradN(1,:);
-          gradN(4,:)-gradN(1,:);
-          gradN(3,:)-gradN(2,:);
-          gradN(4,:)-gradN(2,:);
-          gradN(4,:)-gradN(3,:);]*...
-         [gradN(1,:);gradN(2,:);gradN(3,:);gradN(4,:)]'*volume(i)/20;
+    Ge = (gradN(locEdge(:,2),:)-gradN(locEdge(:,1),:))*gradN(1:4,:)'*volume(i)/4.*(eleLen*ones(1,4));
     % 保存A的位置矩阵
-    for cols=1:6
-       for rows=cols:6
+    for rows=1:6
+       for cols=rows:6
            tmpIndex = tmpIndex + 1;
            rowAIndex(tmpIndex) = elem2edge(i,rows);
            colAIndex(tmpIndex) = elem2edge(i,cols);
@@ -125,35 +157,40 @@ for i=1:mesh.nbTets
            MM(Mindex) = Ge(rows,cols);
        end
     end
-    % 右侧向量
-    for p = 1:nQuad
-        % 计算积分坐标
-        pxyz = lambda(p,1)*mesh.POS(mesh.TETS(i,1),:)...
-            +  lambda(p,2)*mesh.POS(mesh.TETS(i,2),:)...
-            +  lambda(p,3)*mesh.POS(mesh.TETS(i,3),:)...
-            +  lambda(p,4)*mesh.POS(mesh.TETS(i,4),:);
-        % 计算点pxyz处的电流密度
-        Jp = [0,0,0];        
-        if mesh.ELE_TAGS(base+i,2) == CoilTag
-            % 计算角度
-            costheta = pxyz(1)/norm([pxyz(1),pxyz(2)]);
-            if pxyz(2) > 0
+    if Domain(i) == 1
+        % 计算线圈区域的右侧向量
+        for p = 1:nQuad
+            % 计算积分坐标
+            pxyz = ones(1,4)*(repmat(lambda(p,:)',1,3).*mesh.POS(mesh.TETS(i,1:4),:));
+            % 计算点pxyz处的电流密度
+            Jp = [0,0,0];
+            if mesh.ELE_TAGS(base+i,2) == CoilTag
+                % 计算角度
+                costheta = pxyz(1)/norm(pxyz(1:2));
                 sintheta = sqrt(1-costheta*costheta);
-            else
-                sintheta = -sqrt(1-costheta*costheta);
+                if pxyz(2) < 0
+                    sintheta = -sintheta;
+                end
+                Jp = Js*[-sintheta,costheta,0];
             end
-            Jp = Js*[-sintheta,costheta,0];
-        end
-        for k=1:6
-            a1 = locEdge(k,1);
-            a2 = locEdge(k,2);
-            phi_k = lambda(p,a1)*gradN(a2,:)-lambda(p,a2)*gradN(a1,:);
-            rhs = dot(phi_k,Jp);
-            bt(i,k) = bt(i,k) + w(p)*rhs;
+%             figure(2);
+%             quiver3(pxyz(1),pxyz(2),pxyz(3),Jp(1),Jp(2),Jp(3),1/Js*mean(eleLen));
+%             axis equal
+%             drawnow
+%             hold on;
+            % 进行高斯积分
+            for k=1:6
+                a1 = locEdge(k,1);
+                a2 = locEdge(k,2);
+                phi_k = lambda(p,a1)*gradN(a2,:)-lambda(p,a2)*gradN(a1,:);
+                phi_k = phi_k * eleLen(k);
+                rhs = dot(phi_k,Jp,2);
+                bt(i,k) = bt(i,k) + w(p)*rhs;
+            end
         end
     end
 end
-
+fprintf('开始进行矩阵装配...\n');
 % 构造稀疏矩阵
 % 对角线上的元素与上三角元素
 diagAIndex = (rowAIndex == colAIndex);
@@ -168,6 +205,7 @@ bt = bt.*repmat(volume,1,6);
 f = accumarray(elem2edge(:),bt(:),[Ne 1]);
 
 %% 施加边界条件
+fprintf('开始设置边界条件...\n');
 % 一般求解的时候，不需要特别的设置边界条件，因为有一个默认的几何边界，那么为了
 % 设置边界，就需要找出这个边界。以前的思路是拿几何尺寸来判断，缺点就是你必须知道
 % 边界的形状和尺寸，非常不方便。但是，再想一下，如果一个单元是边界，二维的时候，
@@ -188,16 +226,30 @@ bdFlag(bdFaceidx) = 1;% Dirichlet边界条件
 bdFlag = reshape(bdFlag,NT,4);% 转换为对应的单元形式
 % 查找边界棱和节点
 isBdEdge = false(Ne,1);
-isBdNode = false(Nn,1);
+isBdNode = true(Nn,1);
+% 由于编号问题，POS变量保存的点并不全是分网节点
+allNode = mesh.TETS(:,1:4);
+allNode = allNode(:);
+uniNode = unique(allNode);
+isBdNode(uniNode) = false;% 找到全部分网节点
+% 将边界面上的点设为边界点
 isBdEdge(elem2edge(bdFlag(:,1) == 1,[4,5,6])) = true;
 isBdEdge(elem2edge(bdFlag(:,2) == 1,[2,3,6])) = true;
 isBdEdge(elem2edge(bdFlag(:,3) == 1,[1,3,5])) = true;
 isBdEdge(elem2edge(bdFlag(:,4) == 1,[1,2,4])) = true;
-bdEdge = edge(isBdEdge,:);% 将二维数组转换为向量
+bdEdge = edge(isBdEdge,:);
 isBdNode(bdEdge) = true;% 标记边界节点
+% 绘制边界，验证
+hold on
+for i=1:size(bdEdge,1)
+    line(mesh.POS(bdEdge(i,:),1),mesh.POS(bdEdge(i,:),2),mesh.POS(bdEdge(i,:),3),'Color',[0 0 0]);
+end
+DisplayNodes(mesh.POS(isBdNode,:));
+view(45,atan(1/sqrt(2))*180/pi);
 % 未知的变量
 freeEdge = find(~isBdEdge);
 freeNode = find(~isBdNode);
+fprintf('自由棱数目为%d,自由节点数目为%d\n',size(freeEdge,1),size(freeNode,1));
 % 设置Neumann边界条件
 
 % 设置Dirichlet边界条件
@@ -209,14 +261,95 @@ if ~isempty(bdEdge)
 end
 g0 = -M'*u;
 %% 求解
+fprintf('开始求解...\n');
 % reduce to free dofs
 A  = A(freeEdge,freeEdge);
 M  = M(freeEdge,freeNode);
 f = f(freeEdge);
 g0 = g0(freeNode);
 Ni = size(freeNode,1);
+Nei = size(freeEdge,1);
 bigA = [A M;...
         M' sparse(Ni,Ni)];
-tmp = bigA\[f;g0];
-
+fprintf('矩阵bigA的秩为%d,条件数为%d,大小为%d\n',sprank(bigA),condest(bigA),size(bigA,1));
+sols = bigA\[f;g0];
+% 检查误差
+p = zeros(Nn,1);
+u(freeEdge) = sols(1:Nei);% 磁场的解
+p(freeNode) = sols(Nei+1:Nei+Ni);
+residual = norm([f;g0] - bigA*sols);
+fprintf('反算误差为%f\n',residual);
+% 检查Lagrange multiplier是否正确，正确范围是多少？
+% LM算子是额外引入的，应该有M*p(freeNode)=0，这样才不会影响
+% 原来的式子的结果。                
+normp = norm(p);
+if(normp>1.0/Nn)
+    fprintf('Lagrange multiplier大小为%f\n,计算结果不对\n',normp);
+end
 %% 输出求解结果
+fprintf('绘制求解结果...\n');
+% 显示线圈区域的A的矢量分布，理论上是没有z分量
+Aplot = figure;
+for i=1:mesh.nbTets
+    X = mesh.POS(mesh.TETS(i,1:4),1);
+    Y = mesh.POS(mesh.TETS(i,1:4),2);
+    Z = mesh.POS(mesh.TETS(i,1:4),3);
+    if mesh.ELE_TAGS(base+i,2) ~= CoilTag
+        continue;
+    end
+    Lines = [1 2 3 4 4 1;...
+             2 3 4 1 2 3];
+%     line(X(Lines),Y(Lines),Z(Lines),'Color',[0 0 0]);
+    edgeVector = [X(locEdge)*[-1;1],Y(locEdge)*[-1;1],Z(locEdge)*[-1;1]];
+    % 计算棱长    
+    eleLen = vecnorm(edgeVector,2,2);
+    hold on;
+    % 获取6条棱的结果
+    Ai = u(elem2edge(i,:));
+    % 四面体的边界
+    xmin = min(X);
+    xmax = max(X);
+    ymin = min(Y);
+    ymax = max(Y);
+    zmin = min(Z);
+    zmax = max(Z);
+    
+    % 生成四面体内的网格
+    s = 3;
+    [gridx,gridy,gridz] = meshgrid(linspace(xmin,xmax,s),...
+        linspace(ymin,ymax,s),...
+        linspace(zmin,zmax,s));
+    gridx = reshape(gridx,[numel(gridx),1]);
+    gridy = reshape(gridy,[numel(gridy),1]);
+    gridz = reshape(gridz,[numel(gridz),1]);
+    lengthtet = mean(eleLen);
+    maxerror = 0;
+    % 绘制网格中每个点的箭头
+    for gridi = 1:length(gridx)
+        N(1) = TetraNodalBasis(1,X,Y,Z,gridx(gridi),gridy(gridi),gridz(gridi));
+        N(2) = TetraNodalBasis(2,X,Y,Z,gridx(gridi),gridy(gridi),gridz(gridi));
+        N(3) = TetraNodalBasis(3,X,Y,Z,gridx(gridi),gridy(gridi),gridz(gridi));
+        N(4) = TetraNodalBasis(4,X,Y,Z,gridx(gridi),gridy(gridi),gridz(gridi));
+        
+        dN(1,:) = dTetraNodalBasis(1,X,Y,Z);
+        dN(2,:) = dTetraNodalBasis(2,X,Y,Z);
+        dN(3,:) = dTetraNodalBasis(3,X,Y,Z);
+        dN(4,:) = dTetraNodalBasis(4,X,Y,Z);
+        W = WBasis(X,Y,Z,gridx(gridi),gridy(gridi),gridz(gridi)).*(eleLen*ones(1,3));
+        
+        % 判断点是否在四面体内
+        if abs(sum(abs(N))-1) < 1e-10
+            % 计算磁势A
+            Aee = sum(W.*(Ai*ones(1,3)),1);
+%             figure(Aplot);
+            quiver3(gridx(gridi),gridy(gridi),gridz(gridi),Aee(1),Aee(2),Aee(3),lengthtet/norm(Aee)/s);
+            drawnow
+            hold on;
+        end
+    end
+end
+title('线圈内磁势A的分布');
+axis equal
+% 显示线圈区域的B的矢量分布
+Bplot = figure;
+title('线圈内磁感应强度B的分布');

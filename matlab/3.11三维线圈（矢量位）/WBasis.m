@@ -3,7 +3,7 @@ function [W] = WBasis(x,y,z,u,v,w)
 % by Poofee
 % 计算向量形函数
 % 棱的定义：l1=12,l2=23,l3=31,l4=14,l5=24,l6=34
-edgeMap = [1,2;2,3;3,1;1,4;2,4;3,4];
+edgeMap = [1,2;1,3;1,4;2,3;4,2;3,4];
 W = zeros(6,3);
 for i=1:6
   L = norm([x(edgeMap(i,1))-x(edgeMap(i,2)),y(edgeMap(i,1))-y(edgeMap(i,2)),z(edgeMap(i,1))-z(edgeMap(i,2))]);

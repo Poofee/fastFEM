@@ -2,7 +2,7 @@ function DisplayNodes(GlobalNodeNumbering)
 x = GlobalNodeNumbering(:,1);
 y = GlobalNodeNumbering(:,2);
 z = GlobalNodeNumbering(:,3);
-plot3(x,y,z,'.r','MarkerSize',14)
+% plot3(x,y,z,'.r','MarkerSize',14)
 hold on;
 
 % for node = 1:length(GlobalNodeNumbering(:,1))
@@ -19,4 +19,4 @@ xlabel('x');
 ylabel('y');
 zlabel('z');
 axis equal
-title('Generated Nodes');
+title('Nodes');

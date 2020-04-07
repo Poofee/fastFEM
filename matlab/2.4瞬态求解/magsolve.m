@@ -105,7 +105,7 @@ isbdNode(totalEdge(bdEdgeIndex,:)) = true;
 
 freenodes = find(~isbdNode);
 
-bdEdge = totalEdge(bdEdgeIndex,:);
+% bdEdge = totalEdge(bdEdgeIndex,:);
 % for i=1:size(bdEdge,1)
 %     line(mesh.POS(bdEdge(i,:),1),mesh.POS(bdEdge(i,:),2),'Color',[0 0 0],'LineStyle','-','Marker','*');
 % end

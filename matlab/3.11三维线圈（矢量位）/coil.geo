@@ -11,15 +11,15 @@ DefineConstant
 
 // tube
 p = newp;
-Point(p) = {0, 0, -ht/2, lc};
-Point(p+1) = {rt1, 0, -ht/2, lc};
-Point(p+2) = {0, rt1, -ht/2, lc};
-Point(p+3) = {-rt1, 0, -ht/2, lc};
-Point(p+4) = {0, -rt1, -ht/2, lc};
-Point(p+5) = {rt2, 0, -ht/2, lc};
-Point(p+6) = {0, rt2, -ht/2, lc};
-Point(p+7) = {-rt2, 0, -ht/2, lc};
-Point(p+8) = {0, -rt2, -ht/2, lc};
+Point(p) = {0, 0, -ht/2,lc};
+Point(p+1) = {rt1, 0, -ht/2,lc};
+Point(p+2) = {0, rt1, -ht/2,lc};
+Point(p+3) = {-rt1, 0, -ht/2,lc};
+Point(p+4) = {0, -rt1, -ht/2,lc};
+Point(p+5) = {rt2, 0, -ht/2,lc};
+Point(p+6) = {0, rt2, -ht/2,lc};
+Point(p+7) = {-rt2, 0, -ht/2,lc};
+Point(p+8) = {0, -rt2, -ht/2,lc};
 c = newl;
 Circle(c) = {p+1, p, p+2};
 Circle(c+1) = {p+2, p, p+3};

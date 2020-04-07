@@ -49,10 +49,10 @@ for i = 1:10
        textcount = textcount+1;
     end
     if textcount > 7
-        plot(ua, ia,'or','MarkerSize',0.2,'markerfacecolor', 'black','MarkerEdgeColor', 'black');
+        plot(ua, ia,'o','MarkerSize',0.2,'markerfacecolor', 'black','MarkerEdgeColor', 'black');
         line([ub,ua],[ib,ia],'LineWidth',0.1,'Color','k','LineStyle','-')
     else
-        plot(ua, ia,'or','MarkerSize',1,'markerfacecolor', 'black','MarkerEdgeColor', 'black');
+        plot(ua, ia,'o','MarkerSize',1.6,'markerfacecolor', 'black','MarkerEdgeColor', 'black');
         line([ub,ua],[ib,ia],'LineWidth',0.4,'Color','k','LineStyle',':')
     end
 %     line([0,ub],[-2*Ui/Z0,ib],'LineWidth',1,'Color','r','LineStyle','--')
@@ -96,10 +96,10 @@ for i = 1:10
        textcount = textcount+1;
     end
     if textcount > 7
-        plot(ub,ib,'or','MarkerSize',0.2,'markerfacecolor','black','MarkerEdgeColor', 'black');
+        plot(ub,ib,'o','MarkerSize',0.2,'markerfacecolor','black','MarkerEdgeColor', 'black');
         line([ua,ub],[ia,ib],'LineWidth',0.1,'Color','k','LineStyle','-')
     else
-        plot(ub,ib,'or','MarkerSize',1,'markerfacecolor','black','MarkerEdgeColor', 'black');
+        plot(ub,ib,'o','MarkerSize',1.6,'markerfacecolor','black','MarkerEdgeColor', 'black');
         line([ua,ub],[ia,ib],'LineWidth',0.4,'Color','k','LineStyle',':')
     end
 %     line([0,ua],[2*Ur/Z0,ia],'LineWidth',1,'Color','r','LineStyle','--')
