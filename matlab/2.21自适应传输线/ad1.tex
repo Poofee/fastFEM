@@ -1,0 +1,362 @@
+\documentclass{standalone}
+\usepackage{pgfplots}
+\usepackage{tikz}
+\pgfplotsset{compat=newest}
+\usetikzlibrary{calc,intersections}  
+\usetikzlibrary{arrows,shapes,positioning}
+\usetikzlibrary{decorations.markings}
+\usetikzlibrary{spy,shadows}
+\tikzset{spy using overlaysshadow/.style={
+		spy scope={#1,
+			every spy on node/.style={
+				circle,
+				fill, fill opacity=0.2, text opacity=1
+			},
+			every spy in node/.style={
+				circle, circular drop shadow,
+				fill=white, draw, ultra thick, cap=round
+			}
+		}
+	}
+}
+\begin{document}
+\tikzset{
+	name path global/.append code={%
+		\csname tikz@addmode\endcsname{%
+			\pgfgetpath\tmp%
+			\expandafter\global\expandafter\let\csname tikz@intersect@path@name@#1\endcsname=\tmp%
+		}%
+	}%
+}  
+\begin{tikzpicture}[spy using overlaysshadow={
+	magnification=3, 
+	size=1.5cm, 
+	connect spies}
+]
+\tikzstyle directed=[decoration={markings,
+		mark=at position .5 with {\arrow{stealth}}}]
+\begin{axis}
+[
+width=7.2cm,
+height=6cm,
+name=firstaxis, 
+domain=-0.5:11, 
+xmin=-0.5, xmax=11, 
+ymin=-5, ymax=220, 
+enlargelimits=false,
+axis line style={draw=none},
+ticks=none,
+scale only axis%使width生效
+]
+\addplot[name path global=voltage,smooth,blue,line width=0.5pt]{(10-x)/0.05};
+\addplot[name path global=R,smooth,red,line width=0.5pt]{x^3/5};
+
+% Draw intersections points
+%\fill [black, name intersections={of=voltage and R}] (intersection-1) circle [radius=1pt];  
+%\def \n {10};
+%\def \Z0 {0.01};
+%\foreach \s in {1,...,\n}
+%{
+%    \addplot [-stealth] coordinates {(\s, 2)(\s, 200)};
+%}	
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+\node[right, align=left]
+at (axis cs:9.524,9.524) {1};
+\addplot [ draw=none, mark size=0.5pt, mark=*, mark options={solid, fill=black, black}]
+table[row sep=crcr]{%
+	9.52380952380952	9.52380952380953\\
+};
+
+
+\addplot [postaction={decorate},directed,color=gray, dotted, line width=0.4pt]
+table[row sep=crcr]{%
+	0	0\\
+	9.52380952380952	9.52380952380953\\
+};
+
+
+\node[left, align=left]
+at (axis cs:4.203,14.845) {2};
+\addplot [ draw=none, mark size=0.5pt, mark=*, mark options={solid, fill=black, black}]
+table[row sep=crcr]{%
+	4.20258996376083	14.8450290838582\\
+};
+
+
+\addplot [postaction={decorate},directed,color=gray, dotted, line width=0.4pt]
+table[row sep=crcr]{%
+	9.52380952380952	9.52380952380953\\
+	4.20258996376083	14.8450290838582\\
+};
+
+
+\node[right, align=left]
+at (axis cs:9.017,19.659) {3};
+\addplot [ draw=none, mark size=0.5pt, mark=*, mark options={solid, fill=black, black}]
+table[row sep=crcr]{%
+	9.01702670856679	19.6594658286642\\
+};
+
+
+\addplot [postaction={decorate},directed,color=gray, dotted, line width=0.4pt]
+table[row sep=crcr]{%
+	4.20258996376083	14.8450290838582\\
+	9.01702670856679	19.6594658286642\\
+};
+
+
+\node[left, align=left]
+at (axis cs:5.192,27.998) {4};
+\addplot [ draw=none, mark size=0.5pt, mark=*, mark options={solid, fill=black, black}]
+table[row sep=crcr]{%
+	5.19238202740738	27.9981869887778\\
+};
+
+
+\addplot [postaction={decorate},directed,color=gray, dotted, line width=0.4pt]
+table[row sep=crcr]{%
+	9.01702670856679	19.6594658286642\\
+	5.19238202740738	27.9981869887778\\
+};
+
+
+\node[right, align=left]
+at (axis cs:8.438,31.244) {5};
+\addplot [ draw=none, mark size=0.5pt, mark=*, mark options={solid, fill=black, black}]
+table[row sep=crcr]{%
+	8.43781881136331	31.2436237727337\\
+};
+
+
+\addplot [postaction={decorate},directed,color=gray, dotted, line width=0.4pt]
+table[row sep=crcr]{%
+	5.19238202740738	27.9981869887778\\
+	8.43781881136331	31.2436237727337\\
+};
+
+
+\node[left, align=left]
+at (axis cs:5.882,40.706) {6};
+\addplot [ draw=none, mark size=0.5pt, mark=*, mark options={solid, fill=black, black}]
+table[row sep=crcr]{%
+	5.88225886812369	40.7063718099064\\
+};
+
+
+\addplot [postaction={decorate},directed,color=gray, dotted, line width=0.4pt]
+table[row sep=crcr]{%
+	8.43781881136331	31.2436237727337\\
+	5.88225886812369	40.7063718099064\\
+};
+
+
+\node[right, align=left]
+at (axis cs:7.866,42.69) {7};
+\addplot [ draw=none, mark size=0.1pt, mark=*, mark options={solid, fill=black, black}]
+table[row sep=crcr]{%
+	7.86551843134368	42.6896313731264\\
+};
+
+
+\addplot [postaction={decorate},directed,color=gray, line width=0.1pt]
+table[row sep=crcr]{%
+	5.88225886812369	40.7063718099064\\
+	7.86551843134368	42.6896313731264\\
+};
+
+
+\node[left, align=left]
+at (axis cs:6.34,50.969) {8};
+\addplot [ draw=none, mark size=0.1pt, mark=*, mark options={solid, fill=black, black}]
+table[row sep=crcr]{%
+	6.34004300968374	50.969058087063\\
+};
+
+
+\addplot [postaction={decorate},directed,color=gray,  line width=0.1pt]
+table[row sep=crcr]{%
+	7.86551843134368	42.6896313731264\\
+	6.34004300968374	50.969058087063\\
+};
+
+
+\node[right, align=left]
+at (axis cs:7.399,52.028) {9};
+\addplot [ draw=none, mark size=0.1pt, mark=*, mark options={solid, fill=black, black}]
+table[row sep=crcr]{%
+	7.39861832964861	52.0276334070279\\
+};
+
+
+\addplot [postaction={decorate},directed,color=gray,  line width=0.1pt]
+table[row sep=crcr]{%
+	6.34004300968374	50.969058087063\\
+	7.39861832964861	52.0276334070279\\
+};
+
+
+\addplot [ draw=none, mark size=0.1pt, mark=*, mark options={solid, fill=black, black}]
+table[row sep=crcr]{%
+	6.60435062411722	57.612982883001\\
+};
+
+
+\addplot [postaction={decorate},directed,color=gray, line width=0.1pt]
+table[row sep=crcr]{%
+	7.39861832964861	52.0276334070279\\
+	6.60435062411722	57.612982883001\\
+};
+
+
+\addplot [ draw=none, mark size=0.1pt, mark=*, mark options={solid, fill=black, black}]
+table[row sep=crcr]{%
+	7.09482703529125	58.103459294175\\
+};
+
+
+\addplot [color=gray, line width=0.1pt]
+table[row sep=crcr]{%
+	6.60435062411722	57.612982883001\\
+	7.09482703529125	58.103459294175\\
+};
+
+
+\addplot [ draw=none, mark size=0.1pt, mark=*, mark options={solid, fill=black, black}]
+table[row sep=crcr]{%
+	6.73358922707559	61.0618353307959\\
+};
+
+
+\addplot [color=gray, line width=0.1pt]
+table[row sep=crcr]{%
+	7.09482703529125	58.103459294175\\
+	6.73358922707559	61.0618353307959\\
+};
+
+
+\addplot [ draw=none, mark size=0.1pt, mark=*, mark options={solid, fill=black, black}]
+table[row sep=crcr]{%
+	6.93675018553713	61.2649962892574\\
+};
+
+
+\addplot [color=gray, line width=0.1pt]
+table[row sep=crcr]{%
+	6.73358922707559	61.0618353307959\\
+	6.93675018553713	61.2649962892574\\
+};
+
+
+\addplot [ draw=none, mark size=0.1pt, mark=*, mark options={solid, fill=black, black}]
+table[row sep=crcr]{%
+	6.78867680889419	62.5727722114005\\
+};
+
+
+\addplot [color=gray, line width=0.1pt]
+table[row sep=crcr]{%
+	6.93675018553713	61.2649962892574\\
+	6.78867680889419	62.5727722114005\\
+};
+
+
+\addplot [ draw=none, mark size=0.1pt, mark=*, mark options={solid, fill=black, black}]
+table[row sep=crcr]{%
+	6.86742402845208	62.6515194309584\\
+};
+
+
+\addplot [color=gray,  line width=0.1pt]
+table[row sep=crcr]{%
+	6.78867680889419	62.5727722114005\\
+	6.86742402845208	62.6515194309584\\
+};
+
+
+\addplot [ draw=none, mark size=0.1pt, mark=*, mark options={solid, fill=black, black}]
+table[row sep=crcr]{%
+	6.81030177965169	63.1726457901042\\
+};
+
+
+\addplot [color=gray, line width=0.1pt]
+table[row sep=crcr]{%
+	6.86742402845208	62.6515194309584\\
+	6.81030177965169	63.1726457901042\\
+};
+
+
+\addplot [ draw=none, mark size=0.1pt, mark=*, mark options={solid, fill=black, black}]
+table[row sep=crcr]{%
+	6.83988838045464	63.2022323909072\\
+};
+
+
+\addplot [color=gray, line width=0.1pt]
+table[row sep=crcr]{%
+	6.81030177965169	63.1726457901042\\
+	6.83988838045464	63.2022323909072\\
+};
+
+
+\addplot [ draw=none, mark size=0.1pt, mark=*, mark options={solid, fill=black, black}]
+table[row sep=crcr]{%
+	6.81846780911464	63.4001636804945\\
+};
+
+
+\addplot [color=gray, line width=0.1pt]
+table[row sep=crcr]{%
+	6.83988838045464	63.2022323909072\\
+	6.81846780911464	63.4001636804945\\
+};
+
+
+\addplot [ draw=none, mark size=0.1pt, mark=*, mark options={solid, fill=black, black}]
+table[row sep=crcr]{%
+	6.82944305374382	63.4111389251237\\
+};
+
+
+\addplot [color=gray, line width=0.1pt]
+table[row sep=crcr]{%
+	6.81846780911464	63.4001636804945\\
+	6.82944305374382	63.4111389251237\\
+};
+
+
+\addplot [ draw=none, mark size=0.1pt, mark=*, mark options={solid, fill=black, black}]
+table[row sep=crcr]{%
+	6.82150284728924	63.484863463219\\
+};
+
+
+\addplot [color=gray, line width=0.1pt]
+table[row sep=crcr]{%
+	6.82944305374382	63.4111389251237\\
+	6.82150284728924	63.484863463219\\
+};
+%%%%%%%%%%%%%%%%%%%%%%%
+\addplot [-stealth,color=black,line width=0.8pt]
+table[row sep=crcr]{%
+	0	-50\\
+	0	220\\
+};
+
+\addplot [-stealth,color=black,line width=0.8pt]
+table[row sep=crcr]{%
+	-1	0\\
+	11	0\\
+};
+\fill [black] (axis cs:0,0)circle[radius=1pt];
+\node [above] at (axis cs:10.5,0){U};
+\node [right] at (axis cs:0,210){I};
+%\node  at (axis cs:0.2,7){O};	
+\spy [red] on (4.6,1.6) in node [left] at (4,4.3);
+\node[right, align=left]
+at (axis cs:0,6) {0};
+\end{axis}
+	
+\end{tikzpicture}
+	
+\end{document}
