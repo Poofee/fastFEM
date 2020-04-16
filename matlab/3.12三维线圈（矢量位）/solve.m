@@ -137,6 +137,44 @@ for i=1:mesh.nbTets
     % tetNedelec_rotrot
     rr = tetNedelec_rotrot( D, XX, YY, ZZ) ;
     Ae = rr/mu0;
+    % tetNedelec_km_mk
+    [xy, yz, zx ] = tetNedelec_km_mk( X,Y,Z);
+    % tet_Center
+    tetg = tet_Center( X,Y,Z);
+    % tetNedelec_Fxyz
+    [Fx, Fy, Fz] = tetNedelec_Fxyz( eleLen, si, tetg, xi, yi, zi, xy, yz, zx);
+    % tet_simple_a
+    a = tet_simple_a( X, Y, Z);
+    % tet_simple_b
+    b = tet_simple_b( X, Y, Z);
+    % tet_simple_c
+    c = tet_simple_c( X, Y, Z);
+    % tet_simple_d
+    d = tet_simple_d( X, Y, Z) ;
+    % tetNedelec_gradside
+    Ge = tetNedelec_gradside( D, b, c, d, Fx, Fy, Fz);
+    % 使用adventure Newton-Cotes method的代码计算b
+    if mesh.ELE_TAGS(base+i,2) == CoilTag
+        
+        % 计算四个顶点的电流密度
+        for iele=1:4
+            pxyz = mesh.POS(mesh.TETS(i,iele),:);
+            % 计算角度
+            costheta = pxyz(1)/norm(pxyz(1:2));
+            sintheta = sqrt(1-costheta*costheta);
+            if pxyz(2) < 0
+                sintheta = -sintheta;
+            end
+            Joe(iele,:) = Js*[-sintheta,costheta,0];
+        end
+        be_JoA = tetNedelec_JoA( Joe, si, eleLen, b, c, d);
+        bt(i,:) = bt(i,:) + be_JoA';
+    end
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %%另一种计算方法%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % 计算梯度
     gradN = zeros(4,3);
     gradN(1,:) = dTetraNodalBasis(1,X,Y,Z,0,0,0);
@@ -157,7 +195,7 @@ for i=1:mesh.nbTets
     % 棱单元矩阵，大小为6*6
     Ae1 = CurlW*CurlW'*volume(i)/mu0;
     % LM算子矩阵，大小为6*4
-    Ge = (gradN(locEdge(:,2),:)-gradN(locEdge(:,1),:))*gradN(1:4,:)'*volume(i)/4.*(eleLen*ones(1,4));
+    Ge1 = (gradN(locEdge(:,2),:)-gradN(locEdge(:,1),:))*gradN(1:4,:)'*volume(i)/4.*(eleLen*ones(1,4));
     % 保存A的位置矩阵
     for rows=1:6
        for cols=rows:6
@@ -176,28 +214,7 @@ for i=1:mesh.nbTets
            MM(Mindex) = Ge(rows,cols);
        end
     end
-    % 使用adventure Newton-Cotes method的代码计算b
-    if mesh.ELE_TAGS(base+i,2) == CoilTag
-        % tet_simple_b
-        b = tet_simple_b( X, Y, Z);
-        % tet_simple_c
-        c = tet_simple_c( X, Y, Z);
-        % tet_simple_d
-        d = tet_simple_d( X, Y, Z) ;
-        % 计算四个顶点的电流密度
-        for iele=1:4
-            pxyz = mesh.POS(mesh.TETS(i,iele),:);
-            % 计算角度
-            costheta = pxyz(1)/norm(pxyz(1:2));
-            sintheta = sqrt(1-costheta*costheta);
-            if pxyz(2) < 0
-                sintheta = -sintheta;
-            end
-            Joe(iele,:) = Js*[-sintheta,costheta,0];
-        end
-        be_JoA = tetNedelec_JoA( Joe, si, eleLen, b, c, d);
-        bt1(i,:) = bt1(i,:) + be_JoA';
-    end
+    
     % 使用gauess积分法求解右侧向量
     for p = 1:nQuad
         % 计算积分坐标
@@ -224,7 +241,7 @@ for i=1:mesh.nbTets
             phi_k = lambda(p,a1)*gradN(a2,:)-lambda(p,a2)*gradN(a1,:);
             phi_k = phi_k * eleLen(k);
             rhs = dot(phi_k,Jp);
-            bt(i,k) = bt(i,k) + w(p)*rhs*volume(i);
+            bt1(i,k) = bt1(i,k) + w(p)*rhs*volume(i);
         end
     end
     diffbt = (abs(bt1(i,:)) - abs(bt(i,:)))./abs(bt(i,:));
@@ -325,8 +342,8 @@ fprintf('矩阵bigA的秩为%d,条件数为%d,大小为%d\n',sprank(bigA),condest(bigA),size
 sols = bigA\[f;g0];
 % 检查误差
 p = zeros(Nn,1);
-u(freeEdge) = bicg(A,f,1e-6,1000);% 磁场的解
-% u(freeEdge) = sols(1:Nei);% 磁场的解
+% u(freeEdge) = bicg(A,f,1e-6,1000);% 磁场的解
+u(freeEdge) = sols(1:Nei);% 磁场的解
 p(freeNode) = sols(Nei+1:Nei+Ni);
 residual = norm([f;g0] - bigA*sols);
 fprintf('反算误差为%f\n',residual);
@@ -345,6 +362,17 @@ for i=1:mesh.nbTets
     X = mesh.POS(mesh.TETS(i,1:4),1);
     Y = mesh.POS(mesh.TETS(i,1:4),2);
     Z = mesh.POS(mesh.TETS(i,1:4),3);
+    
+    si = tetNedelec_Direction(X,Y,Z);
+    % tet_simple_a
+    a = tet_simple_a( X, Y, Z);
+    % tet_simple_b
+    b = tet_simple_b( X, Y, Z);
+    % tet_simple_c
+    c = tet_simple_c( X, Y, Z);
+    % tet_simple_d
+    d = tet_simple_d( X, Y, Z);
+    
     if mesh.ELE_TAGS(base+i,2) ~= CoilTag
         continue;
     end
@@ -386,8 +414,12 @@ for i=1:mesh.nbTets
         dN(2,:) = dTetraNodalBasis(2,X,Y,Z);
         dN(3,:) = dTetraNodalBasis(3,X,Y,Z);
         dN(4,:) = dTetraNodalBasis(4,X,Y,Z);
-        W = WBasis(X,Y,Z,gridx(gridi),gridy(gridi),gridz(gridi)).*(eleLen*ones(1,3));
+        W = WBasis(X,Y,Z,gridx(gridi),gridy(gridi),gridz(gridi)).*(eleLen.*si*ones(1,3));
         
+        % 采用另一种方法计算
+%         N = [a,b,c,d]*[gridx(gridi);gridy(gridi);gridz(gridi)];
+%         dN = [b,c,d];
+%         W = si.*eleLen
         % 判断点是否在四面体内
         if abs(sum(abs(N))-1) < 1e-10
             % 计算磁势A
@@ -395,6 +427,7 @@ for i=1:mesh.nbTets
 %             figure(Aplot);
             quiver3(gridx(gridi),gridy(gridi),gridz(gridi),Aee(1),Aee(2),Aee(3),lengthtet/norm(Aee)/s);
             drawnow
+            axis equal
             hold on;
         end
     end
