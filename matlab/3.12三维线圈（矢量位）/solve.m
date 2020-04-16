@@ -84,6 +84,8 @@ mp_elem  = 6;
 nd_elem  = 10;
 dimension = 3;
 
+Bres = zeros(Nn,3);
+
 ae = zeros(6,6);
 be = zeros(6,1);
 Joe = zeros(4,3);
@@ -114,18 +116,11 @@ for i=1:mesh.nbTets
        volume(i) = - volume(i);
        fprintf('警告：单元%d编号不规范\n',i);
     end
-    % 展开验证
-    D = - X(1)*Y(2)*Z(3) + X(1)*Y(2)*Z(4) + X(1)*Y(3)*Z(2)...
-        - X(1)*Y(3)*Z(4) - X(1)*Y(4)*Z(2) + X(1)*Y(4)*Z(3)...
-        + X(2)*Y(1)*Z(3) - X(2)*Y(1)*Z(4) - X(2)*Y(3)*Z(1)...
-        + X(2)*Y(3)*Z(4) + X(2)*Y(4)*Z(1) - X(2)*Y(4)*Z(3)...
-        - X(3)*Y(1)*Z(2) + X(3)*Y(1)*Z(4) + X(3)*Y(2)*Z(1)...
-        - X(3)*Y(2)*Z(4) - X(3)*Y(4)*Z(1) + X(3)*Y(4)*Z(2)...
-        + X(4)*Y(1)*Z(2) - X(4)*Y(1)*Z(3) - X(4)*Y(2)*Z(1)...
-        + X(4)*Y(2)*Z(3) + X(4)*Y(3)*Z(1) - X(4)*Y(3)*Z(2) ;
     edgeVector = [X(locEdge)*[-1;1],Y(locEdge)*[-1;1],Z(locEdge)*[-1;1]];
     % 另外一种计算体积的方法，利用向量 
     D1 = dot(cross(edgeVector(1,:),edgeVector(2,:)),edgeVector(3,:));
+    % tet_Volume6
+    D = tet_Volume6(X,Y,Z);
     % 计算棱长 tet_SideLength    
     eleLen = vecnorm(edgeVector,2,2);
     % tetNedelec_Direction
@@ -357,12 +352,36 @@ end
 %% 输出求解结果
 fprintf('绘制求解结果...\n');
 % 显示线圈区域的A的矢量分布，理论上是没有z分量
-Aplot = figure;
+figure;
+Aplot = gca;
+title('线圈内磁势A的分布');
+axis(Aplot,'equal');
+% 显示线圈区域的B的矢量分布
+figure;
+Bplot = gca;axis(Bplot,'equal');
+title('线圈内磁感应强度B的分布');
 for i=1:mesh.nbTets
     X = mesh.POS(mesh.TETS(i,1:4),1);
     Y = mesh.POS(mesh.TETS(i,1:4),2);
     Z = mesh.POS(mesh.TETS(i,1:4),3);
     
+    % 四面体的边界
+    xmin = min(X);
+    xmax = max(X);
+    ymin = min(Y);
+    ymax = max(Y);
+    zmin = min(Z);
+    zmax = max(Z);
+    % 生成四面体内的网格
+    s = 3;
+    [gridx,gridy,gridz] = meshgrid(linspace(xmin,xmax,s),...
+        linspace(ymin,ymax,s),...
+        linspace(zmin,zmax,s));
+    gridx = reshape(gridx,[numel(gridx),1]);
+    gridy = reshape(gridy,[numel(gridy),1]);
+    gridz = reshape(gridz,[numel(gridz),1]);
+    
+    % si
     si = tetNedelec_Direction(X,Y,Z);
     % tet_simple_a
     a = tet_simple_a( X, Y, Z);
@@ -373,35 +392,49 @@ for i=1:mesh.nbTets
     % tet_simple_d
     d = tet_simple_d( X, Y, Z);
     
-    if mesh.ELE_TAGS(base+i,2) ~= CoilTag
-        continue;
-    end
-    Lines = [1 2 3 4 4 1;...
-             2 3 4 1 2 3];
+    
+    Lines = [1 1 1 2 2 3;...
+             2 3 4 3 4 4];
 %     line(X(Lines),Y(Lines),Z(Lines),'Color',[0 0 0]);
     edgeVector = [X(locEdge)*[-1;1],Y(locEdge)*[-1;1],Z(locEdge)*[-1;1]];
     % 计算棱长    
     eleLen = vecnorm(edgeVector,2,2);
+    lengthtet = mean(eleLen);
     hold on;
     % 获取6条棱的结果
     Ai = u(elem2edge(i,:));
-    % 四面体的边界
-    xmin = min(X);
-    xmax = max(X);
-    ymin = min(Y);
-    ymax = max(Y);
-    zmin = min(Z);
-    zmax = max(Z);
     
-    % 生成四面体内的网格
-    s = 3;
-    [gridx,gridy,gridz] = meshgrid(linspace(xmin,xmax,s),...
-        linspace(ymin,ymax,s),...
-        linspace(zmin,zmax,s));
-    gridx = reshape(gridx,[numel(gridx),1]);
-    gridy = reshape(gridy,[numel(gridy),1]);
-    gridz = reshape(gridz,[numel(gridz),1]);
-    lengthtet = mean(eleLen);
+    % 计算B
+    % tet_Volume6
+    D = tet_Volume6(X,Y,Z);
+    % tet_Center
+    tetg = tet_Center( X,Y,Z);
+    % tetNedelec_XYZ
+    [XX, YY, ZZ ] = tetNedelec_XYZ( eleLen, si, xi, yi, zi);
+    rotA = tetNedelec_rot( D, XX, YY, ZZ, Ai);
+    dd = D / mu0 ;
+    
+    dN(1,:) = dTetraNodalBasis(1,X,Y,Z);
+    dN(2,:) = dTetraNodalBasis(2,X,Y,Z);
+    dN(3,:) = dTetraNodalBasis(3,X,Y,Z);
+    dN(4,:) = dTetraNodalBasis(4,X,Y,Z);
+    
+    BB = 2*ones(1,6)*(Ai.*eleLen.*si*ones(1,3).*cross(dN(Lines(1,:),:),dN(Lines(2,:),:)));
+%     for ib=1:4
+%         k = mesh.TETS(i,ib) ;
+%         for jb=1:3
+%             Bres(k,jb) = Bres(k,jb) + rotA(jb) * dd ;
+%         end
+%     end
+    if norm([tetg(1),tetg(2)]) < 0.016
+        quiver3(Bplot,tetg(1),tetg(2),tetg(3),BB(1),BB(2),BB(3),lengthtet/norm(BB)/2);
+        drawnow
+        hold on;
+    end
+    
+    if mesh.ELE_TAGS(base+i,2) ~= CoilTag
+        continue;
+    end
     maxerror = 0;
     % 绘制网格中每个点的箭头
     for gridi = 1:length(gridx)
@@ -410,30 +443,15 @@ for i=1:mesh.nbTets
         N(3) = TetraNodalBasis(3,X,Y,Z,gridx(gridi),gridy(gridi),gridz(gridi));
         N(4) = TetraNodalBasis(4,X,Y,Z,gridx(gridi),gridy(gridi),gridz(gridi));
         
-        dN(1,:) = dTetraNodalBasis(1,X,Y,Z);
-        dN(2,:) = dTetraNodalBasis(2,X,Y,Z);
-        dN(3,:) = dTetraNodalBasis(3,X,Y,Z);
-        dN(4,:) = dTetraNodalBasis(4,X,Y,Z);
         W = WBasis(X,Y,Z,gridx(gridi),gridy(gridi),gridz(gridi)).*(eleLen.*si*ones(1,3));
         
-        % 采用另一种方法计算
-%         N = [a,b,c,d]*[gridx(gridi);gridy(gridi);gridz(gridi)];
-%         dN = [b,c,d];
-%         W = si.*eleLen
         % 判断点是否在四面体内
         if abs(sum(abs(N))-1) < 1e-10
             % 计算磁势A
             Aee = sum(W.*(Ai*ones(1,3)),1);
-%             figure(Aplot);
-            quiver3(gridx(gridi),gridy(gridi),gridz(gridi),Aee(1),Aee(2),Aee(3),lengthtet/norm(Aee)/s);
+            quiver3(Aplot,gridx(gridi),gridy(gridi),gridz(gridi),Aee(1),Aee(2),Aee(3),lengthtet/norm(Aee)/s);
             drawnow
-            axis equal
             hold on;
         end
     end
 end
-title('线圈内磁势A的分布');
-axis equal
-% 显示线圈区域的B的矢量分布
-Bplot = figure;
-title('线圈内磁感应强度B的分布');
