@@ -52,12 +52,12 @@ NT = size(mesh.TETS,1);% 单元数目
 Nn = size(mesh.POS,1);% 节点数目
 % 生成单元中所有的棱，顺序编号按照...
 totalEdge = int32([mesh.TETS(:,[1 2]); mesh.TETS(:,[1 3]); mesh.TETS(:,[1 4]); ...
-                   mesh.TETS(:,[2 3]); mesh.TETS(:,[4 2]); mesh.TETS(:,[3 4])]);
-% 对边的节点编号进行处理，从低到高               
+    mesh.TETS(:,[2 3]); mesh.TETS(:,[4 2]); mesh.TETS(:,[3 4])]);
+% 对边的节点编号进行处理，从低到高
 sortedTotalEdge = sort(totalEdge,2);
 % edge，全局的棱，大小NTx2，棱的起始点和结束点
 % j，保存sortedTotalEdge中的数据在edge中的编号
-[edge,i2,j] = unique(sortedTotalEdge,'rows','legacy'); 
+[edge,i2,j] = unique(sortedTotalEdge,'rows','legacy');
 Ne = size(edge,1);% 棱的数目
 % elem2edge，每个单元的6条棱的全局编号，顺序为[1,2][1,3][1,4][2,3][2,4][3,4]
 elem2edge = uint32(reshape(j,NT,6));
@@ -113,15 +113,15 @@ for i=1:mesh.nbTets
     tmp = [ones(4,1),X,Y,Z];
     volume(i) = det(tmp)/6;
     if volume(i) < 0
-       volume(i) = - volume(i);
-       fprintf('警告：单元%d编号不规范\n',i);
+        volume(i) = - volume(i);
+        fprintf('警告：单元%d编号不规范\n',i);
     end
     edgeVector = [X(locEdge)*[-1;1],Y(locEdge)*[-1;1],Z(locEdge)*[-1;1]];
-    % 另外一种计算体积的方法，利用向量 
+    % 另外一种计算体积的方法，利用向量
     D1 = dot(cross(edgeVector(1,:),edgeVector(2,:)),edgeVector(3,:));
     % tet_Volume6
     D = tet_Volume6(X,Y,Z);
-    % 计算棱长 tet_SideLength    
+    % 计算棱长 tet_SideLength
     eleLen = vecnorm(edgeVector,2,2);
     % tetNedelec_Direction
     si = tetNedelec_Direction(X,Y,Z);
@@ -182,7 +182,7 @@ for i=1:mesh.nbTets
     gradN1(2,:) = cross(edgeVector(2,:),edgeVector(3,:))/D;
     gradN1(3,:) = cross(edgeVector(3,:),edgeVector(1,:))/D;
     gradN1(4,:) = cross(edgeVector(1,:),edgeVector(2,:))/D;
- 
+    
     % 计算 \nabla \times \mathbf{w}_{i}
     CurlW = RotWBasis(X,Y,Z,0,0,0).*(eleLen*ones(1,3));
     % 计算旋度方法二： https://www.iue.tuwien.ac.at/phd/nentchev/node41.html
@@ -193,21 +193,21 @@ for i=1:mesh.nbTets
     Ge1 = (gradN(locEdge(:,2),:)-gradN(locEdge(:,1),:))*gradN(1:4,:)'*volume(i)/4.*(eleLen*ones(1,4));
     % 保存A的位置矩阵
     for rows=1:6
-       for cols=rows:6
-           tmpIndex = tmpIndex + 1;
-           rowAIndex(tmpIndex) = elem2edge(i,rows);
-           colAIndex(tmpIndex) = elem2edge(i,cols);
-           AA(tmpIndex) = Ae(rows,cols);
-       end
+        for cols=rows:6
+            tmpIndex = tmpIndex + 1;
+            rowAIndex(tmpIndex) = elem2edge(i,rows);
+            colAIndex(tmpIndex) = elem2edge(i,cols);
+            AA(tmpIndex) = Ae(rows,cols);
+        end
     end
     % 保存M的位置矩阵
     for rows=1:6
-       for cols=1:4
-           Mindex = (i-1)*24+4*(rows-1)+cols;
-           rowMIndex(Mindex) = elem2edge(i,rows);
-           colMIndex(Mindex) = mesh.TETS(i,cols);
-           MM(Mindex) = Ge(rows,cols);
-       end
+        for cols=1:4
+            Mindex = (i-1)*24+4*(rows-1)+cols;
+            rowMIndex(Mindex) = elem2edge(i,rows);
+            colMIndex(Mindex) = mesh.TETS(i,cols);
+            MM(Mindex) = Ge(rows,cols);
+        end
     end
     
     % 使用gauess积分法求解右侧向量
@@ -215,7 +215,7 @@ for i=1:mesh.nbTets
         % 计算积分坐标
         pxyz = lambda(p,:)*mesh.POS(mesh.TETS(i,1:4),:);
         % 计算点pxyz处的电流密度
-        Jp = [0,0,0];        
+        Jp = [0,0,0];
         if mesh.ELE_TAGS(base+i,2) == CoilTag
             % 计算角度
             costheta = pxyz(1)/norm(pxyz(1:2));
@@ -225,11 +225,11 @@ for i=1:mesh.nbTets
             end
             Jp = Js*[-sintheta,costheta,0];
         end
-%         figure(2);
-%         quiver3(pxyz(1),pxyz(2),pxyz(3),Jp(1),Jp(2),Jp(3),1e-2);
-%         axis equal
-%         drawnow
-%         hold on;
+        %         figure(2);
+        %         quiver3(pxyz(1),pxyz(2),pxyz(3),Jp(1),Jp(2),Jp(3),1e-2);
+        %         axis equal
+        %         drawnow
+        %         hold on;
         for k=1:6
             a1 = locEdge(k,1);
             a2 = locEdge(k,2);
@@ -245,10 +245,10 @@ for i=1:mesh.nbTets
     maxabsdiffAe(i) = max(abs(diffAe),[],'all');
     
     if max(abs(diffbt))> 5
-       disp('too big'); 
+        disp('too big');
     end
     if maxabsdiffAe(i)> 5
-       disp('too big'); 
+        disp('too big');
     end
 end
 fprintf('开始进行矩阵装配...\n');
@@ -279,7 +279,7 @@ Nfall = length(allFace);% 面的数目
 % 不重复的face
 [face, i2, j] = unique(sort(allFace,2),'rows','legacy');
 
-i1(j(Nfall:-1:1)) = Nfall:-1:1;% 只有出现一次的编号才不会变 
+i1(j(Nfall:-1:1)) = Nfall:-1:1;% 只有出现一次的编号才不会变
 i1 = i1';
 bdFlag = zeros(Nfall,1,'uint8');
 bdFaceidx = i1(i1==i2);% 边界上的face的索引
@@ -317,7 +317,7 @@ fprintf('自由棱数目为%d,自由节点数目为%d\n',size(freeEdge,1),size(freeNode,1));
 u = zeros(Ne,1);
 if ~isempty(bdEdge)
     u(isBdEdge) = 0;% 固定边界条件
-%     f = f - (A - M)*u;
+    %     f = f - (A - M)*u;
     f(isBdEdge) = u(isBdEdge);
 end
 g0 = -M'*u;
@@ -332,7 +332,7 @@ g0 = g0(freeNode);
 Ni = size(freeNode,1);
 Nei = size(freeEdge,1);
 bigA = [A M;...
-        M' sparse(Ni,Ni)];
+    M' sparse(Ni,Ni)];
 fprintf('矩阵bigA的秩为%d,条件数为%d,大小为%d\n',sprank(bigA),condest(bigA),size(bigA,1));
 sols = bigA\[f;g0];
 % 检查误差
@@ -344,7 +344,7 @@ residual = norm([f;g0] - bigA*sols);
 fprintf('反算误差为%f\n',residual);
 % 检查Lagrange multiplier是否正确，正确范围是多少？
 % LM算子是额外引入的，应该有M*p(freeNode)=0，这样才不会影响
-% 原来的式子的结果。                
+% 原来的式子的结果。
 normp = norm(p);
 if(normp>1.0/Nn)
     fprintf('Lagrange multiplier大小为%f\n,计算结果不对\n',normp);
@@ -353,33 +353,35 @@ end
 fprintf('绘制求解结果...\n');
 % 显示线圈区域的A的矢量分布，理论上是没有z分量
 figure;
-Aplot = gca;
-title('线圈内磁势A的分布');
-axis(Aplot,'equal');
+Aplot = gca;axis(Aplot,'equal');hold on;
+title(Aplot,'线圈内磁势A的分布');
 % 显示线圈区域的B的矢量分布
 figure;
-Bplot = gca;axis(Bplot,'equal');
-title('线圈内磁感应强度B的分布');
+Bplot = gca;axis(Bplot,'equal');hold on;
+title(Bplot,'线圈内磁感应强度B的分布');
+% 设置网格的大小，因为网格是均匀的，所以应该能够严格的整数化
+gridsize = 5e-3;
+
 for i=1:mesh.nbTets
     X = mesh.POS(mesh.TETS(i,1:4),1);
     Y = mesh.POS(mesh.TETS(i,1:4),2);
     Z = mesh.POS(mesh.TETS(i,1:4),3);
     
-    % 四面体的边界
-    xmin = min(X);
-    xmax = max(X);
-    ymin = min(Y);
-    ymax = max(Y);
-    zmin = min(Z);
-    zmax = max(Z);
+    % 四面体的边界，整数化后
+    xmin = floor(min(X)/gridsize);
+    xmax = ceil(max(X)/gridsize);
+    ymin = floor(min(Y)/gridsize);
+    ymax = ceil(max(Y)/gridsize);
+    zmin = floor(min(Z)/gridsize);
+    zmax = ceil(max(Z)/gridsize);
     % 生成四面体内的网格
     s = 3;
-    [gridx,gridy,gridz] = meshgrid(linspace(xmin,xmax,s),...
-        linspace(ymin,ymax,s),...
-        linspace(zmin,zmax,s));
-    gridx = reshape(gridx,[numel(gridx),1]);
-    gridy = reshape(gridy,[numel(gridy),1]);
-    gridz = reshape(gridz,[numel(gridz),1]);
+    [gridx,gridy,gridz] = meshgrid(xmin:xmax,...
+        ymin:ymax,...
+        zmin:zmax);
+    gridx = gridsize*reshape(gridx,[numel(gridx),1]);
+    gridy = gridsize*reshape(gridy,[numel(gridy),1]);
+    gridz = gridsize*reshape(gridz,[numel(gridz),1]);
     
     % si
     si = tetNedelec_Direction(X,Y,Z);
@@ -394,10 +396,10 @@ for i=1:mesh.nbTets
     
     
     Lines = [1 1 1 2 2 3;...
-             2 3 4 3 4 4];
-%     line(X(Lines),Y(Lines),Z(Lines),'Color',[0 0 0]);
+        2 3 4 3 4 4];
+    %     line(X(Lines),Y(Lines),Z(Lines),'Color',[0 0 0]);
     edgeVector = [X(locEdge)*[-1;1],Y(locEdge)*[-1;1],Z(locEdge)*[-1;1]];
-    % 计算棱长    
+    % 计算棱长
     eleLen = vecnorm(edgeVector,2,2);
     lengthtet = mean(eleLen);
     hold on;
@@ -420,38 +422,32 @@ for i=1:mesh.nbTets
     dN(4,:) = dTetraNodalBasis(4,X,Y,Z);
     
     BB = 2*ones(1,6)*(Ai.*eleLen.*si*ones(1,3).*cross(dN(Lines(1,:),:),dN(Lines(2,:),:)));
-%     for ib=1:4
-%         k = mesh.TETS(i,ib) ;
-%         for jb=1:3
-%             Bres(k,jb) = Bres(k,jb) + rotA(jb) * dd ;
-%         end
-%     end
-    if norm([tetg(1),tetg(2)]) < 0.016
-        quiver3(Bplot,tetg(1),tetg(2),tetg(3),BB(1),BB(2),BB(3),lengthtet/norm(BB)/2);
-        drawnow
-        hold on;
-    end
     
-    if mesh.ELE_TAGS(base+i,2) ~= CoilTag
-        continue;
-    end
-    maxerror = 0;
-    % 绘制网格中每个点的箭头
-    for gridi = 1:length(gridx)
-        N(1) = TetraNodalBasis(1,X,Y,Z,gridx(gridi),gridy(gridi),gridz(gridi));
-        N(2) = TetraNodalBasis(2,X,Y,Z,gridx(gridi),gridy(gridi),gridz(gridi));
-        N(3) = TetraNodalBasis(3,X,Y,Z,gridx(gridi),gridy(gridi),gridz(gridi));
-        N(4) = TetraNodalBasis(4,X,Y,Z,gridx(gridi),gridy(gridi),gridz(gridi));
-        
-        W = WBasis(X,Y,Z,gridx(gridi),gridy(gridi),gridz(gridi)).*(eleLen.*si*ones(1,3));
-        
-        % 判断点是否在四面体内
-        if abs(sum(abs(N))-1) < 1e-10
-            % 计算磁势A
-            Aee = sum(W.*(Ai*ones(1,3)),1);
-            quiver3(Aplot,gridx(gridi),gridy(gridi),gridz(gridi),Aee(1),Aee(2),Aee(3),lengthtet/norm(Aee)/s);
-            drawnow
-            hold on;
+    if norm([tetg(1),tetg(2)]) < 0.024 && abs(tetg(3))<0.023%mesh.ELE_TAGS(base+i,2) ~= CoilTag
+        maxerror = 0;
+        % 绘制网格中每个点的箭头
+        for gridi = 1:length(gridx)
+            N(1) = TetraNodalBasis(1,X,Y,Z,gridx(gridi),gridy(gridi),gridz(gridi));
+            N(2) = TetraNodalBasis(2,X,Y,Z,gridx(gridi),gridy(gridi),gridz(gridi));
+            N(3) = TetraNodalBasis(3,X,Y,Z,gridx(gridi),gridy(gridi),gridz(gridi));
+            N(4) = TetraNodalBasis(4,X,Y,Z,gridx(gridi),gridy(gridi),gridz(gridi));
+            
+            W = WBasis(X,Y,Z,gridx(gridi),gridy(gridi),gridz(gridi)).*(eleLen.*si*ones(1,3));
+            
+            % 判断点是否在四面体内
+            if abs(sum(abs(N))-1) < 1e-10
+                % 计算磁势A
+                Aee = sum(W.*(Ai*ones(1,3)),1);
+                quiver3(Aplot,gridx(gridi),gridy(gridi),gridz(gridi),Aee(1),Aee(2),Aee(3),1/3);
+                hold on;drawnow;
+                axis(Aplot,'equal');
+                
+                quiver3(Bplot,gridx(gridi),gridy(gridi),gridz(gridi),BB(1),BB(2),BB(3),1/150);
+                hold on;drawnow;
+                axis(Bplot,'equal');
+                
+            end
         end
     end
+    
 end
