@@ -361,7 +361,24 @@ Bplot = gca;axis(Bplot,'equal');hold on;
 title(Bplot,'线圈内磁感应强度B的分布');
 % 设置网格的大小，因为网格是均匀的，所以应该能够严格的整数化
 gridsize = 5e-3;
-
+% 绘制线圈附近的区域
+xminBound = floor(-24e-3/gridsize);
+xmaxBound = ceil(24e-3/gridsize);
+yminBound = floor(-24e-3/gridsize);
+ymaxBound = ceil(24e-3/gridsize);
+zminBound = floor(-23e-3/gridsize);
+zmaxBound = ceil(23e-3/gridsize);
+% 生成四面体内的网格
+s = 3;
+[gridxBound,gridyBound,gridzBound] = meshgrid(xminBound:xmaxBound,...
+    yminBound:ymaxBound,...
+    zminBound:zmaxBound);
+sizeBound = size(gridxBound);
+gridxBound = gridsize*reshape(gridxBound,[numel(gridxBound),1]);
+gridyBound = gridsize*reshape(gridyBound,[numel(gridyBound),1]);
+gridzBound = gridsize*reshape(gridzBound,[numel(gridzBound),1]);
+Boutput = zeros(size(gridxBound,1),3);
+Aoutput = zeros(size(gridxBound,1),3);
 for i=1:mesh.nbTets
     X = mesh.POS(mesh.TETS(i,1:4),1);
     Y = mesh.POS(mesh.TETS(i,1:4),2);
@@ -394,9 +411,8 @@ for i=1:mesh.nbTets
     % tet_simple_d
     d = tet_simple_d( X, Y, Z);
     
-    
     Lines = [1 1 1 2 2 3;...
-        2 3 4 3 4 4];
+             2 3 4 3 4 4];
     %     line(X(Lines),Y(Lines),Z(Lines),'Color',[0 0 0]);
     edgeVector = [X(locEdge)*[-1;1],Y(locEdge)*[-1;1],Z(locEdge)*[-1;1]];
     % 计算棱长
@@ -438,16 +454,26 @@ for i=1:mesh.nbTets
             if abs(sum(abs(N))-1) < 1e-10
                 % 计算磁势A
                 Aee = sum(W.*(Ai*ones(1,3)),1);
-                quiver3(Aplot,gridx(gridi),gridy(gridi),gridz(gridi),Aee(1),Aee(2),Aee(3),1/3);
-                hold on;drawnow;
-                axis(Aplot,'equal');
                 
-                quiver3(Bplot,gridx(gridi),gridy(gridi),gridz(gridi),BB(1),BB(2),BB(3),1/150);
-                hold on;drawnow;
-                axis(Bplot,'equal');
+%                 quiver3(Aplot,gridx(gridi),gridy(gridi),gridz(gridi),Aee(1),Aee(2),Aee(3),1/3);
+%                 hold on;drawnow;
+%                 axis(Aplot,'equal');
+%                 
+%                 quiver3(Bplot,gridx(gridi),gridy(gridi),gridz(gridi),BB(1),BB(2),BB(3),1/150);
+%                 hold on;drawnow;
+%                 axis(Bplot,'equal');
                 
+                % save data
+                zIndex = round(gridz(gridi)/gridsize)-zminBound;
+                yIndex = round(gridy(gridi)/gridsize)-yminBound;
+                xIndex = round(gridx(gridi)/gridsize)-xminBound;
+                outputIndex = zIndex*(sizeBound(1)*sizeBound(2))+xIndex*(sizeBound(2))+yIndex;
+                Boutput(outputIndex,:) = BB;
+                Aoutput(outputIndex,:) = Aee;
             end
         end
     end
-    
 end
+% vtk output
+makevtk_struc_grid(gridxBound,gridyBound,gridzBound,Aoutput(:,1),Aoutput(:,2),Aoutput(:,3),'Aoutput.vtk');
+makevtk_struc_grid(gridxBound,gridyBound,gridzBound,Boutput(:,1),Boutput(:,2),Boutput(:,3),'Boutput.vtk');
