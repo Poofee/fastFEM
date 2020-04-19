@@ -1,4 +1,4 @@
-function [] = tet_post_MAG_Magnetostatic_A(mesh,u,elem2edge,xmin,xmax,ymin,ymax,zmin,zmax,gridsize)
+function [] = tet_post_MAG_Magnetostatic_A(mesh,u,elem2edge,elem2edgeSign,xmin,xmax,ymin,ymax,zmin,zmax,gridsize)
 % 显示线圈区域的A的矢量分布，理论上是没有z分量
 figure;
 Aplot = gca;axis(Aplot,'equal');hold on;
@@ -48,15 +48,15 @@ for i=1:mesh.nbTets
     gridz = gridsize*reshape(gridz,[numel(gridz),1]);
     
     % si
-    si = tetNedelec_Direction(X,Y,Z);
+%     si = tetNedelec_Direction(X,Y,Z);
     % tet_simple_a
-    a = tet_simple_a( X, Y, Z);
+%     a = tet_simple_a( X, Y, Z);
     % tet_simple_b
-    b = tet_simple_b( X, Y, Z);
+%     b = tet_simple_b( X, Y, Z);
     % tet_simple_c
-    c = tet_simple_c( X, Y, Z);
+%     c = tet_simple_c( X, Y, Z);
     % tet_simple_d
-    d = tet_simple_d( X, Y, Z);
+%     d = tet_simple_d( X, Y, Z);
     
     Lines = [1 1 1 2 2 3;...
              2 3 4 3 4 4];
@@ -71,7 +71,7 @@ for i=1:mesh.nbTets
     
     % 计算B
     % tet_Volume6
-    D = tet_Volume6(X,Y,Z);
+%     D = tet_Volume6(X,Y,Z);
     % tet_Center
     tetg = tet_Center( X,Y,Z);
     % tetNedelec_XYZ
@@ -84,7 +84,7 @@ for i=1:mesh.nbTets
     dN(3,:) = dTetraNodalBasis(3,X,Y,Z);
     dN(4,:) = dTetraNodalBasis(4,X,Y,Z);
     
-    BB = 2*ones(1,6)*(Ai.*eleLen.*si*ones(1,3).*cross(dN(Lines(1,:),:),dN(Lines(2,:),:)));
+    BB = 2*ones(1,6)*(Ai.*eleLen.*elem2edgeSign(i,:)'*ones(1,3).*cross(dN(Lines(1,:),:),dN(Lines(2,:),:)));
     
     if norm([tetg(1),tetg(2)]) < 0.024 && abs(tetg(3))<0.023%mesh.ELE_TAGS(base+i,2) ~= CoilTag
         maxerror = 0;
@@ -95,7 +95,7 @@ for i=1:mesh.nbTets
             N(3) = TetraNodalBasis(3,X,Y,Z,gridx(gridi),gridy(gridi),gridz(gridi));
             N(4) = TetraNodalBasis(4,X,Y,Z,gridx(gridi),gridy(gridi),gridz(gridi));
             
-            W = WBasis(X,Y,Z,gridx(gridi),gridy(gridi),gridz(gridi)).*(eleLen.*si*ones(1,3));
+            W = WBasis(X,Y,Z,gridx(gridi),gridy(gridi),gridz(gridi)).*(eleLen.*elem2edgeSign(i,:)'*ones(1,3));
             
             % 判断点是否在四面体内
             if abs(sum(abs(N))-1) < 1e-10

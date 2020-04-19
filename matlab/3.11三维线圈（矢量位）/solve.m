@@ -71,6 +71,7 @@ idx = (totalEdge(:,1)>totalEdge(:,2));
 direction(idx) = -1;
 % elem2edgeSign，不是编号从低到高的棱
 elem2edgeSign = reshape(direction,NT,6);
+elem2edgeSign1 = zeros(NT,6);
 
 %% 计算单元矩阵及装配
 volume = zeros(mesh.nbTets,1);
@@ -130,6 +131,7 @@ for i=1:mesh.nbTets
     eleLen = vecnorm(edgeVector,2,2);
     % tetNedelec_Direction
     si = tetNedelec_Direction(X,Y,Z);
+    elem2edgeSign1(i,:) = si';
 %     si = ones(6,1);
     % tetNedelec_mk
     [xi,yi,zi] = tetNedelec_mk(X,Y,Z);
@@ -190,13 +192,13 @@ for i=1:mesh.nbTets
     gradN1(4,:) = cross(edgeVector(1,:),edgeVector(2,:))/D;
     
     % 计算 \nabla \times \mathbf{w}_{i}
-    CurlW = RotWBasis(X,Y,Z,0,0,0).*(eleLen.*si*ones(1,3));
+    CurlW = RotWBasis(X,Y,Z,0,0,0).*(eleLen.*elem2edgeSign(i,:)'*ones(1,3));
     % 计算旋度方法二： https://www.iue.tuwien.ac.at/phd/nentchev/node41.html
-    CurlW1 = eleLen.*si*ones(1,3).*edgeVector(end:-1:1,:)*2/D1;
+    CurlW1 = eleLen.*elem2edgeSign(i,:)'*ones(1,3).*edgeVector(end:-1:1,:)*2/D1;
     % 棱单元矩阵，大小为6*6
     Ae = CurlW*CurlW'*volume(i)/mu0;
     % LM算子矩阵，大小为6*4
-    Ge = (gradN(locEdge(:,2),:)-gradN(locEdge(:,1),:))*gradN(1:4,:)'*volume(i)/4.*(eleLen.*si*ones(1,4));
+    Ge = (gradN(locEdge(:,2),:)-gradN(locEdge(:,1),:))*gradN(1:4,:)'*volume(i)/4.*(eleLen.*elem2edgeSign(i,:)'*ones(1,4));
     % 保存A的位置矩阵
     for rows=1:6
         for cols=rows:6
@@ -240,7 +242,7 @@ for i=1:mesh.nbTets
             a1 = locEdge(k,1);
             a2 = locEdge(k,2);
             phi_k = lambda(p,a1)*gradN(a2,:)-lambda(p,a2)*gradN(a1,:);
-            phi_k = phi_k * eleLen(k)*si(k);
+            phi_k = phi_k * eleLen(k)*elem2edgeSign(i,k);
             rhs = dot(phi_k,Jp);
             bt(i,k) = bt(i,k) + w(p)*rhs*volume(i);
         end
@@ -273,55 +275,12 @@ f = accumarray(elem2edge(:),bt(:),[Ne 1]);
 f1 = accumarray(elem2edge(:),bt1(:),[Ne 1]);
 %% 施加边界条件
 fprintf('开始设置边界条件...\n');
-% 一般求解的时候，不需要特别的设置边界条件，因为有一个默认的几何边界，那么为了
-% 设置边界，就需要找出这个边界。以前的思路是拿几何尺寸来判断，缺点就是你必须知道
-% 边界的形状和尺寸，非常不方便。但是，再想一下，如果一个单元是边界，二维的时候，
-% 这个棱边界只存在于一个分网单元中，那么就可以查找出现一次的边，那就是边界了。
-% 三维的思路也是一样的，只不过要查找的是面单元。
-% 生成四面体的所有面
-allFace = [mesh.TETS(:,[2 4 3]);mesh.TETS(:,[1 3 4]);mesh.TETS(:,[1 4 2]);mesh.TETS(:,[1 2 3])];
-
-Nfall = length(allFace);% 面的数目
-% 不重复的face
-[face, i2, j] = unique(sort(allFace,2),'rows','legacy');
-
-i1(j(Nfall:-1:1)) = Nfall:-1:1;% 只有出现一次的编号才不会变
-i1 = i1';
-bdFlag = zeros(Nfall,1,'uint8');
-bdFaceidx = i1(i1==i2);% 边界上的face的索引
-bdFlag(bdFaceidx) = 1;% Dirichlet边界条件
-bdFlag = reshape(bdFlag,NT,4);% 转换为对应的单元形式
-% 查找边界棱和节点
-isBdEdge = false(Ne,1);
-isBdNode = true(Nn,1);
-% 由于编号问题，POS变量保存的点并不全是分网节点
-allNode = mesh.TETS(:,1:4);
-allNode = allNode(:);
-uniNode = unique(allNode);
-isBdNode(uniNode) = false;% 找到全部分网节点
-% 将边界面上的点设为边界点
-isBdEdge(elem2edge(bdFlag(:,1) == 1,[4,5,6])) = true;
-isBdEdge(elem2edge(bdFlag(:,2) == 1,[2,3,6])) = true;
-isBdEdge(elem2edge(bdFlag(:,3) == 1,[1,3,5])) = true;
-isBdEdge(elem2edge(bdFlag(:,4) == 1,[1,2,4])) = true;
-bdEdge = edge(isBdEdge,:);
-isBdNode(bdEdge) = true;% 标记边界节点
-% 绘制边界，验证
-hold on
-for i=1:size(bdEdge,1)
-    line(mesh.POS(bdEdge(i,:),1),mesh.POS(bdEdge(i,:),2),mesh.POS(bdEdge(i,:),3),'Color',[0 0 0]);
-end
-DisplayNodes(mesh.POS(isBdNode,:));
-view(45,atan(1/sqrt(2))*180/pi);
-% 未知的变量
-freeEdge = find(~isBdEdge);
-freeNode = find(~isBdNode);
-fprintf('自由棱数目为%d,自由节点数目为%d\n',size(freeEdge,1),size(freeNode,1));
+[isBdEdge,isBdNode,freeEdge,freeNode] = findDomain3DBoundary(mesh.TETS,edge,elem2edge);
 % 设置Neumann边界条件
 
 % 设置Dirichlet边界条件
 u = zeros(Ne,1);
-if ~isempty(bdEdge)
+if ~isempty(edge(isBdEdge,:))
     u(isBdEdge) = 0;% 固定边界条件
     %     f = f - (A - M)*u;
     f(isBdEdge) = u(isBdEdge);
@@ -362,5 +321,5 @@ gridsize = 5e-3;
 xmin = -24e-3;xmax = 24e-3;
 ymin = -24e-3;ymax = 24e-3;
 zmin = -23e-3;zmax = 23e-3;
-tet_post_MAG_Magnetostatic_A(mesh,u,elem2edge,xmin,xmax,ymin,ymax,zmin,zmax,gridsize);
+tet_post_MAG_Magnetostatic_A(mesh,u,elem2edge,elem2edgeSign,xmin,xmax,ymin,ymax,zmin,zmax,gridsize);
 
