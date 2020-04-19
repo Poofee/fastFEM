@@ -15,10 +15,11 @@ toc
 
 % 绘制
 % DisplayNodes(mesh.POS);
-
+% 
 % DisplayElements(mesh.TETS(:,1:4),mesh.POS,mesh.nbTets);
-
+% 
 % DisplayEdgeSB(100,mesh.TETS(:,1:4),mesh.POS);
 
-verifyJ(100,mesh.TETS(:,1:4),mesh.POS);
+% 求解valve.feem定义的三维静磁场问题
+tet_NL_Mag_Static_Newton('valve.feem');
 
