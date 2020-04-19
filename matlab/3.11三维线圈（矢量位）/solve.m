@@ -12,6 +12,10 @@
 % 20191207 by Poofee
 % 调试寻找原因，目前就是算出来的LM非常大，A非常小，不是很合理。
 % 那是不是f算错了？
+
+% 想要调用tet的函数需要将路径加入path，或运行setpath
+addpath(genpath('./../libtet'),'-begin');
+
 close all
 clear all
 t0 = cputime;
