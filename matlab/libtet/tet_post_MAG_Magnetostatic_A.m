@@ -79,10 +79,7 @@ for i=1:mesh.nbTets
 %     rotA = tetNedelec_rot( D, XX, YY, ZZ, Ai);
 %     dd = D / mu0 ;
     
-    dN(1,:) = dTetraNodalBasis(1,X,Y,Z);
-    dN(2,:) = dTetraNodalBasis(2,X,Y,Z);
-    dN(3,:) = dTetraNodalBasis(3,X,Y,Z);
-    dN(4,:) = dTetraNodalBasis(4,X,Y,Z);
+    dN = dTetraNodalBasis(X,Y,Z);
     
     BB = 2*ones(1,6)*(Ai.*eleLen.*elem2edgeSign(i,:)'*ones(1,3).*cross(dN(Lines(1,:),:),dN(Lines(2,:),:)));
     

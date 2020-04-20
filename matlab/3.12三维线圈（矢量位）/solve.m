@@ -70,8 +70,8 @@ direction = ones(6*NT,1);
 idx = (totalEdge(:,1)>totalEdge(:,2));
 direction(idx) = -1;
 % elem2edgeSign，不是编号从低到高的棱
-elem2edgeSign = reshape(direction,NT,6);
-
+elem2edgeSign1 = reshape(direction,NT,6);
+elem2edgeSign = zeros(NT,6);
 %% 计算单元矩阵及装配
 volume = zeros(mesh.nbTets,1);
 base = mesh.nbPoints+mesh.nbLines+mesh.nbTriangles;
@@ -130,6 +130,7 @@ for i=1:mesh.nbTets
     eleLen = vecnorm(edgeVector,2,2);
     % tetNedelec_Direction
     si = tetNedelec_Direction(X,Y,Z);
+    elem2edgeSign(i,:) = si';
     % tetNedelec_mk
     [xi,yi,zi] = tetNedelec_mk(X,Y,Z);
     % tetNedelec_XYZ
@@ -176,11 +177,7 @@ for i=1:mesh.nbTets
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % 计算梯度
-    gradN = zeros(4,3);
-    gradN(1,:) = dTetraNodalBasis(1,X,Y,Z,0,0,0);
-    gradN(2,:) = dTetraNodalBasis(2,X,Y,Z,0,0,0);
-    gradN(3,:) = dTetraNodalBasis(3,X,Y,Z,0,0,0);
-    gradN(4,:) = dTetraNodalBasis(4,X,Y,Z,0,0,0);
+    gradN = dTetraNodalBasis(X,Y,Z,0,0,0);
     % 计算梯度方法二：见 https://www.iue.tuwien.ac.at/phd/nentchev/node31.html
     gradN1 = zeros(4,3);
     gradN1(1,:) = cross(edgeVector(4,:),edgeVector(5,:))/D;
@@ -278,50 +275,12 @@ fprintf('开始设置边界条件...\n');
 % 边界的形状和尺寸，非常不方便。但是，再想一下，如果一个单元是边界，二维的时候，
 % 这个棱边界只存在于一个分网单元中，那么就可以查找出现一次的边，那就是边界了。
 % 三维的思路也是一样的，只不过要查找的是面单元。
-% 生成四面体的所有面
-allFace = [mesh.TETS(:,[2 4 3]);mesh.TETS(:,[1 3 4]);mesh.TETS(:,[1 4 2]);mesh.TETS(:,[1 2 3])];
-
-Nfall = length(allFace);% 面的数目
-% 不重复的face
-[face, i2, j] = unique(sort(allFace,2),'rows','legacy');
-
-i1(j(Nfall:-1:1)) = Nfall:-1:1;% 只有出现一次的编号才不会变
-i1 = i1';
-bdFlag = zeros(Nfall,1,'uint8');
-bdFaceidx = i1(i1==i2);% 边界上的face的索引
-bdFlag(bdFaceidx) = 1;% Dirichlet边界条件
-bdFlag = reshape(bdFlag,NT,4);% 转换为对应的单元形式
-% 查找边界棱和节点
-isBdEdge = false(Ne,1);
-isBdNode = true(Nn,1);
-% 由于编号问题，POS变量保存的点并不全是分网节点
-allNode = mesh.TETS(:,1:4);
-allNode = allNode(:);
-uniNode = unique(allNode);
-isBdNode(uniNode) = false;% 找到全部分网节点
-% 将边界面上的点设为边界点
-isBdEdge(elem2edge(bdFlag(:,1) == 1,[4,5,6])) = true;
-isBdEdge(elem2edge(bdFlag(:,2) == 1,[2,3,6])) = true;
-isBdEdge(elem2edge(bdFlag(:,3) == 1,[1,3,5])) = true;
-isBdEdge(elem2edge(bdFlag(:,4) == 1,[1,2,4])) = true;
-bdEdge = edge(isBdEdge,:);
-isBdNode(bdEdge) = true;% 标记边界节点
-% 绘制边界，验证
-hold on
-for i=1:size(bdEdge,1)
-    line(mesh.POS(bdEdge(i,:),1),mesh.POS(bdEdge(i,:),2),mesh.POS(bdEdge(i,:),3),'Color',[0 0 0]);
-end
-DisplayNodes(mesh.POS(isBdNode,:));
-view(45,atan(1/sqrt(2))*180/pi);
-% 未知的变量
-freeEdge = find(~isBdEdge);
-freeNode = find(~isBdNode);
-fprintf('自由棱数目为%d,自由节点数目为%d\n',size(freeEdge,1),size(freeNode,1));
+[isBdEdge,isBdNode,freeEdge,freeNode] = findDomain3DBoundary(mesh.TETS,edge,elem2edge);
 % 设置Neumann边界条件
 
 % 设置Dirichlet边界条件
 u = zeros(Ne,1);
-if ~isempty(bdEdge)
+if ~isempty(edge(isBdEdge,:))
     u(isBdEdge) = 0;% 固定边界条件
     %     f = f - (A - M)*u;
     f(isBdEdge) = u(isBdEdge);
@@ -362,4 +321,4 @@ gridsize = 5e-3;
 xmin = -24e-3;xmax = 24e-3;
 ymin = -24e-3;ymax = 24e-3;
 zmin = -23e-3;zmax = 23e-3;
-tet_post_MAG_Magnetostatic_A(mesh,u,elem2edge,xmin,xmax,ymin,ymax,zmin,zmax,gridsize);
+tet_post_MAG_Magnetostatic_A(mesh,u,elem2edge,elem2edgeSign,xmin,xmax,ymin,ymax,zmin,zmax,gridsize);

@@ -6,9 +6,10 @@ function [curlW] = RotWBasis(x,y,z,u,v,w)
 % edgeMap = [1,2;2,3;3,1;1,4;2,4;3,4];
 edgeMap = [1,2;1,3;1,4;2,3;2,4;3,4];
 curlW = zeros(6,3);
+gradN = dTetraNodalBasis(x,y,z,u,v,w);
 for i=1:6
-    dBasis1 = dTetraNodalBasis(edgeMap(i,1),x,y,z,u,v,w);
-    dBasis2 = dTetraNodalBasis(edgeMap(i,2),x,y,z,u,v,w);
+    dBasis1 = gradN(edgeMap(i,1),:);
+    dBasis2 = gradN(edgeMap(i,2),:);
     curlW(i,:) = 2*cross(dBasis1,dBasis2);
 end
 

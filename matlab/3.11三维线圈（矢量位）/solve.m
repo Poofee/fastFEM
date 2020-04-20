@@ -179,11 +179,7 @@ for i=1:mesh.nbTets
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     % 计算梯度
-    gradN = zeros(4,3);
-    gradN(1,:) = dTetraNodalBasis(1,X,Y,Z,0,0,0);
-    gradN(2,:) = dTetraNodalBasis(2,X,Y,Z,0,0,0);
-    gradN(3,:) = dTetraNodalBasis(3,X,Y,Z,0,0,0);
-    gradN(4,:) = dTetraNodalBasis(4,X,Y,Z,0,0,0);
+    gradN = dTetraNodalBasis(X,Y,Z,0,0,0);
     % 计算梯度方法二：见 https://www.iue.tuwien.ac.at/phd/nentchev/node31.html
     gradN1 = zeros(4,3);
     gradN1(1,:) = cross(edgeVector(4,:),edgeVector(5,:))/D;
