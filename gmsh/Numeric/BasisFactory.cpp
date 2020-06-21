@@ -53,7 +53,7 @@ const nodalBasis *BasisFactory::getNodalBasis(int tag)
 
   std::pair<std::map<int, nodalBasis *>::const_iterator, bool> inserted;
 
-#if defined(_OPENMP)
+#if defined(_OPENMP1)
 #pragma omp critical
 #endif
   {

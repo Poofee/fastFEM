@@ -574,7 +574,7 @@ double backgroundMesh::operator()(double u, double v, double w) const
 #if defined(HAVE_ANN)
     if(uv_kdtree->nPoints() < 2) return -1000.;
     double pt[3] = {u, v, 0.0};
-#if defined(_OPENMP)
+#if defined(_OPENMP1)
 #pragma omp critical // just to avoid crash (still incorrect) - should use nanoflann
 #endif
     uv_kdtree->annkSearch(pt, 2, index, dist);
@@ -610,7 +610,7 @@ double backgroundMesh::getAngle(double u, double v, double w) const
     double angle = 0.;
     if(angle_kdtree->nPoints() >= NBANN) {
       double pt[3] = {u, v, 0.0};
-#if defined(_OPENMP)
+#if defined(_OPENMP1)
 #pragma omp critical // just to avoid crash (still incorrect) - should use nanoflann
 #endif
       angle_kdtree->annkSearch(pt, NBANN, index, dist);
@@ -643,7 +643,7 @@ double backgroundMesh::getAngle(double u, double v, double w) const
 #if defined(HAVE_ANN)
     if(uv_kdtree->nPoints() < 2) return -1000.0;
     double pt[3] = {u, v, 0.0};
-#if defined(_OPENMP)
+#if defined(_OPENMP1)
 #pragma omp critical // just to avoid crash (still incorrect) - should use nanoflann
 #endif
     uv_kdtree->annkSearch(pt, 2, index, dist);

@@ -26,7 +26,7 @@ double angle3Vertices(const MVertex *p1, const MVertex *p2, const MVertex *p3)
 MVertex::MVertex(double x, double y, double z, GEntity *ge, std::size_t num)
   : _visible(1), _order(1), _x(x), _y(y), _z(z), _ge(ge)
 {
-#if defined(_OPENMP)
+#if defined(_OPENMP1)
 #pragma omp critical
 #endif
   {
@@ -46,7 +46,7 @@ MVertex::MVertex(double x, double y, double z, GEntity *ge, std::size_t num)
 
 void MVertex::deleteLast()
 {
-#if defined(_OPENMP)
+#if defined(_OPENMP1)
 #pragma omp critical
 #endif
   {
@@ -59,7 +59,7 @@ void MVertex::deleteLast()
 
 void MVertex::forceNum(std::size_t num)
 {
-#if defined(_OPENMP)
+#if defined(_OPENMP1)
 #pragma omp critical
 #endif
   {

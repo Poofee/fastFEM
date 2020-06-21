@@ -18,7 +18,7 @@
 #include "StringUtils.h"
 #include "Context.h"
 
-#if defined(_OPENMP)
+#if defined(_OPENMP1)
 #include <omp.h>
 #endif
 
@@ -359,7 +359,7 @@ void CheckResources()
 
 double Cpu()
 {
-#if defined(_OPENMP)
+#if defined(_OPENMP1)
   return omp_get_wtime();
 #else
   long mem = 0;

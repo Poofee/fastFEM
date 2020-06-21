@@ -190,7 +190,7 @@ template <class T>
 static void addElementsInArrays(GEntity *e, std::vector<T *> &elements,
                                 bool edges, bool faces)
 {
-#if defined(_OPENMP)
+#if defined(_OPENMP1)
 #pragma omp parallel for schedule(dynamic)
 #endif
   for(std::size_t i = 0; i < elements.size(); i++) {
@@ -225,7 +225,7 @@ static void addElementsInArrays(GEntity *e, std::vector<T *> &elements,
           for(int k = 0; k < 2; k++)
             e->model()->normals->get(x[k], y[k], z[k], n[k][0], n[k][1],
                                      n[k][2]);
-#if defined(_OPENMP)
+#if defined(_OPENMP1)
 #pragma omp critical
 #endif
         {
@@ -252,7 +252,7 @@ static void addElementsInArrays(GEntity *e, std::vector<T *> &elements,
           for(int k = 0; k < 3; k++)
             e->model()->normals->get(x[k], y[k], z[k], n[k][0], n[k][1],
                                      n[k][2]);
-#if defined(_OPENMP)
+#if defined(_OPENMP1)
 #pragma omp critical
 #endif
         {

@@ -1057,7 +1057,7 @@ public:
   double operator()(double x, double y, double z, GEntity *ge = 0)
   {
     double ret = 0;
-#if defined(_OPENMP)
+#if defined(_OPENMP1)
 #pragma omp critical
 #endif
     {
@@ -1109,7 +1109,7 @@ public:
   }
   void operator()(double x, double y, double z, SMetric3 &metr, GEntity *ge = 0)
   {
-#if defined(_OPENMP)
+#if defined(_OPENMP1)
 #pragma omp critical
 #endif
     {
@@ -1127,7 +1127,7 @@ public:
   double operator()(double x, double y, double z, GEntity *ge = 0)
   {
     SMetric3 metr;
-#if defined(_OPENMP)
+#if defined(_OPENMP1)
 #pragma omp critical
 #endif
     {
@@ -1907,7 +1907,7 @@ public:
   {
     if(update_needed) update();
     double xyz[3] = {x, y, z};
-#if defined(_OPENMP)
+#if defined(_OPENMP1)
 #pragma omp critical // just to avoid crash (still incorrect) - should use nanoflann
 #endif
     kdtree->annkSearch(xyz, 1, index, dist);
@@ -1931,7 +1931,7 @@ public:
   {
     if(update_needed) update();
     double xyz[3] = {X, Y, Z};
-#if defined(_OPENMP)
+#if defined(_OPENMP1)
 #pragma omp critical // just to avoid crash (still incorrect) - should use nanoflann
 #endif
     kdtree->annkSearch(xyz, 1, index, dist);
@@ -2172,7 +2172,7 @@ public:
   using Field::operator();
   virtual double operator()(double X, double Y, double Z, GEntity *ge = 0)
   {
-#if defined(_OPENMP)
+#if defined(_OPENMP1)
 #pragma omp critical
 #endif
     {
@@ -2180,7 +2180,7 @@ public:
     }
     double xyz[3];
     getCoord(X, Y, Z, xyz[0], xyz[1], xyz[2], ge);
-#if defined(_OPENMP)
+#if defined(_OPENMP1)
 #pragma omp critical // just to avoid crash (still incorrect) - should use nanoflann
 #endif
     kdtree->annkSearch(xyz, 1, index, dist);

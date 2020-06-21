@@ -3,7 +3,7 @@
 // See the LICENSE.txt file for license information. Please report all
 // issues on https://gitlab.onelab.info/gmsh/gmsh/issues.
 
-#if defined(_OPENMP)
+#if defined(_OPENMP1)
 #include <omp.h>
 #endif
 
@@ -1018,11 +1018,11 @@ void delaunayTrgl(const std::size_t numThreads,
     maxLocSizeK = std::max(maxLocSizeK, s);
   }
 
-#if defined(_OPENMP)
+#if defined(_OPENMP1)
 #pragma omp parallel num_threads(numThreads)
 #endif
   {
-#if defined(_OPENMP)
+#if defined(_OPENMP1)
     int myThread = omp_get_thread_num();
 #else
     int myThread = 0;
@@ -1049,14 +1049,14 @@ void delaunayTrgl(const std::size_t numThreads,
 
     std::vector<Vert *> vToAdd(NPTS_AT_ONCE);
 
-#if defined(_OPENMP)
+#if defined(_OPENMP1)
 #pragma omp barrier
 #endif
 
     // Main loop
     for(std::size_t iPGlob = 0; iPGlob < maxLocSizeK; iPGlob++) {
 
-#if defined(_OPENMP)
+#if defined(_OPENMP1)
 #pragma omp barrier
 #endif
       std::vector<Tet *> t(NPTS_AT_ONCE);
@@ -1100,7 +1100,7 @@ void delaunayTrgl(const std::size_t numThreads,
         }
       }
 
-#if defined(_OPENMP)
+#if defined(_OPENMP1)
 #pragma omp barrier
 #endif
       for(std::size_t K = 0; K < NPTS_AT_ONCE; K++) {
@@ -1154,7 +1154,7 @@ void delaunayTrgl(const std::size_t numThreads,
       }
     }
 #if defined(VERBOSE)
-#if defined(_OPENMP)
+#if defined(_OPENMP1)
 #pragma omp critical
 #endif
     {
@@ -1162,7 +1162,7 @@ void delaunayTrgl(const std::size_t numThreads,
       totSearchGlob += totSearch;
     }
 #endif
-#if defined(_OPENMP)
+#if defined(_OPENMP1)
 #pragma omp barrier
 #endif
     // clear last cavity

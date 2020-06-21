@@ -35,7 +35,7 @@
 #include "Field.h"
 #include "Options.h"
 
-#if defined(_OPENMP)
+#if defined(_OPENMP1)
 #include <omp.h>
 #endif
 
@@ -370,14 +370,14 @@ static void Mesh1D(GModel *m)
     while(1) {
         int nPending = 0;
         const size_t sss = temp.size();
-#if defined(_OPENMP)
+#if defined(_OPENMP1)
 #pragma omp parallel for schedule(dynamic)
 #endif
         for(size_t K = 0; K < sss; K++) {
             GEdge *ed = temp[K];
             if(ed->meshStatistics.status == GEdge::PENDING) {
                 ed->mesh(true);
-#if defined(_OPENMP)
+#if defined(_OPENMP1)
 #pragma omp critical
 #endif
                 {
@@ -518,14 +518,14 @@ static void Mesh2D(GModel *m)
             int nPending = 0;
             std::vector<GFace *> temp;
             temp.insert(temp.begin(), f.begin(), f.end());
-#if defined(_OPENMP)
+#if defined(_OPENMP1)
 #pragma omp parallel for schedule(dynamic)
 #endif
             for(size_t K = 0; K < temp.size(); K++) {
                 if(temp[K]->meshStatistics.status == GFace::PENDING) {
                     backgroundMesh::current()->unset();
                     temp[K]->mesh(true);
-#if defined(_OPENMP)
+#if defined(_OPENMP1)
 #pragma omp critical
 #endif
                     {

@@ -306,7 +306,7 @@ public:
     // Allocate the array
     void allocate(const unsigned short nCapacity, T *&faces)
     {
-#if defined(_OPENMP)
+#if defined(_OPENMP1)
 #pragma omp critical(FaceAllocator_allocate)
 #endif
         {
@@ -341,7 +341,7 @@ public:
     // arrays with size 2, 6, and 8.
     void grow(unsigned short &nCapacity, T *&faces)
     {
-#if defined(_OPENMP)
+#if defined(_OPENMP1)
 #pragma omp critical(FaceAllocator_grow)
 #endif
         {
@@ -400,7 +400,7 @@ public:
     // Deallocate an array
     void deallocate(unsigned short &nCapacity, T *const faces)
     {
-#if defined(_OPENMP)
+#if defined(_OPENMP1)
 #pragma omp critical(FaceAllocator_deallocate)
 #endif
         {

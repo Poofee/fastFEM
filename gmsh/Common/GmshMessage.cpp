@@ -1579,7 +1579,7 @@ void Msg::Barrier()
 #endif
 }
 
-#if defined(_OPENMP)
+#if defined(_OPENMP1)
 
 #include <omp.h>
 

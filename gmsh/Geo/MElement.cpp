@@ -37,7 +37,7 @@ double MElement::_isInsideTolerance = 1.e-6;
 
 MElement::MElement(std::size_t num, int part) : _visible(1)
 {
-#if defined(_OPENMP)
+#if defined(_OPENMP1)
 #pragma omp critical
 #endif
   {
@@ -57,7 +57,7 @@ MElement::MElement(std::size_t num, int part) : _visible(1)
 
 void MElement::forceNum(std::size_t num)
 {
-#if defined(_OPENMP)
+#if defined(_OPENMP1)
 #pragma omp critical
 #endif
   {

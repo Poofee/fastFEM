@@ -20,11 +20,13 @@ DEFINES += _CRT_SECURE_NO_WARNINGS
 
 DESTDIR = $$PWD/../bin
 
+include($$PWD/../gmsh/gmsh.pri)
+
 QMAKE_CXXFLAGS += /openmp
 
 CONFIG += debug_and_release
 
-include($$PWD/../gmsh/qtgmsh.pri)
+
 #source file lists
 SOURCES += \
     datatype.cpp \
