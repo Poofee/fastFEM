@@ -137,11 +137,11 @@ void Relay1250::openGeo()
     //    GModel::current()->mesh(2);
     model = GModel::current();
 
-//    /** 初次分网 **/
-//    char nameMsh[256];
-//    GenerateMesh(model, 2);
-//    sprintf(nameMsh,"%s_%02d.msh",fileName,0);
-//    gmsh::write(nameMsh);
+    /** 初次分网，重分网必须先有一个网格 **/
+    char nameMsh[256];
+    GenerateMesh(model, 2);
+    sprintf(nameMsh,"%s_%02d.msh",fileName,0);
+    gmsh::write(nameMsh);
 }
 int next_int(char **start)
 {
@@ -291,13 +291,24 @@ void Relay1250::findBoundaryPoints(int index)
 */
 void Relay1250::findBoundaryEdges(int index)
 {
-    /** 生成所有的棱 **/
-    int numEdges = num_ele * 3;
-
-    allEdges.resize(numEdges);
-    allPoints.resize(num_ele * 3);
-
+    /** 计算出三角单元的数目 **/
+    int num_tri = 0;
     for(int i=0; i < num_ele;i++){
+        if(pmeshele[i].ele_type == 2){
+            num_tri++;
+        }
+    }
+    /** 生成所有的棱 **/
+    int numEdges = num_tri * 3;
+
+    boundaryEdges.resize(numEdges);
+    allPoints.resize(num_tri * 3);
+
+    num_tri = 0;
+    for(int i=0; i < num_ele;i++){
+        if(pmeshele[i].ele_type != 2){
+            continue;
+        }
         int a,b,c,t;
         a = pmeshele[i].n[0];
         b = pmeshele[i].n[1];
@@ -307,26 +318,28 @@ void Relay1250::findBoundaryEdges(int index)
         if(a>c)  {t=a;a=c;c=t;}
         if(b>c)  {t=b;b=c;c=t;}
 
-        allEdges.at(i*3 + 0).start = a;
-        allEdges.at(i*3 + 0).end   = b;
-        allEdges.at(i*3 + 1).start = a;
-        allEdges.at(i*3 + 1).end   = c;
-        allEdges.at(i*3 + 2).start = b;
-        allEdges.at(i*3 + 2).end   = c;
+        boundaryEdges.at(num_tri*3 + 0).start = a;
+        boundaryEdges.at(num_tri*3 + 0).end   = b;
+        boundaryEdges.at(num_tri*3 + 1).start = a;
+        boundaryEdges.at(num_tri*3 + 1).end   = c;
+        boundaryEdges.at(num_tri*3 + 2).start = b;
+        boundaryEdges.at(num_tri*3 + 2).end   = c;
 
-        allPoints.at(0) = a;
-        allPoints.at(1) = b;
-        allPoints.at(2) = c;
+        allPoints.at(num_tri*3 + 0) = a;
+        allPoints.at(num_tri*3 + 1) = b;
+        allPoints.at(num_tri*3 + 2) = c;
+
+        num_tri++;
     }
     /** 去重找到边界 **/
-    std::vector<FEMedge>::iterator it_1 = allEdges.begin();
-    std::vector<FEMedge>::iterator it_2 = allEdges.end();
+    std::vector<FEMedge>::iterator it_1 = boundaryEdges.begin();
+    std::vector<FEMedge>::iterator it_2 = boundaryEdges.end();
     std::vector<FEMedge>::iterator new_end;
 
     std::sort(it_1,it_2);
 
     new_end = Myunique(it_1,it_2);
-    boundaryEdges = allEdges;
+    allEdges = boundaryEdges;
     boundaryEdges.erase(new_end,it_2);
     /** 去重找到所有的节点 **/
     std::vector<int>::iterator it_3 = allPoints.begin();
@@ -408,6 +421,13 @@ void Relay1250::moveFace(GFace *f, double dx, double dy, double dz)
 void Relay1250::remesh(double dx, double dy)
 {
     char nameMsh[256];
+    sprintf(nameMsh,"%s_%02d.msh",fileName,current_step);
+    /** 未发生位移就不要分了 **/
+    if(dx == 0 && dy == 0){
+        gmsh::write(nameMsh);
+        return;
+    }
+
     /** 删掉空气的分网 **/
     GFace* f_xiantie = nullptr;
     GFace* f_air = nullptr;
@@ -432,10 +452,19 @@ void Relay1250::remesh(double dx, double dy)
     printf("-------------remesh air domain...-------------\n");
     f_air->mesh(true);
 
-    sprintf(nameMsh,"%s_%02d.msh",fileName,current_step);
     gmsh::write(nameMsh);
 
     printf("-------------Finish-------------\n");
+}
+
+/*!
+ \brief 计算区域index的电磁力，如果没有指定的话，就按衔铁算。
+
+ \param index
+*/
+void Relay1250::calcMagFore(int index)
+{
+
 }
 
 /*!
@@ -469,7 +498,9 @@ void Relay1250::AxisNRsolve()
 
             /** 有限元装配 **/
             for(int i_ele = 0; i_ele < num_ele; i_ele++){
-
+                if(pmeshele[i].ele_type != 2){
+                    continue;
+                }
             }
 
         }

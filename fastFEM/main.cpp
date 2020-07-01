@@ -1,8 +1,11 @@
-#include "plot.h"
+//#include "plot.h"
 
 //#include <QApplication>
 
 //#include "FastFEMcore.h"
+
+#include "relay1250.h"
+
 #include "slu_mt_ddefs.h"
 
 #include <armadillo> 
@@ -33,29 +36,11 @@ using namespace arma;
 //void triangletestvtmsingle();
 void test2DRemesh();
 
-int main(int argc, char *argv[])
-{
-//    QApplication a(argc, argv);
-//	qDebug() << "current applicationDirPath: " << QCoreApplication::applicationDirPath();
-//	qDebug() << "current currentPath: " << QDir::currentPath();
-
-	//armatest();
-	//triangletest1();
-	//quadtlmtest();
-	//triangletestvtm2();
-	//triangletestvtm();
-	//triangletestvtmsingle();
-//    T3NRtest();
-	//quadvtmtest();
-	//T3NRTLMtest();
-	//triangletestgroup();
-	//quadtest();
-    test2DRemesh();
-
-//	Plot myplot;
-//	myplot.show();
-    return 0;
+void test1250time(){
+    Relay1250 relay;
+    relay.run();
 }
+
 void armatest(){
 	mat A (3, 3);
 	colvec b (3);
@@ -467,4 +452,32 @@ void test2DRemesh(){
 
     gmsh::finalize();
     printf("-------------Finish-------------\n");
+}
+
+int main(int argc, char *argv[])
+{
+//    QApplication a(argc, argv);
+//	qDebug() << "current applicationDirPath: " << QCoreApplication::applicationDirPath();
+//	qDebug() << "current currentPath: " << QDir::currentPath();
+
+    //armatest();
+    //triangletest1();
+    //quadtlmtest();
+    //triangletestvtm2();
+    //triangletestvtm();
+    //triangletestvtmsingle();
+//    T3NRtest();
+    //quadvtmtest();
+    //T3NRTLMtest();
+    //triangletestgroup();
+    //quadtest();
+//    test2DRemesh();
+
+//	Plot myplot;
+//	myplot.show();
+
+
+    test1250time();
+
+    return 0;
 }

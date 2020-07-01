@@ -65,6 +65,7 @@ public:
     void deleteFaceMesh(GFace* f);
     void moveFace(GFace *f,double dx,double dy,double dz);
     void remesh(double dx, double dy);
+    void calcMagFore(int index);
     void AxisNRsolve();
     void AxisTLMsolve();
     void run();
