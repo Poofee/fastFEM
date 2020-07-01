@@ -9,7 +9,9 @@ CMaterial::CMaterial() {
 	Bdata = NULL;
 	H_c = 0;
 	Theta_m = 0;
-	Jr = 0;
+    Jr = 0;
+    I = 0;
+    tau = 0;
 }
 
 CMaterial::~CMaterial() {

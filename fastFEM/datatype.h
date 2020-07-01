@@ -1,10 +1,20 @@
 #pragma once
 
+class FEMedge{
+public:
+    int start;
+    int end;
+
+    bool operator<(const FEMedge& e) { return this->start < e.start; }
+    bool operator==(const FEMedge& e) { return this->start == e.start; }
+    bool operator!=(const FEMedge& e) { return this->start != e.start || this->end == e.end ; }
+};
+
 typedef struct _CNode
 {
-	double x, y;//the co
+    double x, y, z;//the co
 	double A;//the solution
-	double bdr;//boundary type 0:非边界;1:几何边界;2:物理边界3:既是物理边界，又是几何边界
+    double bdr;///*boundary type 0:非边界;1:几何边界;2:物理边界3:既是物理边界，又是几何边界*/
 	double I;//current source
 	double pm;
 }CNode;
@@ -12,25 +22,28 @@ typedef struct _CNode
 typedef struct _CElement
 {
     int n[3];// ni, nj, nk;//
+    int ele_type;
+    int physic_tag;
+    int geometry_tag;/** 与face的编号对应 **/
+    int domain;///*从工程文件会读取一个材料列表，这是当前单元的编号；*/
 	double P[3];// Pi, Pj, Pk;
 	double Q[3];// Qi, Qj, Qk;
-	double AREA;//单元的面积变量
-	double Bx,By,B;//单元的磁感应强度B及其水平和竖直方向上的分量
-	double miu,miut;//对于非线性单元，迭代时的miu和初始时的miu；
-	int domain;//从工程文件会读取一个材料列表，这是当前单元的编号；
+    double AREA;///*单元的面积变量*/
+    double Bx,By,B;///*单元的磁感应强度B及其水平和竖直方向上的分量*/
+    double miu,miut;///*对于非线性单元，迭代时的miu和初始时的miu；*/
     double rc,zc;
-	bool LinearFlag;//定义逻辑变量LinearFlag，用来判断具体单元是否处于线性区域
+    bool LinearFlag;///*定义逻辑变量LinearFlag，用来判断具体单元是否处于线性区域*/
 }CElement;
 
 typedef struct _CElement4
 {
     int n[4];// ni, nj, nk;//
-    double AREA;//单元的面积变量
-    double Bx,By,B;//单元的磁感应强度B及其水平和竖直方向上的分量
-    double miu,miut;//对于非线性单元，迭代时的miu和初始时的miu；
-    int domain;//从工程文件会读取一个材料列表，这是当前单元的编号；
+    double AREA;///*单元的面积变量*/
+    double Bx,By,B;///*单元的磁感应强度B及其水平和竖直方向上的分量*/
+    double miu,miut;///*对于非线性单元，迭代时的miu和初始时的miu；*/
+    int domain;///*从工程文件会读取一个材料列表，这是当前单元的编号；*/
     double rc,zc;
-    bool LinearFlag;//定义逻辑变量LinearFlag，用来判断具体单元是否处于线性区域
+    bool LinearFlag;///*定义逻辑变量LinearFlag，用来判断具体单元是否处于线性区域*/
 }CElement4;
 class CMaterial{
 public:
@@ -42,11 +55,13 @@ public:
 	double H_c;				// magnetization, A/m
 	double Theta_m;			// orientation of magnetization, degrees
 	double Jr;			// applied current density, MA/m^2
+    double I;/** 线圈电流 **/
+    double tau;/** 线圈匝数比 **/
 	
 	CMaterial();
 	~CMaterial();
 	double getMiu(double B);
-	double getdvdB(double B);//相对磁阻率对B的偏微分
+    double getdvdB(double B);///*相对磁阻率对B的偏微分*/
 };
 class CBlock{
 public:

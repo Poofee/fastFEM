@@ -1,7 +1,7 @@
 #include <QFile>
 #include <QXmlStreamWriter>
 #include <QXmlStreamReader>
-#include <QDebug>
+//#include <QDebug>
 #include <stdio.h>
 #include <stdlib.h>
 #include <cmath>
@@ -80,7 +80,7 @@ int CFastFEMcore::Load2DMeshCOMSOL(const char fn[]) {
 	FILE * fp = NULL;
 	fp = fopen(fn, "r");
 	if (fp == NULL) {
-		qDebug() << "Error: openning file!";
+//		qDebug() << "Error: openning file!";
 		return 1;
 	}
 	//--------------Read the head-----------------------------
@@ -97,13 +97,13 @@ int CFastFEMcore::Load2DMeshCOMSOL(const char fn[]) {
 			pmeshnode[i].pm = 0;
 		}
 	} else {
-		qDebug() << "Error: reading num_pts!";
+//		qDebug() << "Error: reading num_pts!";
 		return 1;
 	}
 	int pts_ind;//the beginning of the points index
 	//读取节点索引，默认从0开始
 	if (fscanf(fp, "%d # lowest mesh point index\n", &pts_ind) != 1) {
-		qDebug() << "Error: reading pts_ind!";
+//		qDebug() << "Error: reading pts_ind!";
 		return 1;
 	}
 	fgets(ch, 256, fp);
@@ -111,7 +111,7 @@ int CFastFEMcore::Load2DMeshCOMSOL(const char fn[]) {
 	for (int i = pts_ind; i < num_pts; i++) {
 		//读取x,y坐标
 		if (fscanf(fp, "%lf %lf \n", &(pmeshnode[i].x), &(pmeshnode[i].y)) != 2) {
-			qDebug() << "Error: reading mesh point!";
+//			qDebug() << "Error: reading mesh point!";
 			return 1;
 		}
 	}
@@ -121,12 +121,12 @@ int CFastFEMcore::Load2DMeshCOMSOL(const char fn[]) {
 	int num_vtx_ns, num_vtx_ele;
 	//
 	if (fscanf(fp, "%d # number of nodes per element\n", &num_vtx_ns) != 1) {
-		qDebug() << "Error: reading num_vtx_ns!";
+//		qDebug() << "Error: reading num_vtx_ns!";
 		return 1;
 	}
 
 	if (fscanf(fp, "%d # number of elements\n", &num_vtx_ele) != 1) {
-		qDebug() << "Error: reading num_vtx_ele!";
+//		qDebug() << "Error: reading num_vtx_ele!";
 		return 1;
 	}
 	fgets(ch, 256, fp);
@@ -136,7 +136,7 @@ int CFastFEMcore::Load2DMeshCOMSOL(const char fn[]) {
 	for (int i = 0; i < num_vtx_ele; i++) {
 		//好象是每一个域的顶点编号
 		if (fscanf(fp, "%d \n", vtx + i) != 1) {
-			qDebug() << "Error: reading vertex condition!";
+//			qDebug() << "Error: reading vertex condition!";
 			return 1;
 		}
 	}
@@ -149,7 +149,7 @@ int CFastFEMcore::Load2DMeshCOMSOL(const char fn[]) {
 	vtx2 = (int*)calloc(num_vtx_ele2, sizeof(int));
 	for (int i = 0; i < num_vtx_ele2; i++) {
 		if (fscanf(fp, "%d \n", vtx2 + i) != 1) {
-			qDebug() << "Error: reading vertex condition!";
+//			qDebug() << "Error: reading vertex condition!";
 			return 1;
 		}
 	}
@@ -160,12 +160,12 @@ int CFastFEMcore::Load2DMeshCOMSOL(const char fn[]) {
 	int num_bdr_ns, num_bdr_ele;//number of nodes per element;number of elements
 	//读取一个边界单元中的数目，2D的话为2，表示线段
 	if (fscanf(fp, "%d # number of nodes per element\n", &num_bdr_ns) != 1) {
-		qDebug() << "Error: reading num_bdr_ns!";
+//		qDebug() << "Error: reading num_bdr_ns!";
 		return 1;
 	}
 	//读取线段边界数目
 	if (fscanf(fp, "%d # number of elements\n", &num_bdr_ele) != 1) {
-		qDebug() << "Error: reading num_bdr_ele!";
+//		qDebug() << "Error: reading num_bdr_ele!";
 		return 1;
 	}
 	fgets(ch, 256, fp);
@@ -178,7 +178,7 @@ int CFastFEMcore::Load2DMeshCOMSOL(const char fn[]) {
 		if (fscanf(fp, "%d %d\n", p1 + i, p2 + i) == 2) {
 			pmeshnode[p1[i]].bdr = 1;
 		} else {
-			qDebug() << "Error: reading boundary condition!";
+//			qDebug() << "Error: reading boundary condition!";
 			return 1;
 		}
 	}
@@ -192,7 +192,7 @@ int CFastFEMcore::Load2DMeshCOMSOL(const char fn[]) {
 	entity = (int*)calloc(num_entity, sizeof(int));
 	for (int i = 0; i < num_entity; i++) {
 		if (fscanf(fp, "%d \n", entity + i) != 1) {
-			qDebug() << "Error: reading boundary condition!";
+//			qDebug() << "Error: reading boundary condition!";
 			return 1;
 		}
 	}
@@ -202,21 +202,21 @@ int CFastFEMcore::Load2DMeshCOMSOL(const char fn[]) {
 		fgets(ch, 256, fp);
 	int ns_per_ele;// num_ele;//number of nodes per element;number of elements
 	if (fscanf(fp, "%d # number of nodes per element\n", &ns_per_ele) != 1) {
-		qDebug() << "Error: reading ns_per_ele!";
+//		qDebug() << "Error: reading ns_per_ele!";
 		return 1;
 	}
 	//读取分网单元数目
 	if (fscanf(fp, "%d # number of elements\n", &num_ele) == 1) {
 		pmeshele = (CElement*)calloc(num_ele, sizeof(CElement));
 	} else {
-		qDebug() << "Error: reading num_ele!";
+//		qDebug() << "Error: reading num_ele!";
 		return 1;
 	}
 	fgets(ch, 256, fp);
 	//读取分网三角单元的三个节点索引
 	for (int i = 0; i < num_ele; i++) {
 		if (fscanf(fp, "%d %d %d \n", &pmeshele[i].n[0], &pmeshele[i].n[1], &pmeshele[i].n[2]) != 3) {
-			qDebug() << "Error: reading elements points!";
+//			qDebug() << "Error: reading elements points!";
 			return 1;
 		}
 	}
@@ -229,7 +229,7 @@ int CFastFEMcore::Load2DMeshCOMSOL(const char fn[]) {
 	for (int i = 0; i < num_domain; i++) {
 		//读取每个单元所在的domain
 		if (fscanf(fp, "%d \n", &pmeshele[i].domain) != 1) {
-			qDebug() << "Error: reading domain points!";
+//			qDebug() << "Error: reading domain points!";
 			return 1;
 		}
 	}
@@ -287,7 +287,8 @@ void CFastFEMcore::myTriSolve(int ncore, SuperMatrix *L, SuperMatrix *U,
 	//    int *xnL = (int*)malloc(nnzL*sizeof(int));
 	//    int *ynL = (int*)malloc(nnzL*sizeof(int));
 	//    double *valueL = (double*)malloc(nnzL*sizeof(double));
-	t1 = SuperLU_timer_() - t1; qDebug() << t1;
+    t1 = SuperLU_timer_() - t1;
+//    qDebug() << t1;
 	int nnzU = Ustore->nnz;
 	//qDebug()<<"U:"<<nnzU;
 	//asubU = Ustore->rowind;
@@ -297,13 +298,15 @@ void CFastFEMcore::myTriSolve(int ncore, SuperMatrix *L, SuperMatrix *U,
 	//    int *xnU = (int*)malloc(nnzU*sizeof(int));
 	//    int *ynU = (int*)malloc(nnzU*sizeof(int));
 	//    double *valueU = (double*)malloc(nnzU*sizeof(double));
-	t1 = SuperLU_timer_() - t1; qDebug() << t1;
+    t1 = SuperLU_timer_() - t1;
+//    qDebug() << t1;
 	int fsupc, istart, nsupr, nsupc, nrow;//
 	int count = 0; int countU = 0;
 	double value;
 	t1 = SuperLU_timer_();
 	QVector<int> level(m), sortlevel(m), sortlevelU(m);
-	t1 = SuperLU_timer_() - t1; qDebug() << t1;
+    t1 = SuperLU_timer_() - t1;
+//    qDebug() << t1;
 	for (int i = 0; i < m; i++){
 		level[i] = 0;
 	}
@@ -462,8 +465,8 @@ void CFastFEMcore::myTriSolve(int ncore, SuperMatrix *L, SuperMatrix *U,
 	} /* for U-solve */
 
 
-	qDebug() << "countL :" << count;
-	qDebug() << "countU :" << countU;
+//	qDebug() << "countL :" << count;
+//	qDebug() << "countU :" << countU;
 	int maxLevel = 0;
 	int maxLevelU = 0;
 	QVector <ele> slevel(m);
@@ -477,8 +480,8 @@ void CFastFEMcore::myTriSolve(int ncore, SuperMatrix *L, SuperMatrix *U,
 		slevelU[i].index = i;
 		slevelU[i].level = levelU[i];
 	}
-	qDebug() << "maxLevel:" << maxLevel;
-	qDebug() << "maxLevelU:" << maxLevelU;
+//	qDebug() << "maxLevel:" << maxLevel;
+//	qDebug() << "maxLevelU:" << maxLevelU;
 
 	qSort(slevel.begin(), slevel.end(), compareele);//ascend
 	qSort(slevelU.begin(), slevelU.end(), compareele);//ascend
@@ -495,8 +498,8 @@ void CFastFEMcore::myTriSolve(int ncore, SuperMatrix *L, SuperMatrix *U,
 			Ucol[++ucount] = i;
 		}
 	}
-	qDebug() << "lcount:" << lcount;
-	qDebug() << "ucount:" << ucount;
+//	qDebug() << "lcount:" << lcount;
+//	qDebug() << "ucount:" << ucount;
 
 	for (int i = 0; i < m; i++){
 		sortlevel[slevel[i].index] = i;
@@ -540,7 +543,7 @@ void CFastFEMcore::myTriSolve(int ncore, SuperMatrix *L, SuperMatrix *U,
 		}
 	}
 
-	qDebug() << m;
+//	qDebug() << m;
 	t1 = SuperLU_timer_();
 
 	DNformat *Bstore = (DNformat*)B->Store;
@@ -548,7 +551,7 @@ void CFastFEMcore::myTriSolve(int ncore, SuperMatrix *L, SuperMatrix *U,
 	//L solve
 	int cc = 0;
 	omp_set_num_threads(8);
-	qDebug() << omp_get_num_procs();
+//	qDebug() << omp_get_num_procs();
 	for (int i = 0; i < maxLevel - 1; i++){
 #pragma omp parallel for
 		for (int j = Lcol[i + 1]; j < m; j++){//row
@@ -564,7 +567,8 @@ void CFastFEMcore::myTriSolve(int ncore, SuperMatrix *L, SuperMatrix *U,
 	for (int i = 0; i < maxLevelU; i++){
 
 	}
-	t1 = SuperLU_timer_() - t1; qDebug() << t1 << "\t" << cc;
+    t1 = SuperLU_timer_() - t1;
+//    qDebug() << t1 << "\t" << cc;
 	//绘制level分割线等
 	double lastline = 0;
 	QPen pen;
@@ -858,7 +862,7 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 	pdgssv(nprocs, &sluA, perm_c, perm_r, &L, &U, &sluB, &info);
 
 	if (info != 0) {
-		qDebug() << "Error: superlumt.slove";
+//		qDebug() << "Error: superlumt.slove";
 		//qDebug() << "info: " << superlumt.info;
 	} else {
 		double *sol = NULL;
@@ -1003,7 +1007,7 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 		//pdgssv(nprocs, &sluA, perm_c, perm_r, &L, &U, &sluB, &info);
 		//NOW WE SOLVE THE LINEAR SYSTEM USING THE FACTORED FORM OF sluA.
 		if (info != 0) {
-			qDebug() << "Error: superlumt.slove";
+//			qDebug() << "Error: superlumt.slove";
 			//qDebug() << "info: " << superlumt.info;
 			break;
 		} else {
@@ -1050,10 +1054,10 @@ bool CFastFEMcore::StaticAxisymmetricTLM() {
 	}
 	//output the time
 	for (int i = 1; i < tt; i++){
-		qDebug() << i << "\t" << time[i] - time[i - 1];
+//		qDebug() << i << "\t" << time[i] - time[i - 1];
 	}
 
-	qDebug() << "TLM steps:" << count;
+//	qDebug() << "TLM steps:" << count;
 	// 回收空间
 	if (rm != NULL) free(rm);
 	if (ydot != NULL) free(ydot);
@@ -1273,7 +1277,7 @@ bool CFastFEMcore::StaticAxisT3VTM2() {
 	pdgssv(nprocs, &sluA, perm_c, perm_r, &L, &U, &sluB, &info);
 
 	if (info != 0) {
-		qDebug() << "Error: superlumt.slove";
+//		qDebug() << "Error: superlumt.slove";
 		//qDebug() << "info: " << superlumt.info;
 	} else {
 		double *sol = NULL;
@@ -1405,7 +1409,7 @@ bool CFastFEMcore::StaticAxisT3VTM2() {
 				//5.求解电压V
 				bool status = arma::solve(x3, AJ, b);
 				if (!status){
-					qDebug() << "error: solve !";
+//					qDebug() << "error: solve !";
 					return false;
 				}
 				x2(0) = x3(0) + Vs[j].V13;
@@ -1436,7 +1440,7 @@ bool CFastFEMcore::StaticAxisT3VTM2() {
 		//NOW WE SOLVE THE LINEAR SYSTEM USING THE FACTORED FORM OF sluA.
 		//读取求解结果
 		if (info != 0) {
-			qDebug() << "Error: superlumt.slove";
+//			qDebug() << "Error: superlumt.slove";
 			//qDebug() << "info: " << superlumt.info;
 			break;
 		} else {
@@ -1451,8 +1455,8 @@ bool CFastFEMcore::StaticAxisT3VTM2() {
 		}
 		//误差判断
 		double error = norm((A_old - A), 2) / norm(A, 2);
-		qDebug() << "iter: " << count;
-		qDebug() << "error: " << error;
+//		qDebug() << "iter: " << count;
+//		qDebug() << "error: " << error;
 
 		//绘制计算结果
 		graph1->setData(x, y);
@@ -1485,10 +1489,10 @@ bool CFastFEMcore::StaticAxisT3VTM2() {
 	}
 	//output the time
 	for (int i = 1; i < tt; i++) {
-		qDebug() << i << "\t" << time[i] - time[i - 1];
+//		qDebug() << i << "\t" << time[i] - time[i - 1];
 	}
 
-	qDebug() << "TLM steps:" << count;
+//	qDebug() << "TLM steps:" << count;
 	// 回收空间
 	if (rm != NULL) free(rm);
 	if (ydot != NULL) free(ydot);
@@ -1716,7 +1720,7 @@ bool CFastFEMcore::StaticAxisT3VTM3() {
 	pdgssv(nprocs, &sluA, perm_c, perm_r, &L, &U, &sluB, &info);
 
 	if (info != 0) {
-		qDebug() << "Error: superlumt.slove";
+//		qDebug() << "Error: superlumt.slove";
 		//qDebug() << "info: " << superlumt.info;
 	} else {
 		double *sol = NULL;
@@ -1853,7 +1857,7 @@ bool CFastFEMcore::StaticAxisT3VTM3() {
 				//5.求解电压V
 				bool status = arma::solve(x2, AJ, b);
 				if (!status) {
-					qDebug() << "error: solve !";
+//					qDebug() << "error: solve !";
 					return false;
 				}
 			}
@@ -1876,7 +1880,7 @@ bool CFastFEMcore::StaticAxisT3VTM3() {
 		//NOW WE SOLVE THE LINEAR SYSTEM USING THE FACTORED FORM OF sluA.
 		//读取求解结果
 		if (info != 0) {
-			qDebug() << "Error: superlumt.slove";
+//			qDebug() << "Error: superlumt.slove";
 			//qDebug() << "info: " << superlumt.info;
 			break;
 		} else {
@@ -1891,8 +1895,8 @@ bool CFastFEMcore::StaticAxisT3VTM3() {
 		}
 		//误差判断
 		double error = norm((A_old - A), 2) / norm(A, 2);
-		qDebug() << "iter: " << count;
-		qDebug() << "error: " << error;
+//		qDebug() << "iter: " << count;
+//		qDebug() << "error: " << error;
 
 		//绘制计算结果
 		graph1->setData(x, y);
@@ -1924,10 +1928,10 @@ bool CFastFEMcore::StaticAxisT3VTM3() {
 	}
 	//output the time
 	for (int i = 1; i < tt; i++) {
-		qDebug() << i << "\t" << time[i] - time[i - 1];
+//		qDebug() << i << "\t" << time[i] - time[i - 1];
 	}
 
-	qDebug() << "TLM steps:" << count;
+//	qDebug() << "TLM steps:" << count;
 	// 回收空间
 	if (rm != NULL) free(rm);
 	if (ydot != NULL) free(ydot);
@@ -2175,7 +2179,7 @@ bool CFastFEMcore::StaticAxisT3VTM() {
 	pdgssv(nprocs, &sluA, perm_c, perm_r, &L, &U, &sluB, &info);
 
 	if (info != 0) {
-		qDebug() << "Error: superlumt.slove";
+//		qDebug() << "Error: superlumt.slove";
 		//qDebug() << "info: " << superlumt.info;
 	} else {
 		double *sol = NULL;
@@ -2312,7 +2316,7 @@ bool CFastFEMcore::StaticAxisT3VTM() {
 				//5.求解电压V
 				bool status = arma::solve(x2, AJ, b);
 				if (!status){
-					qDebug() << "error: solve !";
+//					qDebug() << "error: solve !";
 					return false;
 				}
 			}
@@ -2335,7 +2339,7 @@ bool CFastFEMcore::StaticAxisT3VTM() {
 		//NOW WE SOLVE THE LINEAR SYSTEM USING THE FACTORED FORM OF sluA.
 		//读取求解结果
 		if (info != 0) {
-			qDebug() << "Error: superlumt.slove";
+//			qDebug() << "Error: superlumt.slove";
 			//qDebug() << "info: " << superlumt.info;
 			break;
 		} else {
@@ -2350,8 +2354,8 @@ bool CFastFEMcore::StaticAxisT3VTM() {
 		}
 		//误差判断
 		double error = norm((A_old - A), 2) / norm(A, 2);
-		qDebug() << "iter: " << count;
-		qDebug() << "error: " << error;
+//		qDebug() << "iter: " << count;
+//		qDebug() << "error: " << error;
 
 		//绘制计算结果
 		graph1->setData(x, y);
@@ -2383,10 +2387,10 @@ bool CFastFEMcore::StaticAxisT3VTM() {
 	}
 	//output the time
 	for (int i = 1; i < tt; i++) {
-		qDebug() << i << "\t" << time[i] - time[i - 1];
+//		qDebug() << i << "\t" << time[i] - time[i - 1];
 	}
 
-	qDebug() << "TLM steps:" << count;
+//	qDebug() << "TLM steps:" << count;
 	// 回收空间
 	if (rm != NULL) free(rm);
 	if (ydot != NULL) free(ydot);
@@ -2418,7 +2422,7 @@ bool CFastFEMcore::StaticAxisT3TLMgroup() {
 			D34.push_back(i);
 		}
 	}
-	qDebug() << "D34 size:" << D34.size();
+//	qDebug() << "D34 size:" << D34.size();
 	uvec node_reorder = zeros<uvec>(num_pts);
 	uvec node_pos = zeros<uvec>(num_pts);
 	//------------build C Matrix-----------------------------
@@ -2642,7 +2646,7 @@ bool CFastFEMcore::StaticAxisT3TLMgroup() {
 	pdgssv(nprocs, &sluA, perm_c, perm_r, &L, &U, &sluB, &info);
 
 	if (info != 0) {
-		qDebug() << "Error: superlumt.slove";
+//		qDebug() << "Error: superlumt.slove";
 		//qDebug() << "info: " << superlumt.info;
 	} else {
 		double *sol = NULL;
@@ -2804,7 +2808,7 @@ bool CFastFEMcore::StaticAxisT3TLMgroup() {
 				x2old = x2;
 				bool status = arma::solve(x2, AJ, b);
 				if (!status){
-					qDebug() << "error: solve !";
+//					qDebug() << "error: solve !";
 					return false;
 				}
 				//判断误差
@@ -2829,7 +2833,7 @@ bool CFastFEMcore::StaticAxisT3TLMgroup() {
 		}
 		INL += bbJz;
 		a2 = SuperLU_timer_();
-		qDebug() <<"t1: "<< a2 - a1;
+//		qDebug() <<"t1: "<< a2 - a1;
 		for (int i = 0; i < num_pts - node_bdr; i++) {
 			unknown_b[i] = INL(node_reorder(i));
 		}
@@ -2844,7 +2848,7 @@ bool CFastFEMcore::StaticAxisT3TLMgroup() {
 		//pdgssv(nprocs, &sluA, perm_c, perm_r, &L, &U, &sluB, &info);
 		//NOW WE SOLVE THE LINEAR SYSTEM USING THE FACTORED FORM OF sluA.
 		if (info != 0) {
-			qDebug() << "Error: superlumt.slove";
+//			qDebug() << "Error: superlumt.slove";
 			//qDebug() << "info: " << superlumt.info;
 			break;
 		} else {
@@ -2858,8 +2862,8 @@ bool CFastFEMcore::StaticAxisT3TLMgroup() {
 			}
 		}
 		double error = norm((A_old - A), 2) / norm(A, 2);
-		qDebug() << count;
-		qDebug() << error;
+//		qDebug() << count;
+//		qDebug() << error;
 
 		//graph1->setData(x, y);
 		//customplot->rescaleAxes(true);
@@ -2871,7 +2875,7 @@ bool CFastFEMcore::StaticAxisT3TLMgroup() {
 		}
 		INL.zeros();
 		a1 = SuperLU_timer_();
-		qDebug() <<"t2: "<< a1 - a2;
+//		qDebug() <<"t2: "<< a1 - a2;
 		/*double b = SuperLU_timer_();
 		if (count == 0){
 			qDebug() << b - a;
@@ -2895,10 +2899,10 @@ bool CFastFEMcore::StaticAxisT3TLMgroup() {
 	}
 	//output the time
 	for (int i = 1; i < tt; i++) {
-		qDebug() << i << "\t" << time[i] - time[i - 1];
+//		qDebug() << i << "\t" << time[i] - time[i - 1];
 	}
 
-	qDebug() << "TLM steps:" << count;
+//	qDebug() << "TLM steps:" << count;
 	// 回收空间
 	if (rm != NULL) free(rm);
 	if (ydot != NULL) free(ydot);
@@ -3113,7 +3117,7 @@ bool CFastFEMcore::StaticAxisTLMNR() {
 	pdgssv(nprocs, &sluA, perm_c, perm_r, &L, &U, &sluB, &info);
 
 	if (info != 0) {
-		qDebug() << "Error: superlumt.slove";
+//		qDebug() << "Error: superlumt.slove";
 		//qDebug() << "info: " << superlumt.info;
 	} else {
 		double *sol = NULL;
@@ -3168,9 +3172,9 @@ bool CFastFEMcore::StaticAxisTLMNR() {
 			pmeshele[i].miut = materialList[pmeshele[i].domain - 1].getMiu(pmeshele[i].B);
 			y[i] = pmeshele[i].miut;
 			if (std::isnan(y[i])) {
-				qDebug() << A(pmeshele[i].n[0]);
-				qDebug() << A(pmeshele[i].n[1]);
-				qDebug() << A(pmeshele[i].n[2]);
+//				qDebug() << A(pmeshele[i].n[0]);
+//				qDebug() << A(pmeshele[i].n[1]);
+//				qDebug() << A(pmeshele[i].n[2]);
 			}
 		}
 		//#pragma omp parallel for
@@ -3220,13 +3224,13 @@ bool CFastFEMcore::StaticAxisTLMNR() {
 				y[i] = 0;
 			}
 			if (std::isnan(Vi[j].V12)) {
-				qDebug() << Vi[j].V12;
+//				qDebug() << Vi[j].V12;
 			}
 			if (std::isnan(Vi[j].V23)) {
-				qDebug() << Vi[j].V23;
+//				qDebug() << Vi[j].V23;
 			}
 			if (std::isnan(Vi[j].V13)) {
-				qDebug() << Vi[j].V13;
+//				qDebug() << Vi[j].V13;
 			}
 			INL(k) += 2.*Vi[j].V12*fabs(rm[i].Y12);
 			INL(m) -= 2.*Vi[j].V12*fabs(rm[i].Y12);
@@ -3248,7 +3252,7 @@ bool CFastFEMcore::StaticAxisTLMNR() {
 		//pdgssv(nprocs, &sluA, perm_c, perm_r, &L, &U, &sluB, &info);
 		//NOW WE SOLVE THE LINEAR SYSTEM USING THE FACTORED FORM OF sluA.
 		if (info != 0) {
-			qDebug() << "Error: superlumt.slove";
+//			qDebug() << "Error: superlumt.slove";
 			//qDebug() << "info: " << superlumt.info;
 			break;
 		} else {
@@ -3295,7 +3299,7 @@ bool CFastFEMcore::StaticAxisTLMNR() {
 	}
 	//output the time
 	for (int i = 1; i < tt; i++) {
-		qDebug() << i << "\t" << time[i] - time[i - 1];
+//		qDebug() << i << "\t" << time[i] - time[i - 1];
 	}
 
 	qDebug() << "TLM steps:" << count;
@@ -3588,7 +3592,7 @@ double CFastFEMcore::CalcForce() {
 	graph1->setData(gpx1, gpy1);
 	graph2->setData(gpx2, gpy2);
 	fclose(fp);
-	qDebug() << "yForce: " << yForce;
+//	qDebug() << "yForce: " << yForce;
 	customPlot->replot();
 	return 0;
 }
@@ -3612,7 +3616,7 @@ int CFastFEMcore::openProject(QString proFile) {
 			}
 		}
 	} else {
-		qDebug() << "read inbox file error...";
+//		qDebug() << "read inbox file error...";
 	}
 	ifile.close();
 	return 0;
@@ -3726,7 +3730,7 @@ void CFastFEMcore::readProjectElement(QXmlStreamReader &reader) {
 				if (reader.name() == "domainNum") {
 					numDomain = reader.readElementText().toInt();
 					materialList = new CMaterial[numDomain];
-					qDebug() << "domainNum = " << numDomain;
+//					qDebug() << "domainNum = " << numDomain;
 				}
 				for (int i = 0; i < numDomain; i++) {
 					readDomainElement(reader, i);
@@ -3748,18 +3752,18 @@ void CFastFEMcore::readDomainElement(QXmlStreamReader &reader, int i) {
 		reader.readNextStartElement();
 		if (reader.name() == "domainName") {
 			reader.readElementText();
-			qDebug() << "domainName = " << reader.readElementText();
+//			qDebug() << "domainName = " << reader.readElementText();
 		} else if (reader.name() == "miu") {
 			materialList[i].miu = reader.readElementText().toDouble() * 4 * PI*1e-7;
-			qDebug() << "miu = " << materialList[i].miu;
+//			qDebug() << "miu = " << materialList[i].miu;
 		} else if (reader.name() == "BH") {
 			readBHElement(reader, i);
 		} else if (reader.name() == "Jr") {
 			materialList[i].Jr = reader.readElementText().toDouble();
-			qDebug() << "Jr = " << materialList[i].Jr;
+//			qDebug() << "Jr = " << materialList[i].Jr;
 		} else if (reader.name() == "H_c") {
 			materialList[i].H_c = reader.readElementText().toDouble();
-			qDebug() << "H_c = " << materialList[i].H_c;
+//			qDebug() << "H_c = " << materialList[i].H_c;
 		}
 	}
 }
@@ -3770,7 +3774,7 @@ void CFastFEMcore::readBHElement(QXmlStreamReader &reader, int i) {
 	//qDebug()<<reader.name();
 	if (reader.name() == "BHpoints") {
 		materialList[i].BHpoints = reader.readElementText().toInt();
-		qDebug() << "BHpoints = " << materialList[i].BHpoints;
+//		qDebug() << "BHpoints = " << materialList[i].BHpoints;
 		if (materialList[i].BHpoints != 0) {
 			materialList[i].Bdata = (double*)malloc(materialList[i].BHpoints*sizeof(double));
 			materialList[i].Hdata = (double*)malloc(materialList[i].BHpoints*sizeof(double));
@@ -3872,9 +3876,9 @@ bool CFastFEMcore::StaticAxisT3NRTLM(){
 			D34.push_back(i);
 		}
 	}
-	qDebug() << "num of points: " << num_pts;
-	qDebug() << "num of elements: " << num_ele;
-	qDebug() << "D34 size: " << D34.size();
+//	qDebug() << "num of points: " << num_pts;
+//	qDebug() << "num of elements: " << num_ele;
+//	qDebug() << "D34 size: " << D34.size();
 	//装配传输线导纳稀疏矩阵，原则在于不添加传输线区域的，矩阵不变，
 	//添加传输线的，导纳要大于零
 	int pos = 0;
@@ -4019,7 +4023,7 @@ bool CFastFEMcore::StaticAxisT3NRTLM(){
 	//第一次求解，主要是完成LU分解
 	CSuperLU_MT superlumt(num_pts - node_bdr, X, unknown_b);
 	if (superlumt.solve1() == 1) {
-		qDebug() << "Error: superlumt.slove";
+//		qDebug() << "Error: superlumt.slove";
 		//qDebug() << "info: " << superlumt.info;
 	} else {
 		double *sol = NULL;
@@ -4132,8 +4136,8 @@ bool CFastFEMcore::StaticAxisT3NRTLM(){
 			
 			//使用superLU_MT进行三角求解线性系统
 			if (superlumt.triangleSolve() == 1) {
-				qDebug() << "Error: superlumt.slove";
-				qDebug() << "info: " << superlumt.info;
+//				qDebug() << "Error: superlumt.slove";
+//				qDebug() << "info: " << superlumt.info;
 				break;
 			} else {
 				double *sol = NULL;
@@ -4152,11 +4156,11 @@ bool CFastFEMcore::StaticAxisT3NRTLM(){
 			//}
 			//判断收敛
 			double inner_error = norm((A_tlm - A), 2) / norm(A, 2);
-			qDebug() << iter_tlm << inner_error;
+//			qDebug() << iter_tlm << inner_error;
 			if (inner_error < tlm_tol && iter_tlm>5) {
 				//A.save("NRA.txt", arma::arma_ascii, false);
 				//A_tlm.save("A_tlmNRA.txt", arma::arma_ascii, false);
-				qDebug() << "TLM steps: " << iter_tlm << " in " << iter << "th NR steps";
+//				qDebug() << "TLM steps: " << iter_tlm << " in " << iter << "th NR steps";
 				
 				break;
 			}
@@ -4182,8 +4186,8 @@ bool CFastFEMcore::StaticAxisT3NRTLM(){
 		double error = norm((A_old - A), 2) / norm(A, 2);
 		//qDebug() << "negY: " << negY << " in " << iter << "th NR steps";
 		iter++;
-		qDebug() << "iter: " << iter;
-		qDebug() << "error: " << error;
+//		qDebug() << "iter: " << iter;
+//		qDebug() << "error: " << error;
 		if (error < Precision && iter > 3) {
 			//A.save("NRA.txt", arma::arma_ascii, false);
 			break;
@@ -4199,9 +4203,9 @@ bool CFastFEMcore::StaticAxisT3NRTLM(){
 	//信息输出
 	time[tt++] = clock();
 	for (int i = 1; i < tt; i++){
-		qDebug() << time[i] - time[i - 1];
+//		qDebug() << time[i] - time[i - 1];
 	}
-	qDebug() << "NR steps: " << iter;
+//	qDebug() << "NR steps: " << iter;
 
 	//空间回收
 	if (rm != NULL) free(rm);
@@ -4413,8 +4417,8 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 		//---------------------superLU_MT---------------------------------------
 		CSuperLU_MT superlumt(num_pts - node_bdr, X, unknown_b);
 		if (superlumt.solve() == 1) {
-			qDebug() << "Error: superlumt.slove";
-			qDebug() << "info: " << superlumt.info;
+//			qDebug() << "Error: superlumt.slove";
+//			qDebug() << "info: " << superlumt.info;
 			break;
 		} else {
 			double *sol = NULL;
@@ -4445,8 +4449,8 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 		fclose(fp1);
 		double error = norm((A_old - A), 2) / norm(A, 2);
 		iter++;
-		qDebug() << "iter: " << iter;
-		qDebug() << "error: " << error;
+//		qDebug() << "iter: " << iter;
+//		qDebug() << "error: " << error;
 		//qDebug() << negY << " in " << iter << "th NR steps";
 		negY = 0;
 		if (error < Precision || iter > 20) {
@@ -4463,11 +4467,11 @@ int CFastFEMcore::StaticAxisymmetricNR() {
 	//write B resluts
 	time[tt++] = SuperLU_timer_();
 	for (int i = 1; i < tt; i++){
-		qDebug() << time[i] - time[i - 1];
+//		qDebug() << time[i] - time[i - 1];
 	}
 	A.save("NR_T3_A.txt", arma::arma_ascii, false);
-	qDebug() << "NR steps: " << iter;
-	qDebug() << "NR time: " << time[1] - time[1 - 1];
+//	qDebug() << "NR steps: " << iter;
+//	qDebug() << "NR time: " << time[1] - time[1 - 1];
 	if (rm != NULL) free(rm);
 	if (ydot != NULL) free(ydot);
 	if (unknown_b != NULL) free(unknown_b);
@@ -4480,7 +4484,7 @@ int CFastFEMcore::LoadQ4MeshCOMSOL(const char fn[]){
 	FILE * fp = NULL;
 	fp = fopen(fn, "r");
 	if (fp == NULL) {
-		qDebug() << "Error: openning file!";
+//		qDebug() << "Error: openning file!";
 		return 1;
 	}
 	//--------------Read the head-----------------------------
@@ -4497,13 +4501,13 @@ int CFastFEMcore::LoadQ4MeshCOMSOL(const char fn[]){
 			pmeshnode[i].pm = 0;
 		}
 	} else {
-		qDebug() << "Error: reading num_pts!";
+//		qDebug() << "Error: reading num_pts!";
 		return 1;
 	}
 	int pts_ind;//the beginning of the points index
 	//读取节点索引，默认从0开始
 	if (fscanf(fp, "%d # lowest mesh point index\n", &pts_ind) != 1) {
-		qDebug() << "Error: reading pts_ind!";
+//		qDebug() << "Error: reading pts_ind!";
 		return 1;
 	}
 	fgets(ch, 256, fp);
@@ -4511,7 +4515,7 @@ int CFastFEMcore::LoadQ4MeshCOMSOL(const char fn[]){
 	for (int i = pts_ind; i < num_pts; i++) {
 		//读取x,y坐标
 		if (fscanf(fp, "%lf %lf \n", &(pmeshnode[i].x), &(pmeshnode[i].y)) != 2) {
-			qDebug() << "Error: reading mesh point!";
+//			qDebug() << "Error: reading mesh point!";
 			return 1;
 		}
 	}
@@ -4521,12 +4525,12 @@ int CFastFEMcore::LoadQ4MeshCOMSOL(const char fn[]){
 	int num_vtx_ns, num_vtx_ele;
 	//
 	if (fscanf(fp, "%d # number of nodes per element\n", &num_vtx_ns) != 1) {
-		qDebug() << "Error: reading num_vtx_ns!";
+//		qDebug() << "Error: reading num_vtx_ns!";
 		return 1;
 	}
 
 	if (fscanf(fp, "%d # number of elements\n", &num_vtx_ele) != 1) {
-		qDebug() << "Error: reading num_vtx_ele!";
+//		qDebug() << "Error: reading num_vtx_ele!";
 		return 1;
 	}
 	fgets(ch, 256, fp);
@@ -4536,7 +4540,7 @@ int CFastFEMcore::LoadQ4MeshCOMSOL(const char fn[]){
 	for (int i = 0; i < num_vtx_ele; i++) {
 		//好象是每一个域的顶点编号
 		if (fscanf(fp, "%d \n", vtx + i) != 1) {
-			qDebug() << "Error: reading vertex condition!";
+//			qDebug() << "Error: reading vertex condition!";
 			return 1;
 		}
 	}
@@ -4549,7 +4553,7 @@ int CFastFEMcore::LoadQ4MeshCOMSOL(const char fn[]){
 	vtx2 = (int*)calloc(num_vtx_ele2, sizeof(int));
 	for (int i = 0; i < num_vtx_ele2; i++) {
 		if (fscanf(fp, "%d \n", vtx2 + i) != 1) {
-			qDebug() << "Error: reading vertex condition!";
+//			qDebug() << "Error: reading vertex condition!";
 			return 1;
 		}
 	}
@@ -4560,12 +4564,12 @@ int CFastFEMcore::LoadQ4MeshCOMSOL(const char fn[]){
 	int num_bdr_ns, num_bdr_ele;//number of nodes per element;number of elements
 	//读取一个边界单元中的数目，2D的话为2，表示线段
 	if (fscanf(fp, "%d # number of nodes per element\n", &num_bdr_ns) != 1) {
-		qDebug() << "Error: reading num_bdr_ns!";
+//		qDebug() << "Error: reading num_bdr_ns!";
 		return 1;
 	}
 	//读取线段边界数目
 	if (fscanf(fp, "%d # number of elements\n", &num_bdr_ele) != 1) {
-		qDebug() << "Error: reading num_bdr_ele!";
+//		qDebug() << "Error: reading num_bdr_ele!";
 		return 1;
 	}
 	fgets(ch, 256, fp);
@@ -4578,7 +4582,7 @@ int CFastFEMcore::LoadQ4MeshCOMSOL(const char fn[]){
 		if (fscanf(fp, "%d %d\n", p1 + i, p2 + i) == 2) {
 			pmeshnode[p1[i]].bdr = 1;
 		} else {
-			qDebug() << "Error: reading boundary condition!";
+//			qDebug() << "Error: reading boundary condition!";
 			return 1;
 		}
 	}
@@ -4592,7 +4596,7 @@ int CFastFEMcore::LoadQ4MeshCOMSOL(const char fn[]){
 	entity = (int*)calloc(num_entity, sizeof(int));
 	for (int i = 0; i < num_entity; i++) {
 		if (fscanf(fp, "%d \n", entity + i) != 1) {
-			qDebug() << "Error: reading boundary condition!";
+//			qDebug() << "Error: reading boundary condition!";
 			return 1;
 		}
 	}
@@ -4602,14 +4606,14 @@ int CFastFEMcore::LoadQ4MeshCOMSOL(const char fn[]){
 		fgets(ch, 256, fp);
 	int ns_per_ele;// num_ele;//number of nodes per element;number of elements
 	if (fscanf(fp, "%d # number of nodes per element\n", &ns_per_ele) != 1) {
-		qDebug() << "Error: reading ns_per_ele!";
+//		qDebug() << "Error: reading ns_per_ele!";
 		return 1;
 	}
 	//读取分网单元数目
 	if (fscanf(fp, "%d # number of elements\n", &num_ele) == 1) {
 		pmeshele4 = (CElement4*)calloc(num_ele, sizeof(CElement4));
 	} else {
-		qDebug() << "Error: reading num_ele!";
+//		qDebug() << "Error: reading num_ele!";
 		return 1;
 	}
 	fgets(ch, 256, fp);
@@ -4617,7 +4621,7 @@ int CFastFEMcore::LoadQ4MeshCOMSOL(const char fn[]){
 	//注意这里有点问题，comsol文件似乎不是按照逆时针存储的，而是1->2->4->3
 	for (int i = 0; i < num_ele; i++) {
 		if (fscanf(fp, "%d %d %d %d\n", &pmeshele4[i].n[0], &pmeshele4[i].n[1], &pmeshele4[i].n[3], &pmeshele4[i].n[2]) != 4) {
-			qDebug() << "Error: reading elements points!";
+//			qDebug() << "Error: reading elements points!";
 			return 1;
 		}
 	}
@@ -4630,7 +4634,7 @@ int CFastFEMcore::LoadQ4MeshCOMSOL(const char fn[]){
 	for (int i = 0; i < num_domain; i++) {
 		//读取每个单元所在的domain
 		if (fscanf(fp, "%d \n", &pmeshele4[i].domain) != 1) {
-			qDebug() << "Error: reading domain points!";
+//			qDebug() << "Error: reading domain points!";
 			return 1;
 		}
 	}
@@ -4727,7 +4731,7 @@ double CFastFEMcore::getD(int i, int j, double xi, double eta, int index){
 	//计算dvdB
 	double dvdB = materialList[pmeshele4[index].domain - 1].getdvdB(B);
 	if (std::isnan(dvdB)){
-		qDebug() << "error in getD: dvdB" << getx(xi, eta, index);
+//		qDebug() << "error in getD: dvdB" << getx(xi, eta, index);
 		return 1;
 	}
 		
@@ -4738,13 +4742,13 @@ double CFastFEMcore::getD(int i, int j, double xi, double eta, int index){
 	}
 
 	if (std::isnan(D))
-		qDebug() << "error in getD: D";
+//		qDebug() << "error in getD: D";
 	D = dvdB*c1*c2 * getJacobi(xi, eta, index);
 	if (B > 1e-9){
 		D /= B * x * x * x;
 	}
 	if (std::isnan(D))
-		qDebug() << "error in getD";
+//		qDebug() << "error in getD";
 	return D;
 }
 double CFastFEMcore::getCij(int Ki, int Kj, double xi, double eta, int index){
@@ -4802,7 +4806,7 @@ double CFastFEMcore::getP(int Ki, int Kj, double xi, double eta, int index){
 	double miu = materialList[pmeshele4[index].domain - 1].getMiu(B);
 	p /= miu * getx(xi, eta, index);//可能为0的bug
 	if (std::isnan(p))
-		qDebug() << B << miu << getx(xi, eta, index) << by << p;
+//		qDebug() << B << miu << getx(xi, eta, index) << by << p;
 	return p;
 }
 
@@ -4822,7 +4826,7 @@ double CFastFEMcore::getJacobi(double xi, double eta, int index){
 	double tmp = getdxdxi(eta, index)*getdydeta(xi, index) - getdydxi(eta, index)*getdxdeta(xi, index);
 	//qDebug() << tmp;
 	if (tmp <= 0)
-		qDebug() << "error: Jacobi.";
+//		qDebug() << "error: Jacobi.";
 	return fabs(tmp);
 }
 
@@ -5031,8 +5035,8 @@ bool CFastFEMcore::StaticAxisQ4NR(){
 		//---------------------superLU_MT---------------------------------------
 		CSuperLU_MT superlumt(num_pts - node_bdr, X, unknown_b);
 		if (superlumt.solve() == 1) {
-			qDebug() << "Error: superlumt.slove";
-			qDebug() << "info: " << superlumt.info;
+//			qDebug() << "Error: superlumt.slove";
+//			qDebug() << "info: " << superlumt.info;
 			break;
 		} else {
 			double *sol = NULL;
@@ -5048,8 +5052,8 @@ bool CFastFEMcore::StaticAxisQ4NR(){
 		//double normA = norm(A, 2); //qDebug() << normA;
 		error = norm((A_old - A), 2) / norm(A, 2);
 		iter++;
-		qDebug() << "iter: " << iter;
-		qDebug() << "error: " << error;
+//		qDebug() << "iter: " << iter;
+//		qDebug() << "error: " << error;
 		if (error < Precision && iter > 5) {
 			//转换A
 			for (int i = 0; i < num_pts - node_bdr; i++) {
@@ -5066,10 +5070,10 @@ bool CFastFEMcore::StaticAxisQ4NR(){
 		bbJz.zeros();
 	}
 	time[tt++] = SuperLU_timer_();
-	qDebug() << "iter: " << iter;
-	qDebug() << "error: " << error;
-	qDebug() <<"Single step time of NR: "<< (time[tt - 1] - time[tt - 2]) / iter;
-	qDebug() << "Total step time of NR: " << (time[tt - 1] - time[tt - 2]);
+//	qDebug() << "iter: " << iter;
+//	qDebug() << "error: " << error;
+//	qDebug() <<"Single step time of NR: "<< (time[tt - 1] - time[tt - 2]) / iter;
+//	qDebug() << "Total step time of NR: " << (time[tt - 1] - time[tt - 2]);
 	A.save("D:\\NRpmA.txt", arma::arma_ascii, false);
 	return true;
 }
@@ -5131,7 +5135,7 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 			D34.push_back(i);
 		}
 	}
-	qDebug() << "D34 size: " << D34.size();
+//	qDebug() << "D34 size: " << D34.size();
 	umat locs(2, 16 * num_ele);
 	locs.zeros();
 	mat vals(1, 16 * num_ele);
@@ -5224,7 +5228,7 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 	//---------------------superLU_MT---------------------------------------
 	CSuperLU_MT superlumt(num_pts - node_bdr, X, unknown_b);
 	if (superlumt.solve1() == 1) {
-		qDebug() << "Error: superlumt.slove";
+//		qDebug() << "Error: superlumt.slove";
 		//qDebug() << "info: " << superlumt.info;
 	} else {
 		double *sol = NULL;
@@ -5291,7 +5295,7 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 				//求解电压V
 				bool status = arma::solve(x2, AJ, b);
 				if (!status){
-					qDebug() << "error: solve !";
+//					qDebug() << "error: solve !";
 					return false;
 				}			
 				
@@ -5317,7 +5321,7 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 			INL(n4) += 2 * Vi[j].V[3] * rm[j].Y[3];
 		}
 		a2 = SuperLU_timer_();
-		qDebug() << "t1: " << a2 - a1;
+//		qDebug() << "t1: " << a2 - a1;
 		//入射到线性网络过程
 		INL += bbJz;
 		for (int i = 0; i < num_pts - node_bdr; i++) {
@@ -5325,7 +5329,7 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 		}		
 		//NOW WE SOLVE THE LINEAR SYSTEM USING THE FACTORED FORM OF sluA.
 		if (superlumt.triangleSolve() == 1) {
-			qDebug() << "Error: superlumt.slove";
+//			qDebug() << "Error: superlumt.slove";
 			//qDebug() << "info: " << superlumt.info;
 			break;
 		} else {
@@ -5339,8 +5343,8 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 			}
 		}
 		error = norm((A_old - A), 2) / norm(A, 2);
-		qDebug() << "steps: " << count;
-		qDebug() <<"error: "<< error;
+//		qDebug() << "steps: " << count;
+//		qDebug() <<"error: "<< error;
 		if (error < Precision && count > 10) {
 			//转换A
 			for (int i = 0; i < num_pts - node_bdr; i++) {
@@ -5349,18 +5353,18 @@ bool CFastFEMcore::StaticAxisQ4TLM(){
 			}
 			//A.save("D:\\mypaper\\zhcore\\插图\\TLMpmA.txt", arma::arma_ascii, false);
 			//bbJz.save("D:\\mypaper\\zhcore\\插图\\pmbn.txt", arma::arma_ascii, false);
-			qDebug() << "Solve Successfully!";
+//			qDebug() << "Solve Successfully!";
 			break;
 		}
 		INL.zeros();
 		a1 = SuperLU_timer_();
-		qDebug() << "t2: " << a1 - a2;
+//		qDebug() << "t2: " << a1 - a2;
 	}
 	time[tt++] = SuperLU_timer_();
-	qDebug() << "steps: " << count;
-	qDebug() <<"error: "<< error;
-	qDebug() <<"Single step time of TLM: "<< (time[tt - 1] - time[tt - 2]) / count;
-	qDebug() << "Total time of TLM: " << (time[tt - 1] - time[tt - 2]);
+//	qDebug() << "steps: " << count;
+//	qDebug() <<"error: "<< error;
+//	qDebug() <<"Single step time of TLM: "<< (time[tt - 1] - time[tt - 2]) / count;
+//	qDebug() << "Total time of TLM: " << (time[tt - 1] - time[tt - 2]);
 	//
 	for (int i = 0; i < num_pts - node_bdr; i++) {
 		pmeshnode[node_reorder(i)].A /= pmeshnode[node_reorder(i)].x;//the A is r*A_real
@@ -5428,7 +5432,7 @@ bool CFastFEMcore::StaticAxisQ4VTM(){
 			D34.push_back(i);
 		}
 	}
-	qDebug() << "D34 size: " << D34.size();
+//	qDebug() << "D34 size: " << D34.size();
 	umat locs(2, 16 * num_ele);
 	locs.zeros();
 	mat vals(1, 16 * num_ele);
@@ -5518,7 +5522,7 @@ bool CFastFEMcore::StaticAxisQ4VTM(){
 	//---------------------superLU_MT---------------------------------------
 	CSuperLU_MT superlumt(num_pts - node_bdr, X, unknown_b);
 	if (superlumt.solve1() == 1) {
-		qDebug() << "Error: superlumt.slove";
+//		qDebug() << "Error: superlumt.slove";
 		//qDebug() << "info: " << superlumt.info;
 	} else {
 		double *sol = NULL;
@@ -5635,7 +5639,7 @@ bool CFastFEMcore::StaticAxisQ4VTM(){
 				//求解电压V
 				bool status = arma::solve(x2, AJ, b);
 				if (!status){
-					qDebug() << "error: solve !";
+//					qDebug() << "error: solve !";
 					return false;
 				}				
 				//判断收敛，x2比较小，要用相对误差比较！
@@ -5657,7 +5661,7 @@ bool CFastFEMcore::StaticAxisQ4VTM(){
 		}
 		//NOW WE SOLVE THE LINEAR SYSTEM USING THE FACTORED FORM OF sluA.
 		if (superlumt.triangleSolve() == 1) {
-			qDebug() << "Error: superlumt.slove";
+//			qDebug() << "Error: superlumt.slove";
 			//qDebug() << "info: " << superlumt.info;
 			break;
 		} else {
@@ -5671,8 +5675,8 @@ bool CFastFEMcore::StaticAxisQ4VTM(){
 			}
 		}
 		error = norm((A_old - A), 2) / norm(A, 2);
-		qDebug() << "steps: " << count;
-		qDebug() << "error: " << error;
+//		qDebug() << "steps: " << count;
+//		qDebug() << "error: " << error;
 		if (error < Precision && count > 10) {
 			//转换A
 			for (int i = 0; i < num_pts - node_bdr; i++) {
@@ -5681,16 +5685,16 @@ bool CFastFEMcore::StaticAxisQ4VTM(){
 			}
 			//A.save("D:\\mypaper\\zhcore\\插图\\TLMpmA.txt", arma::arma_ascii, false);
 			//bbJz.save("D:\\mypaper\\zhcore\\插图\\pmbn.txt", arma::arma_ascii, false);
-			qDebug() << "Solve Successfully!";
+//			qDebug() << "Solve Successfully!";
 			break;
 		}
 		INL.zeros();
 	}
 	time[tt++] = SuperLU_timer_();
-	qDebug() << "steps: " << count;
-	qDebug() << "error: " << error;
-	qDebug() << "Single step time of TLM: " << (time[tt - 1] - time[tt - 2]) / count;
-	qDebug() << "Total time of TLM: " << (time[tt - 1] - time[tt - 2]);
+//	qDebug() << "steps: " << count;
+//	qDebug() << "error: " << error;
+//	qDebug() << "Single step time of TLM: " << (time[tt - 1] - time[tt - 2]) / count;
+//	qDebug() << "Total time of TLM: " << (time[tt - 1] - time[tt - 2]);
 	//
 	return true;
 }
@@ -5923,7 +5927,7 @@ bool CFastFEMcore::StaticAxisT3VTMsingle(){
 	pdgssv(nprocs, &sluA, perm_c, perm_r, &L, &U, &sluB, &info);
 
 	if (info != 0) {
-		qDebug() << "Error: superlumt.slove";
+//		qDebug() << "Error: superlumt.slove";
 		//qDebug() << "info: " << superlumt.info;
 	} else {
 		double *sol = NULL;
@@ -6066,7 +6070,7 @@ bool CFastFEMcore::StaticAxisT3VTMsingle(){
 				//5.求解电压V
 				bool status = arma::solve(x2, AJ, b);
 				if (!status){
-					qDebug() << "error: solve !";
+//					qDebug() << "error: solve !";
 					return false;
 				}
 			}
@@ -6089,7 +6093,7 @@ bool CFastFEMcore::StaticAxisT3VTMsingle(){
 		//NOW WE SOLVE THE LINEAR SYSTEM USING THE FACTORED FORM OF sluA.
 		//读取求解结果
 		if (info != 0) {
-			qDebug() << "Error: superlumt.slove";
+//			qDebug() << "Error: superlumt.slove";
 			//qDebug() << "info: " << superlumt.info;
 			break;
 		} else {
@@ -6104,8 +6108,8 @@ bool CFastFEMcore::StaticAxisT3VTMsingle(){
 		}
 		//误差判断
 		double error = norm((A_old - A), 2) / norm(A, 2);
-		qDebug() << "iter: " << count;
-		qDebug() << "error: " << error;
+//		qDebug() << "iter: " << count;
+//		qDebug() << "error: " << error;
 
 		//绘制计算结果
 		graph1->setData(x, y);
@@ -6137,10 +6141,10 @@ bool CFastFEMcore::StaticAxisT3VTMsingle(){
 	}
 	//output the time
 	for (int i = 1; i < tt; i++) {
-		qDebug() << i << "\t" << time[i] - time[i - 1];
+//		qDebug() << i << "\t" << time[i] - time[i - 1];
 	}
 
-	qDebug() << "TLM steps:" << count;
+//	qDebug() << "TLM steps:" << count;
 	// 回收空间
 	if (rm != NULL) free(rm);
 	if (ydot != NULL) free(ydot);

@@ -22,6 +22,8 @@ DESTDIR = $$PWD/../bin
 
 include($$PWD/../gmsh/gmsh.pri)
 
+#include($$PWD/../qcustomplot/qcustomplot.pri)
+
 QMAKE_CXXFLAGS += /openmp
 
 CONFIG += debug_and_release
@@ -30,27 +32,35 @@ CONFIG += debug_and_release
 #source file lists
 SOURCES += \
     datatype.cpp \
-    FastFEMcore.cpp \
+    libstructure.cpp \
+    mag2dtime.cpp \
+    mag3dstatic.cpp \
+    mag3dtime.cpp \
     main.cpp \
     material.cpp \
-    plot.cpp \
     SuperLU_MT.cpp \
-    ../qcustomplot/qcustomplot.cpp \
-    mesh/meshtype.cpp
+    mesh/meshtype.cpp \
+    relay1250.cpp \
+    tetralheral.cpp \
+    to5relay.cpp
 
 
 #.ui file lists
-FORMS    += mainwindow.ui
+FORMS    +=
 
 #header file lists
 HEADERS += \
     datatype.h \
-    FastFEMcore.h \
-    plot.h \
+    libstructure.h \
+    mag2dtime.h \
+    mag3dstatic.h \
+    mag3dtime.h \
+    relay1250.h \
     spline.h \
     SuperLU_MT.h \
-    ../qcustomplot/qcustomplot.h \
-    mesh/meshtype.h
+    mesh/meshtype.h \
+    tetralheral.h \
+    to5relay.h
 
 !debug_and_release|build_pass {
     CONFIG(debug, debug|release) {
