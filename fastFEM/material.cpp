@@ -12,6 +12,7 @@ CMaterial::CMaterial() {
     Jr = 0;
     I = 0;
     tau = 0;
+    sigma = 0;
 }
 
 CMaterial::~CMaterial() {

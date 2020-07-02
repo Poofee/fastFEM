@@ -75,9 +75,12 @@ protected:
 
 
 private:
-    int num_pts;/** 节点数目 **/
-    int num_ele;/** 单元数目 **/
+    int num_pts;/** 读取的节点数目 **/
+    int num_ele;/** 读取的单元数目 **/
     int numDomain;/** 域数目 **/
+
+    int num_triangle;/** 三角形单元的数目 **/
+    int index_triagle;/** 三角形单元在msh文件保存的起始位置 **/
 
     int tag_xiantie; /** 可移动的区域 **/
     int tag_air; /** 重分网区域 **/

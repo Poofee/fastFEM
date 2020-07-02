@@ -5,9 +5,11 @@ public:
     int start;
     int end;
 
-    bool operator<(const FEMedge& e) { return this->start < e.start; }
-    bool operator==(const FEMedge& e) { return this->start == e.start; }
-    bool operator!=(const FEMedge& e) { return this->start != e.start || this->end == e.end ; }
+    FEMedge():start(0),end(0){}
+    FEMedge& operator=(const FEMedge& e){this->start = e.start;this->end = e.end; return *this;}
+    bool operator < (const FEMedge& e) { return this->start < e.start || (this->start == e.start && this->end < e.end); }
+    bool operator == (const FEMedge& e) { return this->start == e.start && this->end == e.end ; }
+    bool operator != (const FEMedge& e) { return this->start != e.start || this->end != e.end ; }
 };
 
 typedef struct _CNode
@@ -57,6 +59,7 @@ public:
 	double Jr;			// applied current density, MA/m^2
     double I;/** 线圈电流 **/
     double tau;/** 线圈匝数比 **/
+    double sigma;/** 电导率 **/
 	
 	CMaterial();
 	~CMaterial();

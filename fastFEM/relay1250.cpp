@@ -279,8 +279,9 @@ void Relay1250::findBoundaryPoints(int index)
     std::vector<int>::iterator new_end;
 
     sort(it_1,it_2);
-    new_end = Myunique(it_1,it_2);
+    new_end = unique(it_1,it_2);
     boundaryPoints.erase(new_end,it_2);
+    printf("Total %llu boundary points.\n",boundaryPoints.size());
 }
 
 
@@ -292,44 +293,36 @@ void Relay1250::findBoundaryPoints(int index)
 void Relay1250::findBoundaryEdges(int index)
 {
     /** 计算出三角单元的数目 **/
-    int num_tri = 0;
+    num_triangle = 0;
     for(int i=0; i < num_ele;i++){
         if(pmeshele[i].ele_type == 2){
-            num_tri++;
+            num_triangle++;
         }
     }
     /** 生成所有的棱 **/
-    int numEdges = num_tri * 3;
+    boundaryEdges.resize(num_triangle * 3);
+    allPoints.resize(num_triangle * 3);
 
-    boundaryEdges.resize(numEdges);
-    allPoints.resize(num_tri * 3);
-
-    num_tri = 0;
-    for(int i=0; i < num_ele;i++){
-        if(pmeshele[i].ele_type != 2){
-            continue;
-        }
+    for(int i=0; i < num_triangle;i++){
         int a,b,c,t;
-        a = pmeshele[i].n[0];
-        b = pmeshele[i].n[1];
-        c = pmeshele[i].n[2];
+        a = pmeshele[num_ele-num_triangle+i].n[0];
+        b = pmeshele[num_ele-num_triangle+i].n[1];
+        c = pmeshele[num_ele-num_triangle+i].n[2];
         /** 按照升序排序 **/
         if(a>b)  {t=a;a=b;b=t;}
         if(a>c)  {t=a;a=c;c=t;}
         if(b>c)  {t=b;b=c;c=t;}
 
-        boundaryEdges.at(num_tri*3 + 0).start = a;
-        boundaryEdges.at(num_tri*3 + 0).end   = b;
-        boundaryEdges.at(num_tri*3 + 1).start = a;
-        boundaryEdges.at(num_tri*3 + 1).end   = c;
-        boundaryEdges.at(num_tri*3 + 2).start = b;
-        boundaryEdges.at(num_tri*3 + 2).end   = c;
+        boundaryEdges.at(i*3 + 0).start = a;
+        boundaryEdges.at(i*3 + 0).end   = b;
+        boundaryEdges.at(i*3 + 1).start = a;
+        boundaryEdges.at(i*3 + 1).end   = c;
+        boundaryEdges.at(i*3 + 2).start = b;
+        boundaryEdges.at(i*3 + 2).end   = c;
 
-        allPoints.at(num_tri*3 + 0) = a;
-        allPoints.at(num_tri*3 + 1) = b;
-        allPoints.at(num_tri*3 + 2) = c;
-
-        num_tri++;
+        allPoints.at(i*3 + 0) = a;
+        allPoints.at(i*3 + 1) = b;
+        allPoints.at(i*3 + 2) = c;
     }
     /** 去重找到边界 **/
     std::vector<FEMedge>::iterator it_1 = boundaryEdges.begin();
@@ -341,6 +334,9 @@ void Relay1250::findBoundaryEdges(int index)
     new_end = Myunique(it_1,it_2);
     allEdges = boundaryEdges;
     boundaryEdges.erase(new_end,it_2);
+//    for(int k = 0;k < boundaryEdges.size();k++){
+//        printf("%d: start: %d,end:%d\n",k,boundaryEdges.at(k).start,boundaryEdges.at(k).end);
+//    }
     /** 去重找到所有的节点 **/
     std::vector<int>::iterator it_3 = allPoints.begin();
     std::vector<int>::iterator it_4 = allPoints.end();
@@ -350,6 +346,10 @@ void Relay1250::findBoundaryEdges(int index)
 
     new_end1 = std::unique(it_3,it_4);
     allPoints.erase(new_end1,it_4);
+
+    printf("Total %d triangles.\n",num_triangle);
+    printf("Total %llu points.\n",allPoints.size());
+    printf("Total %llu boundary edges.\n",boundaryEdges.size());
 }
 
 /*!
@@ -484,7 +484,7 @@ void Relay1250::AxisNRsolve()
     double totalTime = 0;
     for(int i = 0; i < timesteps.size();i++){
         totalTime += timesteps.at(i);
-        printf("time step %d, current time is %lf\n",i,totalTime);
+        printf("Time step %d, current time is %lf s.\n",i,totalTime);
         /** remesh，要使用增量位移，向下为负，向上为正 **/
         remesh(0,Ddisplacements.at(i));
         /** 读取第i步的分网 **/
