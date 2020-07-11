@@ -5,6 +5,10 @@
 
 
 
+/*!
+ \brief 计算TO5的静态磁场
+
+*/
 class to5Relay : public Relay
 {
 public:

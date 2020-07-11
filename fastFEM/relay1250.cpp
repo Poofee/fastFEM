@@ -230,6 +230,7 @@ void Relay1250::AxisNRsolve()
         /** 将边界点排序到末尾 **/
         int node_bdr = boundaryPoints.size();
         int node_all = allPoints.size();
+        int num_dof = node_all - node_bdr + 1;/** 自由度：未知节点+电压 **/
         /** 初始化，提出读取的gmsh多余的节点以及边界点 **/
         for(int i2=0;i2<num_pts;i2++){
             pmeshnode[i2].bdr = 3;
@@ -240,7 +241,7 @@ void Relay1250::AxisNRsolve()
         for(int i2=0;i2<node_bdr;i2++){
             pmeshnode[boundaryPoints.at(i2)].bdr = 3;
         }
-        /** 计算固定区域的单元节点数目 **/
+        /** 计算固定区域的单元节点数目，起始编号为0 **/
         for(int i_tri = 0; i_tri < num_triangle; i_tri++){
             int i1 = num_ele-num_triangle+i_tri;
             if(pmeshele[i1].geometry_tag == tag_air){
@@ -291,8 +292,7 @@ void Relay1250::AxisNRsolve()
 
             /** 有限元装配 **/
             double ce[3][3] = { {0} };/** 雅可比矩阵 **/
-            double ce1[3][3] = { {0} };/** 右侧矩阵 **/
-            double cn[3][3] = { {0} };/** 用于牛顿迭代 **/
+            double Je[3][3] = { {0} };/** 用于牛顿迭代 **/
             double Te[3][3] = { {0} };/** 涡流矩阵 **/
             double De[3] = { 0 };/** 电流密度矩阵 **/
             double dt = timesteps.at(non_iter);
@@ -309,17 +309,15 @@ void Relay1250::AxisNRsolve()
                 /** 计算雅可比矩阵 **/
                 double ydot = pmeshele[i1].ydot;
                 double miut = pmeshele[i1].miut;
+                miuold = pmeshele[i1].miu;
                 /** 相当于C矩阵 **/
                 Y11 = pmeshele[i1].Y11;Y22 = pmeshele[i1].Y22;Y33 = pmeshele[i1].Y33;
                 Y12 = pmeshele[i1].Y12;Y13 = pmeshele[i1].Y13;Y23 = pmeshele[i1].Y23;
 
-                ce[0][0] = Y11 / miut / ydot;/** 应当是当前迭代的mu **/
-                ce[1][1] = Y22 / miut / ydot;
-                ce[2][2] = Y33 / miut / ydot;
-
-                ce[0][1] = Y12 / miut / ydot;
-                ce[0][2] = Y13 / miut / ydot;
-                ce[1][2] = Y23 / miut / ydot;
+                /** 应当是当前迭代的mu **/
+                ce[0][0] = Y11 / ydot;ce[1][1] = Y22 / ydot;ce[2][2] = Y33 / ydot;
+                ce[0][1] = Y12 / ydot;ce[0][2] = Y13 / ydot;ce[1][2] = Y23 / ydot;
+                ce[1][0] = ce[0][1];ce[2][0] = ce[0][2];ce[2][1] = ce[1][2];
 
                 double v[3];
                 v[0] = Y11*A(k) + Y12*A(m) + Y13*A(n);
@@ -339,17 +337,11 @@ void Relay1250::AxisNRsolve()
                         }
 
                     }
-                    cn[0][0] = v[0] * v[0] * tmp;cn[1][1] = v[1] * v[1] * tmp;cn[2][2] = v[2] * v[2] * tmp;
-
-                    cn[0][1] = v[0] * v[1] * tmp;cn[0][2] = v[0] * v[2] * tmp;cn[1][2] = v[1] * v[2] * tmp;
-
-                    cn[1][0] = cn[0][1];cn[2][0] = cn[0][2];cn[2][1] = cn[1][2];
+                    Je[0][0] = v[0] * v[0] * tmp;Je[1][1] = v[1] * v[1] * tmp;Je[2][2] = v[2] * v[2] * tmp;
+                    Je[0][1] = v[0] * v[1] * tmp;Je[0][2] = v[0] * v[2] * tmp;Je[1][2] = v[1] * v[2] * tmp;
+                    Je[1][0] = Je[0][1];Je[2][0] = Je[0][2];Je[2][1] = Je[1][2];
                 }
-                ce[0][0] += cn[0][0];ce[1][1] += cn[1][1];ce[2][2] += cn[2][2];
 
-                ce[0][1] += cn[0][1];ce[0][2] += cn[0][2];ce[1][2] += cn[1][2];
-
-                ce[1][0] = ce[0][1];ce[2][0] = ce[0][2];ce[2][1] = ce[1][2];
 
                 /** 计算右侧向量 **/
                 double dtmp = mat->tau * pmeshele[i1].AREA/3;
@@ -357,15 +349,16 @@ void Relay1250::AxisNRsolve()
                 double dtmp1 = 2*PI*Yc*dtmp*dtmp;
                 /** 计算涡流矩阵 **/
                 double etmp = mat->sigma/ydot*pmeshele[i1].AREA/12;
-                Te[0][0] = etmp * 2+dtmp1;Te[1][1] = etmp+dtmp1;Te[2][2] = etmp+dtmp1;
-
+                Te[0][0] = etmp * 2+dtmp1;Te[1][1] = etmp* 2+dtmp1;Te[2][2] = etmp* 2+dtmp1;
                 Te[0][1] = etmp+dtmp1;Te[0][2] = etmp+dtmp1;Te[1][2] = etmp+dtmp1;
-
                 Te[1][0] = Te[0][1];Te[2][0] = Te[0][2];Te[2][1] = Te[1][2];
-                for(int trow=0;trow<3;trow++){
-                    for(int tcol=0;tcol<3;tcol++){
-                        Te[trow][tcol] /= dt;
-                        ce[trow][tcol] += Te[trow][tcol];
+
+
+                for(int kk=0;kk<3;kk++){
+                    for(int mm=0;mm<3;mm++){
+                        Te[kk][mm] /= dt;
+                        Je[kk][mm] += ce[kk][mm]/miut;
+                        Je[kk][mm] += Te[kk][mm];
                     }
                 }
 
@@ -385,16 +378,19 @@ void Relay1250::AxisNRsolve()
                         if (n_row < num_pts - node_bdr && n_col < num_pts - node_bdr) {
                             locs(0, pos) = n_row;
                             locs(1, pos) = n_col;
-                            vals(0, pos) = ce[row][col];
+                            vals(0, pos) = Je[row][col];
                             pos++;
                         }
                         /** 与雅可比矩阵相关的项 **/
-                        bn(pmeshele[i].n[row]) += cn[row][col] * A(pmeshele[i].n[col]);
+//                        bn(pmeshele[i].n[row]) += Je[row][col] * A(pmeshele[i].n[col]);
                     }
                 }
             }/** 单元循环结束 **/
             /** 右下角的点 **/
-
+            locs(0, pos) = num_dof-1;
+            locs(1, pos) = num_dof-1;
+            vals(0, pos) = ((Y1+Yc)/dt-(C1+C2))/(2*PI);
+            pos++;
             if (non_iter == 0) {
                 locs.reshape(2, pos);
                 vals.reshape(1, pos);
@@ -451,7 +447,8 @@ void Relay1250::AxisNRsolve()
 
         }/** 牛顿迭代结束 **/
 
-
+        /** 计算电磁力 **/
+        calcMagForce(-1);
 
         /** 更新结果 **/
         current_step += 1;
@@ -467,7 +464,6 @@ void Relay1250::AxisNRsolve()
         /** 回收空间 **/
         if(unknown_b) delete unknown_b;
     }
-
 
 }
 

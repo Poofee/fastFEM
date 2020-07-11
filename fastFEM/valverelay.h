@@ -3,7 +3,7 @@
 
 #include "relay.h"
 /*!
- \brief 仿真flux的电磁阀模型
+ \brief 仿真flux的电磁阀静态模型
 
 */
 class ValveRelay :public Relay

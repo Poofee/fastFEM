@@ -44,7 +44,9 @@ SOURCES += \
     relay1250.cpp \
     tetralheral.cpp \
     to5relay.cpp \
-    valverelay.cpp
+    to5time.cpp \
+    valverelay.cpp \
+    valvetime.cpp
 
 
 #.ui file lists
@@ -64,7 +66,9 @@ HEADERS += \
     mesh/meshtype.h \
     tetralheral.h \
     to5relay.h \
-    valverelay.h
+    to5time.h \
+    valverelay.h \
+    valvetime.h
 
 !debug_and_release|build_pass {
     CONFIG(debug, debug|release) {
