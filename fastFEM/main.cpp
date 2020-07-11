@@ -7,7 +7,9 @@
 #include "relay1250.h"
 
 #include "slu_mt_ddefs.h"
-
+#if !defined(ARMA_32BIT_WORD)
+#define ARMA_32BIT_WORD
+#endif
 #include <armadillo> 
 
 #include <stdio.h>
@@ -35,6 +37,7 @@ using namespace arma;
 //void T3NRTLMtest();
 //void triangletestvtmsingle();
 void test2DRemesh();
+void test3DRemesh();
 
 void test1250time(){
     Relay1250 relay;

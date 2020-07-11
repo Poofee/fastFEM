@@ -3,10 +3,10 @@
 #include <stdlib.h>
 #define PI 3.14159265358979323846
 CMaterial::CMaterial() {
-	miu = 1*4*PI*1e-7;
+    miu = 1;//*4*PI*1e-7;
 	BHpoints = 0;
-	Hdata = NULL;
-	Bdata = NULL;
+    Hdata = nullptr;
+    Bdata = nullptr;
 	H_c = 0;
 	Theta_m = 0;
     Jr = 0;
@@ -22,7 +22,7 @@ CMaterial::~CMaterial() {
 		free(Hdata);
 }
 
-//这个求解出来的应该是相对磁导率
+/** 这个求解出来的应该是相对磁导率 **/
 double CMaterial::getMiu(double B) {
 	double slope, H;
 	if (B < 1e-3){
@@ -39,17 +39,23 @@ double CMaterial::getMiu(double B) {
 			}
 		}
 	}
-	//如果曲线最后是平的，就会有无穷大的bug
-	//但是，这时候我如果只知道B，该如何得到H？
+    /** 如果曲线最后是平的，就会有无穷大的bug **/
+    /** 但是，这时候我如果只知道B，该如何得到H？ **/
 	int i = BHpoints - 3;
 	slope = (Hdata[i + 1] - Hdata[i]) / (Bdata[i + 1] - Bdata[i]);
 	H = Hdata[i] + slope*(B - Bdata[i]);
 	return B / H ;
 }
-//这里的处理仅仅使用了线性处理
+
+/*!
+ \brief 这里的处理仅仅使用了线性处理
+
+ \param B
+ \return double
+*/
 double CMaterial::getdvdB(double B) {
 	double slope, H, b;
-	if (B < 1e-9){//防止B=0
+    if (B < 1e-9){/** 防止B=0 **/
 		return 0;
 	} else if (B > 3) {
 		//B = 2;

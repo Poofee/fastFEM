@@ -40,9 +40,11 @@ SOURCES += \
     material.cpp \
     SuperLU_MT.cpp \
     mesh/meshtype.cpp \
+    relay.cpp \
     relay1250.cpp \
     tetralheral.cpp \
-    to5relay.cpp
+    to5relay.cpp \
+    valverelay.cpp
 
 
 #.ui file lists
@@ -55,12 +57,14 @@ HEADERS += \
     mag2dtime.h \
     mag3dstatic.h \
     mag3dtime.h \
+    relay.h \
     relay1250.h \
     spline.h \
     SuperLU_MT.h \
     mesh/meshtype.h \
     tetralheral.h \
-    to5relay.h
+    to5relay.h \
+    valverelay.h
 
 !debug_and_release|build_pass {
     CONFIG(debug, debug|release) {
