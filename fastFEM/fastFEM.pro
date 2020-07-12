@@ -31,6 +31,7 @@ CONFIG += debug_and_release
 
 #source file lists
 SOURCES += \
+    coil3dtest.cpp \
     datatype.cpp \
     libstructure.cpp \
     mag2dtime.cpp \
@@ -42,6 +43,7 @@ SOURCES += \
     mesh/meshtype.cpp \
     relay.cpp \
     relay1250.cpp \
+    testremesh.cpp \
     tetralheral.cpp \
     to5relay.cpp \
     to5time.cpp \
@@ -54,6 +56,7 @@ FORMS    +=
 
 #header file lists
 HEADERS += \
+    coil3dtest.h \
     datatype.h \
     libstructure.h \
     mag2dtime.h \
@@ -64,6 +67,7 @@ HEADERS += \
     spline.h \
     SuperLU_MT.h \
     mesh/meshtype.h \
+    testremesh.h \
     tetralheral.h \
     to5relay.h \
     to5time.h \

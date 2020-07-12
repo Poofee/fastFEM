@@ -5,6 +5,7 @@
 //#include "FastFEMcore.h"
 
 #include "relay1250.h"
+#include "testremesh.h"
 
 #include "slu_mt_ddefs.h"
 #if !defined(ARMA_32BIT_WORD)
@@ -36,8 +37,6 @@ using namespace arma;
 //void T3NRtest();
 //void T3NRTLMtest();
 //void triangletestvtmsingle();
-void test2DRemesh();
-void test3DRemesh();
 
 void test1250time(){
     Relay1250 relay;
@@ -346,116 +345,7 @@ void armatest(){
 
 
 
-/*!
- \brief
 
- \param f
- \param dx
- \param dy
- \param dz
-*/
-void moveFace(GFace *f,double dx,double dy,double dz){
-    /** 修改内部分网节点坐标 **/
-    for(std::size_t j = 0; j < f->getNumMeshVertices(); j++) {
-        f->getMeshVertex(j)->setXYZ(f->getMeshVertex(j)->x()-dx,
-                                    f->getMeshVertex(j)->y()-dy,
-                                    f->getMeshVertex(j)->z()-dz);
-    }
-    /** 修改边界棱上分网节点坐标 **/
-    std::set<MVertex *, MVertexLessThanNum> all_vertices;
-    for(auto e : f->edges()){
-        for(auto line : e->lines){
-            MVertex *v1 = line->getVertex(0);
-            MVertex *v2 = line->getVertex(1);
-
-            all_vertices.insert(v1);
-            all_vertices.insert(v2);
-        }
-    }
-    /** all_vertices比e->getMeshVertex多了顶点 **/
-    for(std::set<MVertex *, MVertexLessThanNum>::iterator ite = all_vertices.begin();ite != all_vertices.end(); ite++) {
-        (*ite)->setXYZ((*ite)->x()-dx,(*ite)->y()-dy,(*ite)->z()-dz);
-    }
-    /** 修改几何顶点坐标 **/
-    for(auto v : f->vertices()){
-        for(std::size_t j = 0; j < v->getNumMeshVertices(); j++){
-            GPoint p(v->x()-dx,v->y()-dy,v->z()-dz);
-            v->setPosition(p);
-        }
-    }
-    /** 更新distance field **/
-    FieldManager* fM = GModel::current()->getFields();
-    std::map<int, Field *>::iterator iter;
-    for(iter = fM->begin(); iter != fM->end(); iter++){
-        iter->second->update_needed = true;
-        iter->second->update();
-    }
-}
-
-
-/*!
- \brief
-
- \param f
-*/
-void deleteFaceMesh(GFace* f){
-    deMeshGFace dem;
-    dem(f);
-}
-
-void test2DRemesh(){
-    int myargn = 6;
-    char fileName[] = "JRS1250/JRS1250bgm";
-    char geoName[100];
-    char nameMsh[100];
-    sprintf(geoName,"%s.geo",fileName);
-    char *myargv[] = {(char*)"gmsh",(char*)"-setnumber",(char*)"disp",(char*)"1",(char*)"-format",(char*)"msh2",(char*)"-v",(char*)"1000"};
-    gmsh::initialize(myargn,myargv);
-    gmsh::option::setNumber("General.Terminal", 1);
-    gmsh::open(geoName);
-    //    gmsh::model::mesh::generate(2);
-    //    GModel::current()->mesh(2);
-    GModel* model = GModel::current();
-    GenerateMesh(model, 2);
-    sprintf(nameMsh,"%s_%02d.msh",fileName,0);
-    gmsh::write(nameMsh);
-    /** 删掉空气的分网 **/
-    int tag_xiantie = 1;
-    int tag_air = 10;
-    GFace* f_xiantie = nullptr;
-    GFace* f_air = nullptr;
-    for(GModel::fiter it = model->firstFace(); it != model->lastFace(); ++it){
-        if((*it)->tag() == tag_air){
-            f_air = (*it);
-        }
-        if((*it)->tag() == tag_xiantie){
-            f_xiantie = (*it);
-        }
-    }
-    double xdisp = 0;
-    double ydisp = 0.1;
-    double xingcheng = 2.2;
-
-    for(int i = 1; i <= 20;i++){
-        printf("-------------mesh step %d-------------\n",i);
-        /** 删除空气的分网 **/
-        printf("-------------deleting air surface %d-------------\n",tag_air);
-        deleteFaceMesh(f_air);
-        /** 移动衔铁的分网 **/
-        printf("-------------moving armature mesh...-------------\n");
-        moveFace(f_xiantie,xdisp,ydisp,0);
-
-        /** 对空气进行重分网 **/
-        printf("-------------remesh air domain...-------------\n");
-        f_air->mesh(true);
-
-        sprintf(nameMsh,"%s_%02d.msh",fileName,i);
-        gmsh::write(nameMsh);
-    }
-
-    gmsh::finalize();
-    printf("-------------Finish-------------\n");
-}
 
 int main(int argc, char *argv[])
 {
@@ -480,7 +370,10 @@ int main(int argc, char *argv[])
 //	myplot.show();
 
 
-    test1250time();
+//    test1250time();
+
+    testRemesh tr;
+    tr.testRemesh2D();
 
     return 0;
 }

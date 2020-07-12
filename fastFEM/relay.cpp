@@ -1,6 +1,7 @@
 #include "relay.h"
 
 Relay::Relay():
+    current_step(0),
     pmeshnode(nullptr),
     pmeshele(nullptr),
     pmeshnodelast(nullptr),
@@ -31,6 +32,11 @@ void Relay::init()
 
 }
 
+void Relay::setFileName(char fn[])
+{
+    sprintf(fileName,"%s",fn);
+}
+
 /*!
  \brief 打开geo文件。注意，由于瞬态问题需要使用到上一次的
  数据，所以，最好在geo文件中，将发生形变的区域移到最后。
@@ -38,7 +44,7 @@ void Relay::init()
 */
 void Relay::openGeo()
 {
-    int myargn = 6;
+    int myargn = 4;
     char geoName[256];
     sprintf(geoName,"%s.geo",fileName);
     char *myargv[] = {(char*)"gmsh",(char*)"-format",(char*)"msh2",(char*)"-v",(char*)"1000"};
@@ -271,6 +277,26 @@ void Relay::findBoundaryEdges(int index)
 }
 
 /*!
+ \brief 查找三维体的边界上的面单元。
+
+ \param index 为-1时，计算整体的边界。
+*/
+void Relay::findBoundaryFaces(int index)
+{
+
+}
+
+void Relay::setXiantieTag(int xiantie)
+{
+    tag_xiantie = xiantie;
+}
+
+void Relay::setAirTag(int air)
+{
+    tag_air = air;
+}
+
+/*!
  \brief
 
  \param f
@@ -375,9 +401,42 @@ void Relay::remesh(double dx, double dy)
     printf("-------------Finish-------------\n");
 }
 
+/*!
+ \brief 对3D分网进行平行移动。
+
+ \param dx 移动的距离，默认大小与坐标轴一致。
+ \param dy
+ \param dz
+*/
+void Relay::remesh3DParallel(double dx, double dy, double dz)
+{
+
+}
+
+/*!
+ \brief 对分网进行旋转移动。
+
+ \param dangle 移动的角度，方向是右手握住轴的方向，即逆时针为正。
+ \param x1 轴上的点x
+ \param y1 轴上的点y
+ \param z1 轴上的点z
+ \param v1 轴向量x
+ \param v2 轴向量y
+ \param v3 轴向量z
+*/
+void Relay::remesh3DRotate(double dangle, double x1, double y1, double z1, double v1, double v2, double v3)
+{
+
+}
+
 void Relay::run()
 {
 
+}
+
+void Relay::stepIncrement()
+{
+    current_step++;
 }
 
 void Relay::calcMagForce(int index)

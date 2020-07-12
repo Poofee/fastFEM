@@ -1,5 +1,19 @@
 #pragma once
 
+class FEMface{
+public:
+    int n1,n2,n3;/** 三角形面单元的三个顶点编号 **/
+
+    FEMface():n1(0),n2(0),n3(0){}
+
+    /** 赋值函数 **/
+    FEMface& operator=(const FEMface& f);
+    /** 比较函数 **/
+    bool operator < (const FEMface& f);
+    bool operator == (const FEMface& f);
+    bool operator != (const FEMface& f);
+};
+
 class FEMedge{
 public:
     int start;

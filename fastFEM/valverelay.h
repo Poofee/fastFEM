@@ -14,6 +14,7 @@ public:
 
     void init();
     void calcMagForce(int index);
+    void NRSolve();
     void run();
     void outputResults();
 
