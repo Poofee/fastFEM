@@ -931,7 +931,7 @@ static bool insertAPoint(GFace *gf,
   else
     worst = *it;
 
-  MTri3 *ptin = 0;
+  MTri3 *ptin = nullptr;
   std::list<edgeXface> shell;
   std::list<MTri3 *> cavity;
   double uv[2];

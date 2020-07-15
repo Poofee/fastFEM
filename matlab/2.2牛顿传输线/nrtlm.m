@@ -34,7 +34,8 @@ ib = 0;
 t = 0.1;
 count=1;
 textcount=1;
-for i = 1:12
+u1 = zeros(100,1);
+for i = 1:100
     %the incident process
     %    
     ua = (V/Z + 2*Ui/Z0)/(1/Z+1/Z0);
@@ -60,6 +61,7 @@ for i = 1:12
     end
     y0 = r(ua)/ua;
     ub = fzero(@(x)(r(x)+1/Z0*x-2*Ur/Z0),3);
+    u1(i) = ub;
     Ui = ub - Ur;
     ib = r(ub);
     

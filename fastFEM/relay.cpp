@@ -228,9 +228,10 @@ void Relay::findBoundaryEdges(int index)
 
     for(int i=0; i < num_triangle;i++){
         int a,b,c,t;
-        a = pmeshele[num_ele-num_triangle+i].n[0];
-        b = pmeshele[num_ele-num_triangle+i].n[1];
-        c = pmeshele[num_ele-num_triangle+i].n[2];
+        int i1 = num_ele-num_triangle+i;
+        a = pmeshele[i1].n[0];
+        b = pmeshele[i1].n[1];
+        c = pmeshele[i1].n[2];
         /** 按照升序排序 **/
         if(a>b)  {t=a;a=b;b=t;}
         if(a>c)  {t=a;a=c;c=t;}
@@ -277,13 +278,165 @@ void Relay::findBoundaryEdges(int index)
 }
 
 /*!
+ \brief 三维版的查找边界棱。计算出三维分网棱的连接关系。
+ 三维的话，要计算边界棱的话，还得先计算出边界面，感觉还是
+ 应该计算出连接关系。
+
+ \param index
+*/
+void Relay::findBoundaryEdges3D(int index)
+{
+    /** 计算出四面体单元的数目 **/
+    num_tet = 0;
+    for(int i=0; i < num_ele;i++){
+        if(pmeshele[i].ele_type == 4){
+            num_tet++;
+        }
+    }
+    /** 生成所有的棱 **/
+    boundaryEdges.resize(num_tet * 4);
+    allPoints.resize(num_tet * 4);
+
+    for(int i=0; i < num_tet;i++){
+        int a,b,c,d,t;
+        int i1 = num_ele-num_tet+i;
+        a = pmeshele[i1].n[0];
+        b = pmeshele[i1].n[1];
+        c = pmeshele[i1].n[2];
+        d = pmeshele[i1].n[3];
+        /** 按照升序排序 **/
+        if(a>b)  {t=a;a=b;b=t;}
+        if(a>c)  {t=a;a=c;c=t;}
+        if(a>d)  {t=a;a=d;d=t;}
+        if(b>c)  {t=b;b=c;c=t;}
+        if(b>d)  {t=b;b=d;d=t;}
+        if(c>d)  {t=c;c=d;d=t;}
+
+        boundaryEdges.at(i*6 + 0).start = a;
+        boundaryEdges.at(i*6 + 0).end   = b;
+        boundaryEdges.at(i*6 + 1).start = a;
+        boundaryEdges.at(i*6 + 1).end   = c;
+        boundaryEdges.at(i*6 + 2).start = a;
+        boundaryEdges.at(i*6 + 2).end   = d;
+        boundaryEdges.at(i*6 + 3).start = b;
+        boundaryEdges.at(i*6 + 3).end   = c;
+        boundaryEdges.at(i*6 + 4).start = b;
+        boundaryEdges.at(i*6 + 4).end   = d;
+        boundaryEdges.at(i*6 + 5).start = c;
+        boundaryEdges.at(i*6 + 5).end   = d;
+
+        allPoints.at(i*4 + 0) = a;
+        allPoints.at(i*4 + 1) = b;
+        allPoints.at(i*4 + 2) = c;
+        allPoints.at(i*4 + 3) = d;
+    }
+
+    /** 去重找到边界 **/
+    std::vector<FEMedge>::iterator it_1 = boundaryEdges.begin();
+    std::vector<FEMedge>::iterator it_2 = boundaryEdges.end();
+    std::vector<FEMedge>::iterator new_end;
+
+    std::sort(it_1,it_2);
+
+    new_end = Myunique(it_1,it_2);
+    allEdges = boundaryEdges;
+    boundaryEdges.erase(new_end,it_2);
+//    for(int k = 0;k < boundaryEdges.size();k++){
+//        printf("%d: start: %d,end:%d\n",k,boundaryEdges.at(k).start,boundaryEdges.at(k).end);
+//    }
+    /** 去重找到所有的节点 **/
+    std::vector<int>::iterator it_3 = allPoints.begin();
+    std::vector<int>::iterator it_4 = allPoints.end();
+    std::vector<int>::iterator new_end1;
+
+    std::sort(it_3,it_4);
+
+    new_end1 = std::unique(it_3,it_4);
+    allPoints.erase(new_end1,it_4);
+
+    printf("Total %d triangles.\n",num_triangle);
+    printf("Total %llu points.\n",allPoints.size());
+    printf("Total %llu boundary edges.\n",boundaryEdges.size());
+}
+
+/*!
  \brief 查找三维体的边界上的面单元。
 
  \param index 为-1时，计算整体的边界。
 */
 void Relay::findBoundaryFaces(int index)
 {
+    /** 计算出四面体单元的数目 **/
+    num_tet = 0;
+    for(int i=0; i < num_ele;i++){
+        if(pmeshele[i].ele_type == 4){
+            num_tet++;
+        }
+    }
+    /** 生成所有的面 **/
+    boundaryFaces.resize(num_tet * 6);
+    allPoints.resize(num_tet * 4);
 
+    for(unsigned int i=0; i < num_tet;i++){
+        int a,b,c,d,t;
+        int i1 = num_ele-num_tet+i;
+        a = pmeshele[i1].n[0];
+        b = pmeshele[i1].n[1];
+        c = pmeshele[i1].n[2];
+        d = pmeshele[i1].n[3];
+        /** 按照升序排序 **/
+        if(a>b)  {t=a;a=b;b=t;}
+        if(a>c)  {t=a;a=c;c=t;}
+        if(a>d)  {t=a;a=d;d=t;}
+        if(b>c)  {t=b;b=c;c=t;}
+        if(b>d)  {t=b;b=d;d=t;}
+        if(c>d)  {t=c;c=d;d=t;}
+
+        boundaryEdges.at(i*6 + 0).start = a;
+        boundaryEdges.at(i*6 + 0).end   = b;
+        boundaryEdges.at(i*6 + 1).start = a;
+        boundaryEdges.at(i*6 + 1).end   = c;
+        boundaryEdges.at(i*6 + 2).start = a;
+        boundaryEdges.at(i*6 + 2).end   = d;
+        boundaryEdges.at(i*6 + 3).start = b;
+        boundaryEdges.at(i*6 + 3).end   = c;
+        boundaryEdges.at(i*6 + 4).start = b;
+        boundaryEdges.at(i*6 + 4).end   = d;
+        boundaryEdges.at(i*6 + 5).start = c;
+        boundaryEdges.at(i*6 + 5).end   = d;
+
+        allPoints.at(i*4 + 0) = a;
+        allPoints.at(i*4 + 1) = b;
+        allPoints.at(i*4 + 2) = c;
+        allPoints.at(i*4 + 3) = d;
+    }
+
+    /** 去重找到边界 **/
+    std::vector<FEMedge>::iterator it_1 = boundaryEdges.begin();
+    std::vector<FEMedge>::iterator it_2 = boundaryEdges.end();
+    std::vector<FEMedge>::iterator new_end;
+
+    std::sort(it_1,it_2);
+
+    new_end = Myunique(it_1,it_2);
+    allEdges = boundaryEdges;
+    boundaryEdges.erase(new_end,it_2);
+//    for(int k = 0;k < boundaryEdges.size();k++){
+//        printf("%d: start: %d,end:%d\n",k,boundaryEdges.at(k).start,boundaryEdges.at(k).end);
+//    }
+    /** 去重找到所有的节点 **/
+    std::vector<int>::iterator it_3 = allPoints.begin();
+    std::vector<int>::iterator it_4 = allPoints.end();
+    std::vector<int>::iterator new_end1;
+
+    std::sort(it_3,it_4);
+
+    new_end1 = std::unique(it_3,it_4);
+    allPoints.erase(new_end1,it_4);
+
+    printf("Total %d triangles.\n",num_triangle);
+    printf("Total %llu points.\n",allPoints.size());
+    printf("Total %llu boundary edges.\n",boundaryEdges.size());
 }
 
 void Relay::setXiantieTag(int xiantie)

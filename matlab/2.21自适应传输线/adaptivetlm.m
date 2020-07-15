@@ -34,7 +34,8 @@ ib = 0;
 t = 0.1;
 count=1;
 textcount=1;
-for i = 1:10
+u1 = zeros(100,1);
+for i = 1:100
     %the incident process
     %    
     ua = (V/Z -ib + ub/Z0)/(1/Z+1/Z0);
@@ -58,7 +59,7 @@ for i = 1:10
 %     line([0,ub],[-2*Ui/Z0,ib],'LineWidth',1,'Color','r','LineStyle','--')
 
     drawnow
-    pause(1)
+%     pause(1)
 %     saveas(gcf,[num2str(count) '.jpg']);
     count = count+1;
 %     line([ua,ua],[ia,r(ua)],'linestyle',':')
@@ -75,6 +76,7 @@ for i = 1:10
         Z1 = ua/ia;
     end
     ub = fzero(@(x)(r(x)-ia-1/Z1*(ua-x)),3)
+    u1(i) = ub;
     Ui = ub - Ur;
     ib = r(ub);
     

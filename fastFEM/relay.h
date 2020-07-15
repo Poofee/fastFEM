@@ -65,6 +65,7 @@ public:
     /** 边界相关 **/
     void findBoundaryPoints(int index);
     void findBoundaryEdges(int index);
+    void findBoundaryEdges3D(int index);
     void findBoundaryFaces(int index);
     /** 分网相关 **/
     void setXiantieTag(int xiantie);
@@ -76,6 +77,7 @@ public:
     void remesh3DParallel(double dx, double dy, double dz);
     void remesh3DRotate(double dangle,double x1, double y1,double z1,
                                       double v1, double v2,double v3);
+
 
     /** 求解器相关 **/
     virtual void run();
@@ -91,6 +93,9 @@ protected:
 
     int num_triangle;/** 三角形单元的数目 **/
     int index_triagle;/** 三角形单元在msh文件保存的起始位置 **/
+
+    int num_tet;/** 四面体单元的数目 **/
+    int index_tet;/** 四面体单元在msh文件保存的起始位置 **/
 
     int tag_xiantie; /** 可移动的区域 **/
     int tag_air; /** 重分网区域，默认geo文件中该区域为最后一个区域。 **/
@@ -125,6 +130,7 @@ protected:
     std::vector<int> allPoints;/** 所有的分网点编号 **/
     std::vector<int> freePoints;/** 所有的自由分网点编号 **/
     std::vector<FEMface> boundaryFaces;/** 外部边界面 **/
+    std::vector<FEMface> allFaces;/** 所有的边 **/
     std::vector<FEMedge> boundaryEdges;/** 外部边界边 **/
     std::vector<FEMedge> allEdges;/** 所有的边 **/
 

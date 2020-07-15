@@ -373,7 +373,9 @@ int main(int argc, char *argv[])
 //    test1250time();
 
     testRemesh tr;
-    tr.testRemesh2D();
+//    tr.testRemesh2D();
+//    tr.testRemesh3DRotate();
+    tr.testRemesh3DParallel();
 
     return 0;
 }

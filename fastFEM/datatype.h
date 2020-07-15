@@ -38,7 +38,7 @@ typedef struct _CNode
 
 typedef struct _CElement
 {
-    int n[4];// ni, nj, nk;//
+    int n[10];/** 0-3 存储的是节点编号，4-9存储的是棱单元编号 **/
     int ele_type;
     int physic_tag;
     int geometry_tag;/** 与face的编号对应 **/

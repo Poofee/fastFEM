@@ -11,7 +11,7 @@
 //#define HAVE_ALGLIB
 //#define HAVE_ANN
 //#define HAVE_BAMG
-//#define HAVE_BLAS
+#define HAVE_BLAS
 //#define HAVE_BLOSSOM
 //#define HAVE_CAIRO
 //#define HAVE_DLOPEN
@@ -23,7 +23,7 @@
 //#define HAVE_HXT
 //#define HAVE_HXT3D
 //#define HAVE_KBIPACK
-//#define HAVE_LAPACK
+#define HAVE_LAPACK
 //#define HAVE_LIBCGNS
 //#define HAVE_LIBJPEG
 //#define HAVE_LIBPNG
@@ -66,7 +66,7 @@
 //#define HAVE_SLEPC
 //#define HAVE_SOLVER
 //#define HAVE_TAUCS
-//#define HAVE_TETGENBR
+#define HAVE_TETGENBR
 //#define HAVE_VISUDEV
 //#define HAVE_VOROPP
 //#define HAVE_ZIPPER

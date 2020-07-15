@@ -20,6 +20,60 @@ DEFINES += _CRT_SECURE_NO_WARNINGS
 
 DESTDIR = $$PWD/../bin
 
+
+!debug_and_release|build_pass {
+    CONFIG(debug, debug|release) {
+        TARGET = $$member(TARGET, 0)d
+    }
+}
+
+unix {
+
+CONFIG(debug,debug|release){
+#output directory
+#DESTDIR = ../x64/Linux/debug
+}else{
+#output directory
+#DESTDIR = ../x64/Linux/release
+}
+#librarys
+LIBS += \
+    -L../SuperLU_MT_3.1 -lsuperlu_mt_OPENMP \
+    -lgomp\
+    -lpthread \
+    ../armadillo/lib/libarmadillo.so \
+    ../openblas/lib/libopenblas.so
+
+#additional include path
+INCLUDEPATH += \
+    ../armadillo/include \
+    ../qcustomplot \
+    ../SuperLU_MT_3.1/SRC \
+}
+
+win32 {
+CONFIG(debug,debug|release){
+#output directory
+#DESTDIR = ../x64/Debug
+}else{
+#output directory
+#DESTDIR = ../x64/Release
+}
+#librarys
+LIBS += \
+    ..\SuperLU_MT_3.1\SuperLU_MT_3.1.lib \
+    ..\OpenBLAS-v0.2.15-Win64-int32\lib\libopenblas.dll.a
+
+#additional include path
+INCLUDEPATH += \
+    ..\armadillo\include \
+    ..\qcustomplot \
+    ..\SuperLU_MT_3.1\SRC \
+        ..\OpenBLAS-v0.2.15-Win64-int32\include \
+
+}
+
+
 include($$PWD/../gmsh/gmsh.pri)
 
 #include($$PWD/../qcustomplot/qcustomplot.pri)
@@ -74,54 +128,3 @@ HEADERS += \
     valverelay.h \
     valvetime.h
 
-!debug_and_release|build_pass {
-    CONFIG(debug, debug|release) {
-        TARGET = $$member(TARGET, 0)d
-    }
-}
-
-unix {
-
-CONFIG(debug,debug|release){
-#output directory
-#DESTDIR = ../x64/Linux/debug
-}else{
-#output directory
-#DESTDIR = ../x64/Linux/release
-}
-#librarys
-LIBS += \
-    -L../SuperLU_MT_3.1 -lsuperlu_mt_OPENMP \
-    -lgomp\
-    -lpthread \
-    ../armadillo/lib/libarmadillo.so \
-    ../openblas/lib/libopenblas.so
-
-#additional include path
-INCLUDEPATH += \
-    ../armadillo/include \
-    ../qcustomplot \
-    ../SuperLU_MT_3.1/SRC \
-}
-
-win32 {
-CONFIG(debug,debug|release){
-#output directory
-#DESTDIR = ../x64/Debug
-}else{
-#output directory
-#DESTDIR = ../x64/Release
-}
-#librarys
-LIBS += \
-    ..\SuperLU_MT_3.1\SuperLU_MT_3.1.lib \
-    ..\OpenBLAS-v0.2.15-Win64-int32\lib\libopenblas.dll.a
-
-#additional include path
-INCLUDEPATH += \	
-    ..\armadillo\include \
-    ..\qcustomplot \
-    ..\SuperLU_MT_3.1\SRC \
-	..\OpenBLAS-v0.2.15-Win64-int32\include \
-
-}

@@ -822,9 +822,9 @@ Surface Loop(1) = {15, 38, 17, 18, 19, 20, 21, 16, 24, 23, 22, 25, 26, 27, 28, 2
 //+
 Surface Loop(2) = {8, 2, 3, 4, 5, 6, 7, 1, 9, 10, 12, 13, 14, 11};
 //+
-Volume(1) = {2};
+Volume(1) = {1};
 //+
-Volume(2) = {1};
+Volume(2) = {2};
 //+
 Surface Loop(3) = {71, 40, 41, 42, 39, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 72};
 //+
@@ -832,22 +832,22 @@ Volume(3) = {3};
 
 inf = 100;
 // create air box around magnets
-BoundingBox; // recompute model bounding box
-cx = (General.MinX + General.MaxX) / 2;
-cy = (General.MinY + General.MaxY) / 2;
-cz = (General.MinZ + General.MaxZ) / 2;
-lx = 2*inf + General.MaxX - General.MinX;
-ly = 2*inf + General.MaxY - General.MinZ;
-lz = 2*inf + General.MaxZ - General.MinZ;
-p1 = newp; Point (p1) = {cx-lx/2, cy-ly/2, cz-lz/2, maxsize};
-p2 = newp; Point (p2) = {cx+lx/2, cy-ly/2, cz-lz/2, maxsize};
-l1 = newl; Line(l1) = {p1, p2};
-e1[] = Extrude {0, ly, 0} { Line{l1}; };
-e2[] = Extrude {0, 0, lz} { Surface{e1[1]}; };
-Delete { Volume{e2[1]}; }//delete the box before create new one
-ss[] = {e1[1],e2[0],e2[2],e2[3],e2[4],e2[5]};
-sl1 = newsl; Surface Loop(sl1) = {ss[]};
-vv[] = {sl1};
+//BoundingBox; // recompute model bounding box
+//cx = (General.MinX + General.MaxX) / 2;
+//cy = (General.MinY + General.MaxY) / 2;
+//cz = (General.MinZ + General.MaxZ) / 2;
+//lx = 2*inf + General.MaxX - General.MinX;
+//ly = 2*inf + General.MaxY - General.MinZ;
+//lz = 2*inf + General.MaxZ - General.MinZ;
+//p1 = newp; Point (p1) = {cx-lx/2, cy-ly/2, cz-lz/2, maxsize};
+//p2 = newp; Point (p2) = {cx+lx/2, cy-ly/2, cz-lz/2, maxsize};
+//l1 = newl; Line(l1) = {p1, p2};
+//e1[] = Extrude {0, ly, 0} { Line{l1}; };
+//e2[] = Extrude {0, 0, lz} { Surface{e1[1]}; };
+//Delete { Volume{e2[1]}; }//delete the box before create new one
+//ss[] = {e1[1],e2[0],e2[2],e2[3],e2[4],e2[5]};
+//sl1 = newsl; Surface Loop(sl1) = {ss[]};
+//vv[] = {sl1};
 
 //skin[] = CombinedBoundary{ Volume{1}; };
 //sl = newsl; Surface Loop(sl) = {skin[]};
@@ -859,10 +859,10 @@ vv[] = {sl1};
 //sl = newsl; Surface Loop(sl) = skin[];
 //vv[] += sl;
 
-v1 = newv; 
+//v1 = newv; 
 //Volume(v1) = {vv[]};
 
 //+
-Volume(284) = { 282,1, 2, 3};
+//Volume(284) = { 282,1, 2, 3};
 
 
