@@ -1,27 +1,30 @@
 //SetFactory("OpenCASCADE");
 
+maxsize = 20;
+lc =2;
+
 halfWidth = 8.05;
 //down part
 //left
 p1 = newp;
-Point(p1+1) = {0, -halfWidth, -34};
-Point(p1+2) = {0, -halfWidth, -12.15};
-Point(p1+3) = {0.98, -halfWidth, -12.15};
-Point(p1+4) = {4.825, -halfWidth, 2.2};
-Point(p1+5) = {5.95, -halfWidth, 2.2};
-Point(p1+6) = {5.95, -halfWidth, -28};
-Point(p1+7) = {17.1, -halfWidth, -28};
-Point(p1+8) = {17.1, -halfWidth, 22.25};
-Point(p1+9) = {17.686, -halfWidth, 22.25};
-Point(p1+10) = {23, -halfWidth, 7.65};
-Point(p1+11) = {25.85, -halfWidth, 7.65};
-Point(p1+12) = {25.85, -halfWidth, 5.475};
-Point(p1+13) = {23, -halfWidth, 5.475};
-Point(p1+14) = {23, -halfWidth, 3.3};
-Point(p1+15) = {25.85, -halfWidth, 3.3};
-Point(p1+16) = {25.85, -halfWidth, -2.557};
-Point(p1+17) = {23.25, -halfWidth, -9.7};
-Point(p1+18) = {23.25, -halfWidth, -34};
+Point(p1+1) = {0, -halfWidth, -34 , lc};
+Point(p1+2) = {0, -halfWidth, -12.15, lc};
+Point(p1+3) = {0.98, -halfWidth, -12.15, lc};
+Point(p1+4) = {4.825, -halfWidth, 2.2, lc};
+Point(p1+5) = {5.95, -halfWidth, 2.2, lc};
+Point(p1+6) = {5.95, -halfWidth, -28, lc};
+Point(p1+7) = {17.1, -halfWidth, -28, lc};
+Point(p1+8) = {17.1, -halfWidth, 22.25, lc};
+Point(p1+9) = {17.686, -halfWidth, 22.25, lc};
+Point(p1+10) = {23, -halfWidth, 7.65, lc};
+Point(p1+11) = {25.85, -halfWidth, 7.65, lc};
+Point(p1+12) = {25.85, -halfWidth, 5.475, lc};
+Point(p1+13) = {23, -halfWidth, 5.475, lc};
+Point(p1+14) = {23, -halfWidth, 3.3, lc};
+Point(p1+15) = {25.85, -halfWidth, 3.3, lc};
+Point(p1+16) = {25.85, -halfWidth, -2.557, lc};
+Point(p1+17) = {23.25, -halfWidth, -9.7, lc};
+Point(p1+18) = {23.25, -halfWidth, -34, lc};
 
 l1=newl;
 //Line (l1+1) = {p1+1, p1+2} ;
@@ -45,24 +48,24 @@ Line (l1+18) = {p1+18, p1+1} ;
 
 //duichen
 p11 = newp;
-//Point(p11+1) = {0, -halfWidth, -34};
-//Point(p11+2) = {0, -halfWidth, -12.15};
-Point(p11+3) = {-0.98, -halfWidth, -12.15};
-Point(p11+4) = {-4.825, -halfWidth, 2.2};
-Point(p11+5) = {-5.95, -halfWidth, 2.2};
-Point(p11+6) = {-5.95, -halfWidth, -28};
-Point(p11+7) = {-17.1, -halfWidth, -28};
-Point(p11+8) = {-17.1, -halfWidth, 22.25};
-Point(p11+9) = {-17.686, -halfWidth, 22.25};
-Point(p11+10) = {-23, -halfWidth, 7.65};
-Point(p11+11) = {-25.85, -halfWidth, 7.65};
-Point(p11+12) = {-25.85, -halfWidth, 5.475};
-Point(p11+13) = {-23, -halfWidth, 5.475};
-Point(p11+14) = {-23, -halfWidth, 3.3};
-Point(p11+15) = {-25.85, -halfWidth, 3.3};
-Point(p11+16) = {-25.85, -halfWidth, -2.557};
-Point(p11+17) = {-23.25, -halfWidth, -9.7};
-Point(p11+18) = {-23.25, -halfWidth, -34};
+//Point(p11+1) = {0, -halfWidth, -34,lc};
+//Point(p11+2) = {0, -halfWidth, -12.15,lc};
+Point(p11+3) = {-0.98, -halfWidth, -12.15,lc};
+Point(p11+4) = {-4.825, -halfWidth, 2.2,lc};
+Point(p11+5) = {-5.95, -halfWidth, 2.2,lc};
+Point(p11+6) = {-5.95, -halfWidth, -28,lc};
+Point(p11+7) = {-17.1, -halfWidth, -28,lc};
+Point(p11+8) = {-17.1, -halfWidth, 22.25,lc};
+Point(p11+9) = {-17.686, -halfWidth, 22.25,lc};
+Point(p11+10) = {-23, -halfWidth, 7.65,lc};
+Point(p11+11) = {-25.85, -halfWidth, 7.65,lc};
+Point(p11+12) = {-25.85, -halfWidth, 5.475,lc};
+Point(p11+13) = {-23, -halfWidth, 5.475,lc};
+Point(p11+14) = {-23, -halfWidth, 3.3,lc};
+Point(p11+15) = {-25.85, -halfWidth, 3.3,lc};
+Point(p11+16) = {-25.85, -halfWidth, -2.557,lc};
+Point(p11+17) = {-23.25, -halfWidth, -9.7,lc};
+Point(p11+18) = {-23.25, -halfWidth, -34,lc};
 
 l11=newl;
 //Line (l11+1) = {p11+1, p11+2} ;
@@ -89,24 +92,24 @@ Line (l11+20) = {p11+3, p1+2} ;
 
 //right
 p1r = newp;
-Point(p1r+1) = {0, halfWidth, -34};
-Point(p1r+2) = {0, halfWidth, -12.15};
-Point(p1r+3) = {0.98, halfWidth, -12.15};
-Point(p1r+4) = {4.825, halfWidth, 2.2};
-Point(p1r+5) = {5.95, halfWidth, 2.2};
-Point(p1r+6) = {5.95, halfWidth, -28};
-Point(p1r+7) = {17.1, halfWidth, -28};
-Point(p1r+8) = {17.1, halfWidth, 22.25};
-Point(p1r+9) = {17.686, halfWidth, 22.25};
-Point(p1r+10) = {23, halfWidth, 7.65};
-Point(p1r+11) = {25.85, halfWidth, 7.65};
-Point(p1r+12) = {25.85, halfWidth, 5.475};
-Point(p1r+13) = {23, halfWidth, 5.475};
-Point(p1r+14) = {23, halfWidth, 3.3};
-Point(p1r+15) = {25.85, halfWidth, 3.3};
-Point(p1r+16) = {25.85, halfWidth, -2.557};
-Point(p1r+17) = {23.25, halfWidth, -9.7};
-Point(p1r+18) = {23.25, halfWidth, -34};
+Point(p1r+1) = {0, halfWidth, -34,lc};
+Point(p1r+2) = {0, halfWidth, -12.15,lc};
+Point(p1r+3) = {0.98, halfWidth, -12.15,lc};
+Point(p1r+4) = {4.825, halfWidth, 2.2,lc};
+Point(p1r+5) = {5.95, halfWidth, 2.2,lc};
+Point(p1r+6) = {5.95, halfWidth, -28,lc};
+Point(p1r+7) = {17.1, halfWidth, -28,lc};
+Point(p1r+8) = {17.1, halfWidth, 22.25,lc};
+Point(p1r+9) = {17.686, halfWidth, 22.25,lc};
+Point(p1r+10) = {23, halfWidth, 7.65,lc};
+Point(p1r+11) = {25.85, halfWidth, 7.65,lc};
+Point(p1r+12) = {25.85, halfWidth, 5.475,lc};
+Point(p1r+13) = {23, halfWidth, 5.475,lc};
+Point(p1r+14) = {23, halfWidth, 3.3,lc};
+Point(p1r+15) = {25.85, halfWidth, 3.3,lc};
+Point(p1r+16) = {25.85, halfWidth, -2.557,lc};
+Point(p1r+17) = {23.25, halfWidth, -9.7,lc};
+Point(p1r+18) = {23.25, halfWidth, -34,lc};
 
 l1r=newl;
 //Line (l1r+1) = {p1r+1, p1r+2} ;
@@ -129,24 +132,24 @@ Line (l1r+17) = {p1r+17, p1r+18} ;
 Line (l1r+18) = {p1r+18, p1r+1} ;
 //right
 p11r = newp;
-//Point(p11r+1) = {0, halfWidth, -34};
-//Point(p11r+2) = {0, halfWidth, -12.15};
-Point(p11r+3) = {-0.98, halfWidth, -12.15};
-Point(p11r+4) = {-4.825, halfWidth, 2.2};
-Point(p11r+5) = {-5.95, halfWidth, 2.2};
-Point(p11r+6) = {-5.95, halfWidth, -28};
-Point(p11r+7) = {-17.1, halfWidth, -28};
-Point(p11r+8) = {-17.1, halfWidth, 22.25};
-Point(p11r+9) = {-17.686, halfWidth, 22.25};
-Point(p11r+10) = {-23, halfWidth, 7.65};
-Point(p11r+11) = {-25.85, halfWidth, 7.65};
-Point(p11r+12) = {-25.85, halfWidth, 5.475};
-Point(p11r+13) = {-23, halfWidth, 5.475};
-Point(p11r+14) = {-23, halfWidth, 3.3};
-Point(p11r+15) = {-25.85, halfWidth, 3.3};
-Point(p11r+16) = {-25.85, halfWidth, -2.557};
-Point(p11r+17) = {-23.25, halfWidth, -9.7};
-Point(p11r+18) = {-23.25, halfWidth, -34};
+//Point(p11r+1) = {0, halfWidth, -34,lc};
+//Point(p11r+2) = {0, halfWidth, -12.15,lc};
+Point(p11r+3) = {-0.98, halfWidth, -12.15,lc};
+Point(p11r+4) = {-4.825, halfWidth, 2.2,lc};
+Point(p11r+5) = {-5.95, halfWidth, 2.2,lc};
+Point(p11r+6) = {-5.95, halfWidth, -28,lc};
+Point(p11r+7) = {-17.1, halfWidth, -28,lc};
+Point(p11r+8) = {-17.1, halfWidth, 22.25,lc};
+Point(p11r+9) = {-17.686, halfWidth, 22.25,lc};
+Point(p11r+10) = {-23, halfWidth, 7.65,lc};
+Point(p11r+11) = {-25.85, halfWidth, 7.65,lc};
+Point(p11r+12) = {-25.85, halfWidth, 5.475,lc};
+Point(p11r+13) = {-23, halfWidth, 5.475,lc};
+Point(p11r+14) = {-23, halfWidth, 3.3,lc};
+Point(p11r+15) = {-25.85, halfWidth, 3.3,lc};
+Point(p11r+16) = {-25.85, halfWidth, -2.557,lc};
+Point(p11r+17) = {-23.25, halfWidth, -9.7,lc};
+Point(p11r+18) = {-23.25, halfWidth, -34,lc};
 
 l11r=newl;
 //Line (l11r+1) = {p11r+1, p11r+2} ;
@@ -218,19 +221,19 @@ Line (lm2+18) = {p11+18,p11r+18} ;
 //up part
 //right
 p2 = newp;
-Point(p2+1) = {0, halfWidth, -11.15};
-Point(p2+2) = {0.595, halfWidth, -11.15};
-Point(p2+3) = {4.44, halfWidth, 3.2};
-Point(p2+4) = {5.5, halfWidth, 3.2};
-Point(p2+5) = {5.5, halfWidth, 30};
-Point(p2+6) = {18, halfWidth, 30};
-Point(p2+7) = {18, halfWidth, 23.625};
-Point(p2+8) = {23.45, halfWidth, 8.65};
-Point(p2+9) = {25.35, halfWidth, 8.65};
-Point(p2+10) = {25.35, halfWidth, 25};
-Point(p2+11) = {23.2, halfWidth, 25};
-Point(p2+12) = {23.2, halfWidth, 35};
-Point(p2+13) = {0, halfWidth, 35};
+Point(p2+1) = {0, halfWidth, -11.15,lc};
+Point(p2+2) = {0.595, halfWidth, -11.15,lc};
+Point(p2+3) = {4.44, halfWidth, 3.2,lc};
+Point(p2+4) = {5.5, halfWidth, 3.2,lc};
+Point(p2+5) = {5.5, halfWidth, 30,lc};
+Point(p2+6) = {18, halfWidth, 30,lc};
+Point(p2+7) = {18, halfWidth, 23.625,lc};
+Point(p2+8) = {23.45, halfWidth, 8.65,lc};
+Point(p2+9) = {25.35, halfWidth, 8.65,lc};
+Point(p2+10) = {25.35, halfWidth, 25,lc};
+Point(p2+11) = {23.2, halfWidth, 25,lc};
+Point(p2+12) = {23.2, halfWidth, 35,lc};
+Point(p2+13) = {0, halfWidth, 35,lc};
 
 l3 = newl;
 Line (l3+1) = {p2+1, p2+2} ;
@@ -249,19 +252,19 @@ Line (l3+12) = {p2+12, p2+13} ;
 
 //duichen
 p22 = newp;
-//Point(p22+1) = {0, halfWidth, -11.15};
-Point(p22+2) = {-0.595, halfWidth, -11.15};
-Point(p22+3) = {-4.44, halfWidth, 3.2};
-Point(p22+4) = {-5.5, halfWidth, 3.2};
-Point(p22+5) = {-5.5, halfWidth, 30};
-Point(p22+6) = {-18, halfWidth, 30};
-Point(p22+7) = {-18, halfWidth, 23.625};
-Point(p22+8) = {-23.45, halfWidth, 8.65};
-Point(p22+9) = {-25.35, halfWidth, 8.65};
-Point(p22+10) = {-25.35, halfWidth, 25};
-Point(p22+11) = {-23.2, halfWidth, 25};
-Point(p22+12) = {-23.2, halfWidth, 35};
-//Point(p22+13) = {-0, halfWidth, 35};
+//Point(p22+1) = {0, halfWidth, -11.15,lc};
+Point(p22+2) = {-0.595, halfWidth, -11.15,lc};
+Point(p22+3) = {-4.44, halfWidth, 3.2,lc};
+Point(p22+4) = {-5.5, halfWidth, 3.2,lc};
+Point(p22+5) = {-5.5, halfWidth, 30,lc};
+Point(p22+6) = {-18, halfWidth, 30,lc};
+Point(p22+7) = {-18, halfWidth, 23.625,lc};
+Point(p22+8) = {-23.45, halfWidth, 8.65,lc};
+Point(p22+9) = {-25.35, halfWidth, 8.65,lc};
+Point(p22+10) = {-25.35, halfWidth, 25,lc};
+Point(p22+11) = {-23.2, halfWidth, 25,lc};
+Point(p22+12) = {-23.2, halfWidth, 35,lc};
+//Point(p22+13) = {-0, halfWidth, 35,lc};
 
 l33 = newl;
 //Line (l33+1) = {p22+1, p22+2} ;
@@ -282,19 +285,19 @@ Line (l33+14) = {p22+2, p2+1} ;
 Line (l33+15) = {p22+12, p2+13} ;
 
 p2r = newp;
-Point(p2r+1) = {0, -halfWidth, -11.15};
-Point(p2r+2) = {0.595, -halfWidth, -11.15};
-Point(p2r+3) = {4.44, -halfWidth, 3.2};
-Point(p2r+4) = {5.5, -halfWidth, 3.2};
-Point(p2r+5) = {5.5, -halfWidth, 30};
-Point(p2r+6) = {18, -halfWidth, 30};
-Point(p2r+7) = {18, -halfWidth, 23.625};
-Point(p2r+8) = {23.45, -halfWidth, 8.65};
-Point(p2r+9) = {25.35, -halfWidth, 8.65};
-Point(p2r+10) = {25.35, -halfWidth, 25};
-Point(p2r+11) = {23.2, -halfWidth, 25};
-Point(p2r+12) = {23.2, -halfWidth, 35};
-Point(p2r+13) = {0, -halfWidth, 35};
+Point(p2r+1) = {0, -halfWidth, -11.15,lc};
+Point(p2r+2) = {0.595, -halfWidth, -11.15,lc};
+Point(p2r+3) = {4.44, -halfWidth, 3.2,lc};
+Point(p2r+4) = {5.5, -halfWidth, 3.2,lc};
+Point(p2r+5) = {5.5, -halfWidth, 30,lc};
+Point(p2r+6) = {18, -halfWidth, 30,lc};
+Point(p2r+7) = {18, -halfWidth, 23.625,lc};
+Point(p2r+8) = {23.45, -halfWidth, 8.65,lc};
+Point(p2r+9) = {25.35, -halfWidth, 8.65,lc};
+Point(p2r+10) = {25.35, -halfWidth, 25,lc};
+Point(p2r+11) = {23.2, -halfWidth, 25,lc};
+Point(p2r+12) = {23.2, -halfWidth, 35,lc};
+Point(p2r+13) = {0, -halfWidth, 35,lc};
 
 l3r = newl;
 Line (l3r+1) = {p2r+1, p2r+2} ;
@@ -313,19 +316,19 @@ Line (l3r+12) = {p2r+12, p2r+13} ;
 
 //right
 p22r = newp;
-//Point(p22r+1) = {0, -halfWidth, -11.15};
-Point(p22r+2) = {-0.595, -halfWidth, -11.15};
-Point(p22r+3) = {-4.44, -halfWidth, 3.2};
-Point(p22r+4) = {-5.5, -halfWidth, 3.2};
-Point(p22r+5) = {-5.5, -halfWidth, 30};
-Point(p22r+6) = {-18, -halfWidth, 30};
-Point(p22r+7) = {-18, -halfWidth, 23.625};
-Point(p22r+8) = {-23.45, -halfWidth, 8.65};
-Point(p22r+9) = {-25.35, -halfWidth, 8.65};
-Point(p22r+10) = {-25.35, -halfWidth, 25};
-Point(p22r+11) = {-23.2, -halfWidth, 25};
-Point(p22r+12) = {-23.2, -halfWidth, 35};
-//Point(p22r+13) = {-0, -halfWidth, 35};
+//Point(p22r+1) = {0, -halfWidth, -11.15,lc};
+Point(p22r+2) = {-0.595, -halfWidth, -11.15,lc};
+Point(p22r+3) = {-4.44, -halfWidth, 3.2,lc};
+Point(p22r+4) = {-5.5, -halfWidth, 3.2,lc};
+Point(p22r+5) = {-5.5, -halfWidth, 30,lc};
+Point(p22r+6) = {-18, -halfWidth, 30,lc};
+Point(p22r+7) = {-18, -halfWidth, 23.625,lc};
+Point(p22r+8) = {-23.45, -halfWidth, 8.65,lc};
+Point(p22r+9) = {-25.35, -halfWidth, 8.65,lc};
+Point(p22r+10) = {-25.35, -halfWidth, 25,lc};
+Point(p22r+11) = {-23.2, -halfWidth, 25,lc};
+Point(p22r+12) = {-23.2, -halfWidth, 35,lc};
+//Point(p22r+13) = {-0, -halfWidth, 35,lc};
 
 l33r = newl;
 //Line (l33r+1) = {p22r+1, p22r+2} ;
@@ -385,10 +388,10 @@ Line (lm4+12) = {p22+12,p22r+12} ;
 
 //coil
 pcoil = newp;
-Point (pcoil+1) = {9, 11, -24.6} ;
-Point (pcoil+2) = {-9, 11, -24.6} ;
-Point (pcoil+3) = {-9, -11, -24.6} ;
-Point (pcoil+4) = {9, -11, -24.6} ;
+Point (pcoil+1) = {9, 11, -24.6,lc} ;
+Point (pcoil+2) = {-9, 11, -24.6,lc} ;
+Point (pcoil+3) = {-9, -11, -24.6,lc} ;
+Point (pcoil+4) = {9, -11, -24.6,lc} ;
 
 lcoil = newl;
 Line (lcoil+1) = {pcoil+1, pcoil+2} ;
@@ -397,25 +400,25 @@ Line (lcoil+3) = {pcoil+3, pcoil+4} ;
 Line (lcoil+4) = {pcoil+4, pcoil+1} ;
 
 
-Point (pcoil+5) = {15, 17, -24.6} ;
-Point (pcoil+6) = {-15, 17, -24.6} ;
-Point (pcoil+7) = {-15, -17, -24.6} ;
-Point (pcoil+8) = {15, -17, -24.6} ;
+Point (pcoil+5) = {15, 17, -24.6,lc} ;
+Point (pcoil+6) = {-15, 17, -24.6,lc} ;
+Point (pcoil+7) = {-15, -17, -24.6,lc} ;
+Point (pcoil+8) = {15, -17, -24.6,lc} ;
 r=5;
-Point (pcoil+9) = {15-r, 17-r, -24.6} ;
-Point (pcoil+10) = {-15+r, 17-r, -24.6} ;
-Point (pcoil+11) = {-15+r, -17+r, -24.6} ;
-Point (pcoil+12) = {15-r, -17+r, -24.6} ;
+Point (pcoil+9) = {15-r, 17-r, -24.6,lc} ;
+Point (pcoil+10) = {-15+r, 17-r, -24.6,lc} ;
+Point (pcoil+11) = {-15+r, -17+r, -24.6,lc} ;
+Point (pcoil+12) = {15-r, -17+r, -24.6,lc} ;
 
-Point (pcoil+13) = {15, 17-r, -24.6} ;
-Point (pcoil+14) = {-15, 17-r, -24.6} ;
-Point (pcoil+15) = {-15, -17+r, -24.6} ;
-Point (pcoil+16) = {15, -17+r, -24.6} ;
+Point (pcoil+13) = {15, 17-r, -24.6,lc} ;
+Point (pcoil+14) = {-15, 17-r, -24.6,lc} ;
+Point (pcoil+15) = {-15, -17+r, -24.6,lc} ;
+Point (pcoil+16) = {15, -17+r, -24.6,lc} ;
 
-Point (pcoil+17) = {15-r, 17, -24.6} ;
-Point (pcoil+18) = {-15+r, 17, -24.6} ;
-Point (pcoil+19) = {-15+r, -17, -24.6} ;
-Point (pcoil+20) = {15-r, -17, -24.6} ;
+Point (pcoil+17) = {15-r, 17, -24.6,lc} ;
+Point (pcoil+18) = {-15+r, 17, -24.6,lc} ;
+Point (pcoil+19) = {-15+r, -17, -24.6,lc} ;
+Point (pcoil+20) = {15-r, -17, -24.6,lc} ;
 
 //+
 c1 = newc;
@@ -440,10 +443,10 @@ Line(lcoil+8) = {pcoil+19, pcoil+20};
 //coil line 2
 coilheight = 49.2;
 pcoil2 = newp;
-Point (pcoil2+1) = {9, 11, -24.6+coilheight} ;
-Point (pcoil2+2) = {-9, 11, -24.6+coilheight} ;
-Point (pcoil2+3) = {-9, -11, -24.6+coilheight} ;
-Point (pcoil2+4) = {9, -11, -24.6+coilheight} ;
+Point (pcoil2+1) = {9, 11, -24.6+coilheight,lc} ;
+Point (pcoil2+2) = {-9, 11, -24.6+coilheight,lc} ;
+Point (pcoil2+3) = {-9, -11, -24.6+coilheight,lc} ;
+Point (pcoil2+4) = {9, -11, -24.6+coilheight,lc} ;
 
 lcoil2 = newl;
 Line (lcoil2+1) = {pcoil2+1, pcoil2+2} ;
@@ -452,25 +455,25 @@ Line (lcoil2+3) = {pcoil2+3, pcoil2+4} ;
 Line (lcoil2+4) = {pcoil2+4, pcoil2+1} ;
 
 
-Point (pcoil2+5) = {15, 17, -24.6+coilheight} ;
-Point (pcoil2+6) = {-15, 17, -24.6+coilheight} ;
-Point (pcoil2+7) = {-15, -17, -24.6+coilheight} ;
-Point (pcoil2+8) = {15, -17, -24.6+coilheight} ;
+Point (pcoil2+5) = {15, 17, -24.6+coilheight,lc} ;
+Point (pcoil2+6) = {-15, 17, -24.6+coilheight,lc} ;
+Point (pcoil2+7) = {-15, -17, -24.6+coilheight,lc} ;
+Point (pcoil2+8) = {15, -17, -24.6+coilheight,lc} ;
 r=5;
-Point (pcoil2+9) = {15-r, 17-r, -24.6+coilheight} ;
-Point (pcoil2+10) = {-15+r, 17-r, -24.6+coilheight} ;
-Point (pcoil2+11) = {-15+r, -17+r, -24.6+coilheight} ;
-Point (pcoil2+12) = {15-r, -17+r, -24.6+coilheight} ;
+Point (pcoil2+9) = {15-r, 17-r, -24.6+coilheight,lc} ;
+Point (pcoil2+10) = {-15+r, 17-r, -24.6+coilheight,lc} ;
+Point (pcoil2+11) = {-15+r, -17+r, -24.6+coilheight,lc} ;
+Point (pcoil2+12) = {15-r, -17+r, -24.6+coilheight,lc} ;
 
-Point (pcoil2+13) = {15, 17-r, -24.6+coilheight} ;
-Point (pcoil2+14) = {-15, 17-r, -24.6+coilheight} ;
-Point (pcoil2+15) = {-15, -17+r, -24.6+coilheight} ;
-Point (pcoil2+16) = {15, -17+r, -24.6+coilheight} ;
+Point (pcoil2+13) = {15, 17-r, -24.6+coilheight,lc} ;
+Point (pcoil2+14) = {-15, 17-r, -24.6+coilheight,lc} ;
+Point (pcoil2+15) = {-15, -17+r, -24.6+coilheight,lc} ;
+Point (pcoil2+16) = {15, -17+r, -24.6+coilheight,lc} ;
 
-Point (pcoil2+17) = {15-r, 17, -24.6+coilheight} ;
-Point (pcoil2+18) = {-15+r, 17, -24.6+coilheight} ;
-Point (pcoil2+19) = {-15+r, -17, -24.6+coilheight} ;
-Point (pcoil2+20) = {15-r, -17, -24.6+coilheight} ;
+Point (pcoil2+17) = {15-r, 17, -24.6+coilheight,lc} ;
+Point (pcoil2+18) = {-15+r, 17, -24.6+coilheight,lc} ;
+Point (pcoil2+19) = {-15+r, -17, -24.6+coilheight,lc} ;
+Point (pcoil2+20) = {15-r, -17, -24.6+coilheight,lc} ;
 
 //+
 c11 = newc;
@@ -826,3 +829,40 @@ Volume(2) = {1};
 Surface Loop(3) = {71, 40, 41, 42, 39, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 72};
 //+
 Volume(3) = {3};
+
+inf = 100;
+// create air box around magnets
+BoundingBox; // recompute model bounding box
+cx = (General.MinX + General.MaxX) / 2;
+cy = (General.MinY + General.MaxY) / 2;
+cz = (General.MinZ + General.MaxZ) / 2;
+lx = 2*inf + General.MaxX - General.MinX;
+ly = 2*inf + General.MaxY - General.MinZ;
+lz = 2*inf + General.MaxZ - General.MinZ;
+p1 = newp; Point (p1) = {cx-lx/2, cy-ly/2, cz-lz/2, maxsize};
+p2 = newp; Point (p2) = {cx+lx/2, cy-ly/2, cz-lz/2, maxsize};
+l1 = newl; Line(l1) = {p1, p2};
+e1[] = Extrude {0, ly, 0} { Line{l1}; };
+e2[] = Extrude {0, 0, lz} { Surface{e1[1]}; };
+Delete { Volume{e2[1]}; }//delete the box before create new one
+ss[] = {e1[1],e2[0],e2[2],e2[3],e2[4],e2[5]};
+sl1 = newsl; Surface Loop(sl1) = {ss[]};
+vv[] = {sl1};
+
+//skin[] = CombinedBoundary{ Volume{1}; };
+//sl = newsl; Surface Loop(sl) = {skin[]};
+//vv[] += sl;
+//skin[] = CombinedBoundary{ Volume{2}; };
+//sl = newsl; Surface Loop(sl) = skin[];
+//vv[] += sl;
+//skin[] = CombinedBoundary{ Volume{3}; };
+//sl = newsl; Surface Loop(sl) = skin[];
+//vv[] += sl;
+
+v1 = newv; 
+//Volume(v1) = {vv[]};
+
+//+
+Volume(284) = { 282,1, 2, 3};
+
+
