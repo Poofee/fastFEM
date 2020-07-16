@@ -375,7 +375,8 @@ int main(int argc, char *argv[])
     testRemesh tr;
 //    tr.testRemesh2D();
 //    tr.testRemesh3DRotate();
-    tr.testRemesh3DParallel();
+//    tr.testRemesh3DParallel();
+    tr.testMove3DMeshParallel();
 
     return 0;
 }

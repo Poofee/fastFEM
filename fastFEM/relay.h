@@ -5,6 +5,7 @@
 #include "slu_mt_ddefs.h"
 
 #include "meshGFace.h"
+#include "meshGRegion.h"
 #include "Generator.h"
 #include "GModel.h"
 #include "gmsh.h"
@@ -62,6 +63,9 @@ public:
     void setFileName(char fn[]);
     void openGeo();
     void moveFace(GFace *f,double dx,double dy,double dz);
+    void moveRegion(GRegion *r,double dx,double dy,double dz);
+    void rotateRegion(GRegion* r,double dangle,double x1, double y1,double z1,
+                      double v1, double v2,double v3);
     /** 边界相关 **/
     void findBoundaryPoints(int index);
     void findBoundaryEdges(int index);
@@ -72,11 +76,12 @@ public:
     void setAirTag(int air);
     void loadMesh();
     void deleteFaceMesh(GFace* f);
-    void deleteVolumeMesh();
+    void deleteRegionMesh(GRegion* r);
     void remesh(double dx, double dy);
     void remesh3DParallel(double dx, double dy, double dz);
     void remesh3DRotate(double dangle,double x1, double y1,double z1,
                                       double v1, double v2,double v3);
+    void updateField();
 
 
     /** 求解器相关 **/

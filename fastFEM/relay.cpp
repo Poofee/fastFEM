@@ -460,8 +460,19 @@ void Relay::deleteFaceMesh(GFace *f)
     dem(f);
 }
 
+/**
+ * @brief 删除区域内的网格。应该是内部的网格。
+ *
+ * @param r
+ */
+void Relay::deleteRegionMesh(GRegion* r)
+{
+    deMeshGRegion dem;
+    dem(r);
+}
+
 /*!
- \brief
+ \brief 位移为正值，验证轴的正方向运动，反之，为负。
 
  \param f
  \param dx
@@ -472,9 +483,9 @@ void Relay::moveFace(GFace *f, double dx, double dy, double dz)
 {
     /** 修改内部分网节点坐标 **/
     for(std::size_t j = 0; j < f->getNumMeshVertices(); j++) {
-        f->getMeshVertex(j)->setXYZ(f->getMeshVertex(j)->x()-dx,
-                                    f->getMeshVertex(j)->y()-dy,
-                                    f->getMeshVertex(j)->z()-dz);
+        f->getMeshVertex(j)->setXYZ(f->getMeshVertex(j)->x()+dx,
+                                    f->getMeshVertex(j)->y()+dy,
+                                    f->getMeshVertex(j)->z()+dz);
     }
     /** 修改边界棱上分网节点坐标 **/
     std::set<MVertex *, MVertexLessThanNum> all_vertices;
@@ -489,22 +500,91 @@ void Relay::moveFace(GFace *f, double dx, double dy, double dz)
     }
     /** all_vertices比e->getMeshVertex多了顶点 **/
     for(std::set<MVertex *, MVertexLessThanNum>::iterator ite = all_vertices.begin();ite != all_vertices.end(); ite++) {
-        (*ite)->setXYZ((*ite)->x()-dx,(*ite)->y()-dy,(*ite)->z()-dz);
+        (*ite)->setXYZ((*ite)->x()+dx,(*ite)->y()+dy,(*ite)->z()+dz);
     }
     /** 修改几何顶点坐标 **/
     for(auto v : f->vertices()){
         for(std::size_t j = 0; j < v->getNumMeshVertices(); j++){
-            GPoint p(v->x()-dx,v->y()-dy,v->z()-dz);
+            GPoint p(v->x()+dx,v->y()+dy,v->z()+dz);
             v->setPosition(p);
         }
     }
     /** 更新distance field **/
-    FieldManager* fM = GModel::current()->getFields();
-    std::map<int, Field *>::iterator iter;
-    for(iter = fM->begin(); iter != fM->end(); iter++){
-        iter->second->update_needed = true;
-        iter->second->update();
+    updateField();
+}
+
+/**
+ * @brief 移动某个区域内的网格。
+ *
+ * @param r
+ * @param dx
+ * @param dy
+ * @param dz
+ */
+void Relay::moveRegion(GRegion* r, double dx, double dy, double dz)
+{
+    printf("r->getNumMeshVertices():%llu\n",r->getNumMeshVertices());
+    printf("r->embeddedVertices():%llu\n",r->embeddedVertices().size());
+    printf("r->vertices():%llu\n",r->vertices().size());
+
+    for(std::size_t j = 0;j <r->getNumMeshVertices();j++){
+        r->getMeshVertex(j)->setXYZ(r->getMeshVertex(j)->x() + dx,
+                                    r->getMeshVertex(j)->y() + dy,
+                                    r->getMeshVertex(j)->z() + dz);
     }
+
+    /** 修改边界面上分网节点坐标 **/
+    std::set<MVertex *, MVertexLessThanNum> all_vertices;
+    for(auto f : r->faces()){
+        /** 修改内部分网节点坐标 **/
+        for(std::size_t j = 0; j < f->getNumMeshVertices(); j++) {
+            f->getMeshVertex(j)->setXYZ(f->getMeshVertex(j)->x()+dx,
+                                        f->getMeshVertex(j)->y()+dy,
+                                        f->getMeshVertex(j)->z()+dz);
+        }
+        /** 由于两个面相邻的话，分别移动边界上的点会造成重复移动 **/
+        for(auto e : f->edges()){
+            for(auto line : e->lines){
+                MVertex *v1 = line->getVertex(0);
+                MVertex *v2 = line->getVertex(1);
+
+                all_vertices.insert(v1);
+                all_vertices.insert(v2);
+            }
+        }
+    }
+    /** 移动面的边上的分网点**/
+    for(std::set<MVertex *, MVertexLessThanNum>::iterator ite = all_vertices.begin();ite != all_vertices.end(); ite++) {
+        (*ite)->setXYZ((*ite)->x()+dx,(*ite)->y()+dy,(*ite)->z()+dz);
+    }
+    /** 修改几何顶点坐标 **/
+    for(auto v : r->vertices()){
+        for(std::size_t j = 0; j < v->getNumMeshVertices(); j++){
+            GPoint p(v->x()+dx,v->y()+dy,v->z()+dz);
+            v->setPosition(p);
+        }
+    }
+    /** 更新distance field **/
+    updateField();
+}
+
+/**
+ * @brief 旋转某个区域内的网格。
+ *
+ * @param r
+ * @param dangle
+ * @param x1
+ * @param y1
+ * @param z1
+ * @param v1
+ * @param v2
+ * @param v3
+ */
+void Relay::rotateRegion(GRegion* r, double dangle, double x1, double y1, double z1, double v1, double v2, double v3)
+{
+
+    /** 更新distance field **/
+    updateField();
 }
 
 /*!
@@ -563,7 +643,41 @@ void Relay::remesh(double dx, double dy)
 */
 void Relay::remesh3DParallel(double dx, double dy, double dz)
 {
+    char nameMsh[256];
+    sprintf(nameMsh,"%s_%02d.msh",fileName,current_step);
+    /** 未发生位移就不要分了 **/
+    if(dx == 0 && dy == 0 && dz == 0){
+        gmsh::write(nameMsh);
+        return;
+    }
 
+    GRegion* r_xiantie = nullptr;
+    GRegion* r_air = nullptr;
+    for(GModel::riter it = model->firstRegion(); it != model->lastRegion(); ++it){
+        printf("rigion tag:%d\n",(*it)->tag());
+        if((*it)->tag() == tag_air){
+            r_air = (*it);
+        }
+        if((*it)->tag() == tag_xiantie){
+            r_xiantie = (*it);
+        }
+    }
+
+    printf("-------------mesh step %d-------------\n",current_step);
+    /** 删除空气的分网 **/
+    printf("-------------deleting air surface %d-------------\n",tag_air);
+    deleteRegionMesh(r_air);
+    /** 移动衔铁的分网 **/
+    printf("-------------moving armature mesh...-------------\n");
+    moveRegion(r_xiantie,dx,dy,dz);
+
+    /** 对空气进行重分网 **/
+    printf("-------------remesh air domain...-------------\n");
+    r_air->mesh(true);
+
+    gmsh::write(nameMsh);
+
+    printf("-------------Finish-------------\n");
 }
 
 /*!
@@ -579,7 +693,57 @@ void Relay::remesh3DParallel(double dx, double dy, double dz)
 */
 void Relay::remesh3DRotate(double dangle, double x1, double y1, double z1, double v1, double v2, double v3)
 {
+    char nameMsh[256];
+    sprintf(nameMsh,"%s_%02d.msh",fileName,current_step);
+    /** 未发生位移就不要分了 **/
+    if(dangle == 0){
+        gmsh::write(nameMsh);
+        return;
+    }
 
+    GRegion* r_xiantie = nullptr;
+    GRegion* r_air = nullptr;
+    for(GModel::riter it = model->firstRegion(); it != model->lastRegion(); ++it){
+        printf("region tag:%d\n",(*it)->tag());
+        if((*it)->tag() == tag_air){
+            r_air = (*it);
+        }
+        if((*it)->tag() == tag_xiantie){
+            r_xiantie = (*it);
+        }
+    }
+
+
+    printf("-------------mesh step %d-------------\n",current_step);
+    /** 删除空气的分网 **/
+    printf("-------------deleting air surface %d-------------\n",tag_air);
+    deleteRegionMesh(r_air);
+    /** 移动衔铁的分网 **/
+    printf("-------------moving armature mesh...-------------\n");
+    rotateRegion(r_xiantie,dangle,x1,y1,z1,v1,v2,v3);
+
+    /** 对空气进行重分网 **/
+    printf("-------------remesh air domain...-------------\n");
+    r_air->mesh(true);
+
+    gmsh::write(nameMsh);
+
+    printf("-------------Finish-------------\n");
+}
+
+/**
+ * @brief 更新gmsh的分网大小控制。
+ *
+ */
+void Relay::updateField()
+{
+    /** 更新distance field **/
+    FieldManager* fM = GModel::current()->getFields();
+    std::map<int, Field *>::iterator iter;
+    for(iter = fM->begin(); iter != fM->end(); iter++){
+        iter->second->update_needed = true;
+        iter->second->update();
+    }
 }
 
 void Relay::run()
