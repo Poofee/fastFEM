@@ -17,6 +17,7 @@ public:
     void testRemesh3DParallel();
     void testRemesh3DRotate();
     void testMove3DMeshParallel();
+    void testRotate3DMesh();
 };
 
 #endif // TESTREMESH_H

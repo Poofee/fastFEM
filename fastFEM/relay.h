@@ -66,6 +66,8 @@ public:
     void moveRegion(GRegion *r,double dx,double dy,double dz);
     void rotateRegion(GRegion* r,double dangle,double x1, double y1,double z1,
                       double v1, double v2,double v3);
+    Point3f RotateByVector(double theta, double old_x, double old_y, double old_z, double vx, double vy, double vz);
+
     /** 边界相关 **/
     void findBoundaryPoints(int index);
     void findBoundaryEdges(int index);

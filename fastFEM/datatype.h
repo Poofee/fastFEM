@@ -108,3 +108,18 @@ class Voltage{
 public:
 	double V12, V13, V23;
 };
+
+class Point3f
+{
+public:
+    Point3f():x(0),y(0),z(0){}
+    Point3f(double _x, double _y, double _z) {
+        x = _x;
+        y = _y;
+        z = _z;
+    }
+
+    double x;
+    double y;
+    double z;
+};

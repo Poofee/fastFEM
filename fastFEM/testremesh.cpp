@@ -69,11 +69,27 @@ void testRemesh::testMove3DMeshParallel()
     relay.setAirTag(1);
     relay.setXiantieTag(2);
 
-    double xdisp = 0;
+    double xdisp = -1;
     double ydisp = -5;
-    double zdisp = 0;
+    double zdisp = -1;
     double xingcheng = 2.2;
 
     relay.stepIncrement();
     relay.remesh3DParallel(xdisp,ydisp,zdisp);
+}
+
+void testRemesh::testRotate3DMesh()
+{
+    Relay relay;
+    char fileName[] = "valve/bb";
+    relay.setFileName(fileName);
+    relay.openGeo();
+    relay.setAirTag(1);
+    relay.setXiantieTag(2);
+
+    double angle = 90;
+    double xingcheng = 2.2;
+
+    relay.stepIncrement();
+    relay.remesh3DRotate(angle,0,-1.8,0,0,0,1);
 }

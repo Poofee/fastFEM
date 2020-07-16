@@ -523,10 +523,11 @@ void Relay::moveFace(GFace *f, double dx, double dy, double dz)
  */
 void Relay::moveRegion(GRegion* r, double dx, double dy, double dz)
 {
-    printf("r->getNumMeshVertices():%llu\n",r->getNumMeshVertices());
-    printf("r->embeddedVertices():%llu\n",r->embeddedVertices().size());
-    printf("r->vertices():%llu\n",r->vertices().size());
+//    printf("r->getNumMeshVertices():%llu\n",r->getNumMeshVertices());
+//    printf("r->embeddedVertices():%llu\n",r->embeddedVertices().size());
+//    printf("r->vertices():%llu\n",r->vertices().size());
 
+    /** 移动内部的节点 **/
     for(std::size_t j = 0;j <r->getNumMeshVertices();j++){
         r->getMeshVertex(j)->setXYZ(r->getMeshVertex(j)->x() + dx,
                                     r->getMeshVertex(j)->y() + dy,
@@ -569,22 +570,84 @@ void Relay::moveRegion(GRegion* r, double dx, double dy, double dz)
 }
 
 /**
- * @brief 旋转某个区域内的网格。
+ * @brief 旋转某个区域内的网格。正方向为右手握住轴的方向。
  *
  * @param r
- * @param dangle
- * @param x1
+ * @param dangle -180~180
+ * @param x1 向量的位置
  * @param y1
  * @param z1
- * @param v1
+ * @param v1 旋转单位向量，过原点。
  * @param v2
  * @param v3
  */
 void Relay::rotateRegion(GRegion* r, double dangle, double x1, double y1, double z1, double v1, double v2, double v3)
 {
+    Point3f p;
+    /** 移动内部的节点 **/
+    for(std::size_t j = 0;j <r->getNumMeshVertices();j++){
+        p = RotateByVector(dangle,r->getMeshVertex(j)->x()-x1,r->getMeshVertex(j)->y()-y1,r->getMeshVertex(j)->z()-z1,v1,v2,v3);
+        r->getMeshVertex(j)->setXYZ(p.x+x1,p.y+y1,p.z+z1);
+    }
 
+    /** 修改边界面上分网节点坐标 **/
+    std::set<MVertex *, MVertexLessThanNum> all_vertices;
+    for(auto f : r->faces()){
+        /** 修改内部分网节点坐标 **/
+        for(std::size_t j = 0; j < f->getNumMeshVertices(); j++) {
+            p = RotateByVector(dangle,f->getMeshVertex(j)->x()-x1,f->getMeshVertex(j)->y()-y1,f->getMeshVertex(j)->z()-z1,v1,v2,v3);
+            f->getMeshVertex(j)->setXYZ(p.x+x1,p.y+y1,p.z+z1);
+        }
+        /** 由于两个面相邻的话，分别移动边界上的点会造成重复移动 **/
+        for(auto e : f->edges()){
+            for(auto line : e->lines){
+                MVertex *v1 = line->getVertex(0);
+                MVertex *v2 = line->getVertex(1);
+
+                all_vertices.insert(v1);
+                all_vertices.insert(v2);
+            }
+        }
+    }
+    /** 移动面的边上的分网点**/
+    for(std::set<MVertex *, MVertexLessThanNum>::iterator ite = all_vertices.begin();ite != all_vertices.end(); ite++) {
+        p = RotateByVector(dangle,(*ite)->x()-x1,(*ite)->y()-y1,(*ite)->z()-z1,v1,v2,v3);
+        (*ite)->setXYZ(p.x+x1,p.y+y1,p.z+z1);
+    }
+    /** 修改几何顶点坐标 **/
+    for(auto v : r->vertices()){
+        for(std::size_t j = 0; j < v->getNumMeshVertices(); j++){
+            p = RotateByVector(dangle,v->x()-x1,v->y()-y1,v->z()-z1,v1,v2,v3);
+            GPoint p1(p.x+x1,p.y+y1,p.z+z1);
+            v->setPosition(p1);
+        }
+    }
     /** 更新distance field **/
     updateField();
+}
+
+/**
+ * @brief 空间点绕任意轴的旋转公式。
+ *
+ * @param theta 角度
+ * @param old_x
+ * @param old_y
+ * @param old_z
+ * @param vx 单位向量。
+ * @param vy
+ * @param vz
+ * @return Point3f
+ */
+Point3f Relay::RotateByVector(double theta, double old_x, double old_y, double old_z, double vx, double vy, double vz)
+{
+    double r = theta * M_PI / 180;
+    double c = cos(r);
+    double s = sin(r);
+
+    double new_x = (vx*vx*(1 - c) + c) * old_x + (vx*vy*(1 - c) - vz*s) * old_y + (vx*vz*(1 - c) + vy*s) * old_z;
+    double new_y = (vy*vx*(1 - c) + vz*s) * old_x + (vy*vy*(1 - c) + c) * old_y + (vy*vz*(1 - c) - vx*s) * old_z;
+    double new_z = (vx*vz*(1 - c) - vy*s) * old_x + (vy*vz*(1 - c) + vx*s) * old_y + (vz*vz*(1 - c) + c) * old_z;
+    return Point3f(new_x, new_y, new_z);
 }
 
 /*!
