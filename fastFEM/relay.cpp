@@ -683,14 +683,14 @@ void Relay::remesh(double dx, double dy)
     printf("-------------mesh step %d-------------\n",current_step);
     /** 删除空气的分网 **/
     printf("-------------deleting air surface %d-------------\n",tag_air);
-    deleteFaceMesh(f_air);
+    if(f_air) deleteFaceMesh(f_air);
     /** 移动衔铁的分网 **/
     printf("-------------moving armature mesh...-------------\n");
-    moveFace(f_xiantie,dx,dy,0);
+    if(f_xiantie) moveFace(f_xiantie,dx,dy,0);
 
     /** 对空气进行重分网 **/
     printf("-------------remesh air domain...-------------\n");
-    f_air->mesh(true);
+    if(f_air) f_air->mesh(true);
 
     gmsh::write(nameMsh);
 
@@ -729,14 +729,14 @@ void Relay::remesh3DParallel(double dx, double dy, double dz)
     printf("-------------mesh step %d-------------\n",current_step);
     /** 删除空气的分网 **/
     printf("-------------deleting air surface %d-------------\n",tag_air);
-    deleteRegionMesh(r_air);
+    if(r_air) deleteRegionMesh(r_air);
     /** 移动衔铁的分网 **/
     printf("-------------moving armature mesh...-------------\n");
-    moveRegion(r_xiantie,dx,dy,dz);
+    if(r_xiantie) moveRegion(r_xiantie,dx,dy,dz);
 
     /** 对空气进行重分网 **/
     printf("-------------remesh air domain...-------------\n");
-    r_air->mesh(true);
+    if(r_air) r_air->mesh(true);
 
     gmsh::write(nameMsh);
 
@@ -780,14 +780,14 @@ void Relay::remesh3DRotate(double dangle, double x1, double y1, double z1, doubl
     printf("-------------mesh step %d-------------\n",current_step);
     /** 删除空气的分网 **/
     printf("-------------deleting air surface %d-------------\n",tag_air);
-    deleteRegionMesh(r_air);
+    if(r_air) deleteRegionMesh(r_air);
     /** 移动衔铁的分网 **/
     printf("-------------moving armature mesh...-------------\n");
-    rotateRegion(r_xiantie,dangle,x1,y1,z1,v1,v2,v3);
+    if(r_xiantie) rotateRegion(r_xiantie,dangle,x1,y1,z1,v1,v2,v3);
 
     /** 对空气进行重分网 **/
     printf("-------------remesh air domain...-------------\n");
-    r_air->mesh(true);
+    if(r_air) r_air->mesh(true);
 
     gmsh::write(nameMsh);
 

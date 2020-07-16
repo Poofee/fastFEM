@@ -84,12 +84,14 @@ void testRemesh::testRotate3DMesh()
     char fileName[] = "valve/bb";
     relay.setFileName(fileName);
     relay.openGeo();
-    relay.setAirTag(1);
-    relay.setXiantieTag(2);
+//    relay.setAirTag(1);
+    relay.setXiantieTag(1);
 
     double angle = 90;
     double xingcheng = 2.2;
 
-    relay.stepIncrement();
-    relay.remesh3DRotate(angle,0,-1.8,0,0,0,1);
+    for(int i = 0;i < 3;i++){
+        relay.stepIncrement();
+        relay.remesh3DRotate(angle,0,-1.8-1.25,-2.1+1.05+0.4/2,0,1,0);
+    }
 }
