@@ -732,7 +732,8 @@ void Msg::SetWindowTitle(const std::string &title)
 
 void Msg::Debug(const char *fmt, ...)
 {
-  if(GetVerbosity() < 99) return;
+  if(GetVerbosity() < 10000)
+      return;
 
   char str[5000];
   va_list args;

@@ -1,6 +1,6 @@
 //unit: mm
 cl__1 = 0.1;
-coilcl = 0.5;
+coilcl = 0.1;
 Point(1) = {-0.9, -3.94167596356164, 2.09816187398082, cl__1};
 Point(2) = {-0.9, -3.84172421717209, 2.19505568762441, cl__1};
 Point(3) = {0.9, -3.84172421717209, 2.19505568762441, cl__1};
@@ -616,9 +616,11 @@ Circle(50) = {36, p50 + 1, 35};
 Line(51) = {36, 37};
 Line(52) = {37, 38};
 Line(53) = {39, 38};
+//axis point 1
 p54 = newp;
 Point(p54 + 1) = {1.74579962392938, -4.10996380979215, 0.00232963976730521};
 Circle(54) = {29, p54 + 1, 39};
+//axis point 2
 p55 = newp;
 Point(p55 + 1) = {-1.74579962392938, -4.10996380979216, 0.00232963976730578};
 Circle(55) = {40, p55 + 1, 30};
@@ -3852,15 +3854,15 @@ r2 = cR-cW/2;
 pcenter = newp;
 Point(pcenter+1) = {cdx1, cdy1-cH/2, cdz1};
 
-Point(pcenter+2) = {cdx1-r1, cdy1-cH/2, cdz1};
-Point(pcenter+3) = {cdx1, cdy1-cH/2, cdz1+r1};
-Point(pcenter+4) = {cdx1+r1, cdy1-cH/2, cdz1};
-Point(pcenter+5) = {cdx1, cdy1-cH/2, cdz1-r1};
+Point(pcenter+2) = {cdx1-r1, cdy1-cH/2, cdz1,coilcl};
+Point(pcenter+3) = {cdx1, cdy1-cH/2, cdz1+r1,coilcl};
+Point(pcenter+4) = {cdx1+r1, cdy1-cH/2, cdz1,coilcl};
+Point(pcenter+5) = {cdx1, cdy1-cH/2, cdz1-r1,coilcl};
 
-Point(pcenter+6) = {cdx1-r2, cdy1-cH/2, cdz1};
-Point(pcenter+7) = {cdx1, cdy1-cH/2, cdz1+r2};
-Point(pcenter+8) = {cdx1+r2, cdy1-cH/2, cdz1};
-Point(pcenter+9) = {cdx1, cdy1-cH/2, cdz1-r2};
+Point(pcenter+6) = {cdx1-r2, cdy1-cH/2, cdz1,coilcl};
+Point(pcenter+7) = {cdx1, cdy1-cH/2, cdz1+r2,coilcl};
+Point(pcenter+8) = {cdx1+r2, cdy1-cH/2, cdz1,coilcl};
+Point(pcenter+9) = {cdx1, cdy1-cH/2, cdz1-r2,coilcl};
 
 c5 = newc;
 Circle(c5+1) = {pcenter+2,pcenter+1,pcenter+3};

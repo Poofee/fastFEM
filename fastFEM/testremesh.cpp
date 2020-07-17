@@ -82,7 +82,12 @@ void testRemesh::testRemesh3DRotate()
     relay.setAirTag(13);
     relay.setXiantieTag(1);
 
-    relay.remesh3DRotate(0.1,0,0,0,0,0,0);
+    double angle = 0.5;
+    /** TO5的轴其实与x轴平行 **/
+    for(double a = 0; a <= 3.4;a += angle){
+        relay.stepIncrement();
+        relay.remesh3DRotate(angle,1.74579962392938, -4.10996380979215, 0.00232963976730521,1,0,0);
+    }
 }
 
 void testRemesh::testMove3DMeshParallel()
