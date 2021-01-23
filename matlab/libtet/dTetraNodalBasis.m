@@ -13,6 +13,7 @@ grad = zeros(4,3);
 m1 = [reshape(x,[4,1]),reshape(y,[4,1]),reshape(z,[4,1])];
 V6 = det([1;1;1]*m1(4,:)-m1(1:3,:));
 if V6 < 0
+    V6 = -V6;
     fprintf('V6Ğ¡ÓÚÁã\n');
 end
 % if n == 1

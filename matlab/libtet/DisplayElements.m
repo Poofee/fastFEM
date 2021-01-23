@@ -50,7 +50,7 @@ for eln = 1:TNEL
 %         fill3(X([2,3,4]),Y([2,3,4]),Z([2,3,4]),[0 1 1],'facealpha',0.5);
 %         fill3(X([1,3,4]),Y([1,3,4]),Z([1,3,4]),[0 1 1],'facealpha',0.5);
 %         text(X,Y,Z,{'1','2','3','4'},'Color',[1 0 0],'FontSize',24);
-    drawnow
+%     drawnow
 %     for i=1:length(X)
 %        text(...
 %         mean(X(i)),...             % Places text at the average x location
